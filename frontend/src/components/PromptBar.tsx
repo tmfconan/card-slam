@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Category, WorkItem } from "../types";
 import api from "../api/client";
 import WorkItemConfirm from "./WorkItemConfirm";
+import QuickAddCard from "./QuickAddCard";
 
 interface Props {
   categories: Category[];
@@ -14,6 +15,7 @@ export default function PromptBar({ categories, onCardsCreated }: Props) {
   const [loading, setLoading] = useState(false);
   const [workItems, setWorkItems] = useState<WorkItem[] | null>(null);
   const [error, setError] = useState("");
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
 
   const selectedCategory = categories.find((c) => c.id === categoryId);
 
@@ -79,6 +81,13 @@ export default function PromptBar({ categories, onCardsCreated }: Props) {
           >
             {loading ? "Parsing…" : "Break it down"}
           </button>
+
+          <button
+            onClick={() => setShowQuickAdd(true)}
+            className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap transition-colors text-gray-700"
+          >
+            + Direct add
+          </button>
         </div>
         {error && <p className="text-red-500 text-xs mt-1.5">{error}</p>}
         {categories.length === 0 && (
@@ -95,6 +104,16 @@ export default function PromptBar({ categories, onCardsCreated }: Props) {
           categories={categories}
           onConfirm={handleConfirmed}
           onCancel={() => setWorkItems(null)}
+        />
+      )}
+
+      {showQuickAdd && (
+        <QuickAddCard
+          categories={categories}
+          onCardCreated={() => {
+            onCardsCreated();
+          }}
+          onClose={() => setShowQuickAdd(false)}
         />
       )}
     </>

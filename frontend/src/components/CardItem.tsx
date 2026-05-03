@@ -8,6 +8,7 @@ interface Props {
   isDragging?: boolean;
   onUpdate: () => void;
   showStatus?: boolean;
+  showUpdatedAt?: boolean;
 }
 
 export default function CardItem({
@@ -16,6 +17,7 @@ export default function CardItem({
   isDragging,
   onUpdate,
   showStatus,
+  showUpdatedAt,
 }: Props) {
   const [editing, setEditing] = useState(false);
   const [title, setTitle] = useState(card.title);
@@ -140,6 +142,11 @@ export default function CardItem({
           </select>
         )}
       </div>
+      {showUpdatedAt && (
+        <p className="text-xs text-gray-300 mt-1.5">
+          Updated {new Date(card.updated_at).toLocaleDateString()}
+        </p>
+      )}
     </div>
   );
 }

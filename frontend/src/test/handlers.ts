@@ -34,6 +34,7 @@ export const mockCards: Card[] = [
     category_id: "cat-2",
     status: "in_progress",
     priority: 1,
+    todo_date: "2026-05-05",
     created_at: "2024-01-02T00:00:00Z",
     updated_at: "2024-01-02T00:00:00Z",
   },
