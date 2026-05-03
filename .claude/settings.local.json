@@ -22,7 +22,18 @@
       "Bash(python3 -m pytest tests/ -v)",
       "Bash(aws codeartifact *)",
       "Bash(python3 -m pytest tests/ -v --tb=short)",
-      "Bash(node_modules/.bin/vitest run *)"
+      "Bash(node_modules/.bin/vitest run *)",
+      "Bash(make test-backend *)",
+      "Bash(make test-frontend *)",
+      "Bash(make test *)",
+      "Bash(git -C /Users/maxk/codes/card-slam diff --stat HEAD)",
+      "Bash(git -C /Users/maxk/codes/card-slam status)",
+      "Bash(git -C /Users/maxk/codes/card-slam log --oneline -3)",
+      "Bash(git -C /Users/maxk/codes/card-slam add backend/cards/models.py backend/cards/router.py backend/tests/test_cards.py frontend/src/types/index.ts frontend/src/components/CalendarView.tsx frontend/src/components/QuickAddCard.tsx frontend/src/components/CardItem.tsx frontend/src/components/Layout.tsx frontend/src/components/PromptBar.tsx frontend/src/test/handlers.ts frontend/src/__tests__/CalendarView.test.tsx frontend/src/__tests__/QuickAddCard.test.tsx)",
+      "Bash(git -C /Users/maxk/codes/card-slam commit -m ' *)",
+      "Bash(AWS_PROFILE=AdministratorAccess-366258938689 aws sts get-caller-identity --query Account --output text)",
+      "Bash(AWS_PROFILE=AdministratorAccess-366258938689 bash scripts/deploy.sh)",
+      "Bash(git -C /Users/maxk/codes/card-slam add frontend/tsconfig.json frontend/src/__tests__/ListView.test.tsx)"
     ]
   }
 }
