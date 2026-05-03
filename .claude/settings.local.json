@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(chmod +x /Users/maxk/codes/card-slam/scripts/bootstrap.sh /Users/maxk/codes/card-slam/scripts/deploy.sh)",
+      "Bash(python3 -c ' *)",
+      "Bash(npm install *)",
+      "Bash(npx tsc *)",
+      "Bash(npx --no tsc --noEmit)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(/Users/maxk/codes/card-slam/frontend/node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules/.bin/vite build *)",
+      "Bash(chmod +x /Users/maxk/codes/card-slam/scripts/dev.sh)",
+      "Bash(aws cloudformation *)",
+      "Bash(AWS_PROFILE=AdministratorAccess-366258938689 aws cloudformation describe-stacks --stack-name CardSlamStack --region us-east-2 --query \"Stacks[0].Outputs\" --output table)",
+      "Bash(curl -v -X POST http://localhost:8001 -H 'Content-Type: application/x-amz-json-1.0' -H 'X-Amz-Target: DynamoDB_20120810.ListTables' -d '{}')",
+      "Bash(docker port *)",
+      "Bash(ps -p 99059 -o pid,command)"
+    ]
+  }
+}

@@ -216,3 +216,15 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# CDK
+cdk/cdk.out/
+
+# Node / frontend
+frontend/node_modules/
+frontend/dist/
+
+# Secrets
+*.pem
+*.key
+.env
