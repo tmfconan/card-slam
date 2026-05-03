@@ -34,7 +34,7 @@ def list_cards(
 def create_card(body: CardCreate, user: str = Depends(verify_token)):
     table = get_cards_table()
     now = datetime.now(timezone.utc).isoformat()
-    item = {
+    item: dict = {
         "id": str(uuid.uuid4()),
         "title": body.title,
         "description": body.description,
@@ -44,6 +44,8 @@ def create_card(body: CardCreate, user: str = Depends(verify_token)):
         "created_at": now,
         "updated_at": now,
     }
+    if body.todo_date is not None:
+        item["todo_date"] = body.todo_date
     table.put_item(Item=item)
     return item
 
@@ -104,8 +106,11 @@ def update_card(card_id: str, body: CardUpdate, user: str = Depends(verify_token
     item = response.get("Item")
     if not item:
         raise HTTPException(status_code=404, detail="Card not found")
-    for k, v in body.model_dump(exclude_none=True).items():
-        item[k] = v
+    for k, v in body.model_dump(exclude_unset=True).items():
+        if v is None:
+            item.pop(k, None)  # explicitly nulled → remove the attribute
+        else:
+            item[k] = v
     item["updated_at"] = datetime.now(timezone.utc).isoformat()
     table.put_item(Item=item)
     return _normalize(item)

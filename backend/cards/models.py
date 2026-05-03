@@ -14,10 +14,11 @@ class Status(str, Enum):
 
 class CardCreate(BaseModel):
     title: str
-    description: str
+    description: str = ""
     category_id: str
     status: Status = Status.brainstorm
     priority: int = 0
+    todo_date: Optional[str] = None  # YYYY-MM-DD
 
 
 class CardUpdate(BaseModel):
@@ -26,6 +27,7 @@ class CardUpdate(BaseModel):
     category_id: Optional[str] = None
     status: Optional[Status] = None
     priority: Optional[int] = None
+    todo_date: Optional[str] = None  # YYYY-MM-DD; explicitly set to null to clear
 
 
 class CardReorderItem(BaseModel):
@@ -41,5 +43,6 @@ class Card(BaseModel):
     category_id: str
     status: Status
     priority: int
+    todo_date: Optional[str] = None
     created_at: str
     updated_at: str

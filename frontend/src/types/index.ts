@@ -38,6 +38,7 @@ export interface Card {
   category_id: string;
   status: Status;
   priority: number;
+  todo_date?: string;   // YYYY-MM-DD, optional
   created_at: string;
   updated_at: string;
 }

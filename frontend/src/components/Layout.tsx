@@ -3,6 +3,7 @@ import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import KanbanView from "./KanbanView";
 import ListView from "./ListView";
+import CalendarView from "./CalendarView";
 import CategoryManager from "./CategoryManager";
 import PromptBar from "./PromptBar";
 import { Category, Card } from "../types";
@@ -30,7 +31,7 @@ export default function Layout() {
   }, [fetchAll]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = location.pathname !== "/categories";
+  const showPromptBar = !["/categories"].includes(location.pathname);
 
   const navLink = (to: string, label: string) => {
     const active = location.pathname === to;
@@ -60,6 +61,7 @@ export default function Layout() {
         <nav className="flex-1 p-3 space-y-1">
           {navLink("/", "Kanban")}
           {navLink("/list", "List")}
+          {navLink("/calendar", "Calendar")}
           {navLink("/categories", "Categories")}
         </nav>
         <div className="p-4 border-t border-gray-700">
@@ -99,6 +101,17 @@ export default function Layout() {
                 path="/list"
                 element={
                   <ListView
+                    cards={cards}
+                    categories={categories}
+                    categoryMap={categoryMap}
+                    onUpdate={fetchAll}
+                  />
+                }
+              />
+              <Route
+                path="/calendar"
+                element={
+                  <CalendarView
                     cards={cards}
                     categories={categories}
                     categoryMap={categoryMap}
