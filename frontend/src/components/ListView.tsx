@@ -16,14 +16,14 @@ interface Props {
   onUpdate: () => void;
 }
 
-export default function ListView({
-  cards,
-  categories,
-  categoryMap,
-  onUpdate,
-}: Props) {
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+export default function ListView({ cards, categories, categoryMap, onUpdate }: Props) {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterCategory, setFilterCategory] = useState("");
+  const [filterDate, setFilterDate] = useState("");
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
@@ -37,14 +37,12 @@ export default function ListView({
   const filtered = useMemo(() => {
     let result = [...cards];
     if (filterStatus) result = result.filter((c) => c.status === filterStatus);
-    if (filterCategory)
-      result = result.filter((c) => c.category_id === filterCategory);
+    if (filterCategory) result = result.filter((c) => c.category_id === filterCategory);
+    if (filterDate) result = result.filter((c) => c.todo_date === filterDate);
     if (search) {
       const q = search.toLowerCase();
       result = result.filter(
-        (c) =>
-          c.title.toLowerCase().includes(q) ||
-          c.description.toLowerCase().includes(q)
+        (c) => c.title.toLowerCase().includes(q) || c.description.toLowerCase().includes(q)
       );
     }
     result.sort((a, b) => {
@@ -55,7 +53,7 @@ export default function ListView({
       return 0;
     });
     return result;
-  }, [cards, filterStatus, filterCategory, search, sortKey, sortDir]);
+  }, [cards, filterStatus, filterCategory, filterDate, search, sortKey, sortDir]);
 
   const handleStatusChange = async (card: Card, status: Status) => {
     await api.put(`/cards/${card.id}`, { status });
@@ -70,7 +68,9 @@ export default function ListView({
 
   const Th = ({ label, sortable }: { label: string; sortable?: SortKey }) => (
     <th
-      className={`text-left text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4 ${sortable ? "cursor-pointer select-none hover:bg-gray-100" : ""}`}
+      className={`text-left text-xs font-semibold text-gray-500 uppercase tracking-wider py-3 px-4 ${
+        sortable ? "cursor-pointer select-none hover:bg-gray-100" : ""
+      }`}
       onClick={sortable ? () => handleSort(sortable) : undefined}
     >
       {label}
@@ -81,45 +81,122 @@ export default function ListView({
   );
 
   return (
-    <div className="p-6">
-      {/* Filters */}
-      <div className="mb-4 flex flex-wrap gap-3 items-center">
+    <div className="p-3 sm:p-6">
+      {/* ── Filters ─────────────────────────────────────────────────────────── */}
+      <div className="mb-4 flex flex-wrap gap-2 items-center">
         <input
           type="search"
           placeholder="Search…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full sm:w-auto"
         />
+
         <select
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value)}
-          className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+          className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none flex-1 sm:flex-none"
         >
           <option value="">All statuses</option>
           {STATUSES.map((s) => (
-            <option key={s} value={s}>
-              {STATUS_LABELS[s]}
-            </option>
+            <option key={s} value={s}>{STATUS_LABELS[s]}</option>
           ))}
         </select>
+
         <select
           value={filterCategory}
           onChange={(e) => setFilterCategory(e.target.value)}
-          className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none"
+          className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none flex-1 sm:flex-none"
         >
           <option value="">All categories</option>
           {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
+            <option key={c.id} value={c.id}>{c.name}</option>
           ))}
         </select>
+
+        {/* Date filter */}
+        <div className="flex items-center gap-1.5 w-full sm:w-auto">
+          <label htmlFor="lv-date" className="sr-only">Scheduled date</label>
+          <input
+            id="lv-date"
+            aria-label="Scheduled date"
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none flex-1 sm:flex-none"
+          />
+          <button
+            onClick={() => setFilterDate(todayStr())}
+            className="text-xs text-blue-600 hover:underline whitespace-nowrap font-medium"
+          >
+            Today
+          </button>
+          {filterDate && (
+            <button
+              aria-label="Clear date"
+              onClick={() => setFilterDate("")}
+              className="text-xs text-gray-400 hover:text-gray-600"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
         <span className="text-sm text-gray-400 ml-auto">{filtered.length} items</span>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+      {/* ── Mobile card list (no horizontal scroll) ─────────────────────────── */}
+      <div data-testid="list-mobile" className="sm:hidden space-y-2">
+        {filtered.map((card) => {
+          const category = categoryMap[card.category_id];
+          return (
+            <div
+              key={card.id}
+              className="bg-white rounded-xl border shadow-sm p-3 cursor-pointer active:bg-gray-50"
+              onClick={() => setSelectedCard(card)}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800 truncate">{card.title}</p>
+                  {card.description && (
+                    <p className="text-xs text-gray-500 truncate mt-0.5">{card.description}</p>
+                  )}
+                </div>
+                <select
+                  value={card.status}
+                  onChange={(e) => handleStatusChange(card, e.target.value as Status)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="text-xs border rounded px-1.5 py-1 focus:outline-none flex-shrink-0"
+                >
+                  {STATUSES.map((s) => (
+                    <option key={s} value={s}>{STATUS_LABELS[s]}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="mt-2 flex items-center gap-2 flex-wrap">
+                {category && (
+                  <span
+                    className="text-xs px-2 py-0.5 rounded-full font-medium"
+                    style={{ backgroundColor: `${category.color}20`, color: category.color }}
+                  >
+                    {category.name}
+                  </span>
+                )}
+                {card.todo_date && (
+                  <span className="text-xs text-gray-400">{card.todo_date}</span>
+                )}
+              </div>
+            </div>
+          );
+        })}
+        {filtered.length === 0 && (
+          <p className="text-center text-sm text-gray-400 py-16">No cards found</p>
+        )}
+      </div>
+
+      {/* ── Desktop table ──────────────────────────────────────────────────── */}
+      <div className="hidden sm:block bg-white rounded-xl shadow-sm border overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
@@ -127,6 +204,7 @@ export default function ListView({
               <Th label="Category" sortable="category_id" />
               <Th label="Status" sortable="status" />
               <Th label="Priority" sortable="priority" />
+              <Th label="Date" />
               <Th label="Updated" sortable="updated_at" />
               <Th label="" />
             </tr>
@@ -141,23 +219,16 @@ export default function ListView({
                   onClick={() => setSelectedCard(card)}
                 >
                   <td className="py-3 px-4 max-w-xs">
-                    <p className="text-sm font-medium text-gray-800 truncate">
-                      {card.title}
-                    </p>
+                    <p className="text-sm font-medium text-gray-800 truncate">{card.title}</p>
                     {card.description && (
-                      <p className="text-xs text-gray-500 truncate mt-0.5">
-                        {card.description}
-                      </p>
+                      <p className="text-xs text-gray-500 truncate mt-0.5">{card.description}</p>
                     )}
                   </td>
                   <td className="py-3 px-4">
                     {category && (
                       <span
                         className="text-xs px-2 py-0.5 rounded-full font-medium"
-                        style={{
-                          backgroundColor: `${category.color}20`,
-                          color: category.color,
-                        }}
+                        style={{ backgroundColor: `${category.color}20`, color: category.color }}
                       >
                         {category.name}
                       </span>
@@ -166,22 +237,17 @@ export default function ListView({
                   <td className="py-3 px-4">
                     <select
                       value={card.status}
-                      onChange={(e) =>
-                        handleStatusChange(card, e.target.value as Status)
-                      }
+                      onChange={(e) => handleStatusChange(card, e.target.value as Status)}
                       onClick={(e) => e.stopPropagation()}
                       className="text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       {STATUSES.map((s) => (
-                        <option key={s} value={s}>
-                          {STATUS_LABELS[s]}
-                        </option>
+                        <option key={s} value={s}>{STATUS_LABELS[s]}</option>
                       ))}
                     </select>
                   </td>
-                  <td className="py-3 px-4 text-sm text-gray-500">
-                    {card.priority}
-                  </td>
+                  <td className="py-3 px-4 text-sm text-gray-500">{card.priority}</td>
+                  <td className="py-3 px-4 text-xs text-gray-400">{card.todo_date ?? "—"}</td>
                   <td className="py-3 px-4 text-xs text-gray-400 whitespace-nowrap">
                     {new Date(card.updated_at).toLocaleDateString()}
                   </td>
@@ -198,10 +264,7 @@ export default function ListView({
             })}
             {filtered.length === 0 && (
               <tr>
-                <td
-                  colSpan={6}
-                  className="py-16 text-center text-sm text-gray-400"
-                >
+                <td colSpan={7} className="py-16 text-center text-sm text-gray-400">
                   No cards found
                 </td>
               </tr>
@@ -209,6 +272,7 @@ export default function ListView({
           </tbody>
         </table>
       </div>
+
       {selectedCard && (
         <CardDetail
           card={selectedCard}

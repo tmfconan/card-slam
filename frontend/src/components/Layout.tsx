@@ -59,7 +59,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden">
+    <div className="flex h-screen bg-gray-50 overflow-hidden" style={{ height: "100svh" }}>
       {/* Mobile overlay — tap outside sidebar to close */}
       {sidebarOpen && (
         <div
@@ -123,7 +123,8 @@ export default function Layout() {
           )}
         </div>
 
-        <div className="flex-1 overflow-auto">
+        {/* min-h-0 lets the flex child shrink so overflow-auto actually scrolls */}
+        <div className="flex-1 overflow-auto min-h-0">
           {loading ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               Loading…
