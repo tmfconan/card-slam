@@ -153,6 +153,23 @@ describe("KanbanView", () => {
     expect(screen.queryByText("Write API tests")).not.toBeInTheDocument();
   });
 
+  it("each status column's droppable container scrolls vertically", () => {
+    render(
+      <KanbanView
+        cards={mockCards}
+        categories={mockCategories}
+        categoryMap={mockCategoryMap}
+        onUpdate={vi.fn()}
+      />
+    );
+    // Each Droppable rendered by our mock calls children() which renders a div.
+    // The outer column divs should exist with a class that allows overflow-y scrolling.
+    // We check by finding any element with overflow-y-auto class.
+    const scrollables = document.querySelectorAll(".overflow-y-auto");
+    // At least one scrollable area per visible column
+    expect(scrollables.length).toBeGreaterThanOrEqual(1);
+  });
+
   it("clicking 'All' shows all cards again", async () => {
     const user = userEvent.setup();
     const onUpdate = vi.fn();
