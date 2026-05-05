@@ -9,15 +9,26 @@ interface Props {
   onCardsCreated: () => void;
 }
 
+// Minimal interface covering the subset we use — avoids relying on
+// SpeechRecognition being present in the TypeScript DOM lib.
+interface ISpeechRecognition {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  start(): void;
+  stop(): void;
+  abort(): void;
+  onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string }>> }) => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+}
+
 // Resolve at call time (not module load) so tests can inject the mock
-function getSpeechRecognition(): (new () => SpeechRecognition) | null {
+function getSpeechRecognition(): (new () => ISpeechRecognition) | null {
   if (typeof window === "undefined") return null;
-  return (
-    window.SpeechRecognition ??
-    (window as Window & { webkitSpeechRecognition?: new () => SpeechRecognition })
-      .webkitSpeechRecognition ??
-    null
-  );
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const w = window as any;
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
 export default function PromptBar({ categories, onCardsCreated }: Props) {
@@ -28,7 +39,7 @@ export default function PromptBar({ categories, onCardsCreated }: Props) {
   const [error, setError] = useState("");
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [listening, setListening] = useState(false);
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<ISpeechRecognition | null>(null);
   const speechSupported = !!getSpeechRecognition();
 
   // Clean up recognition on unmount
@@ -75,7 +86,7 @@ export default function PromptBar({ categories, onCardsCreated }: Props) {
     rec.interimResults = true;
     rec.lang = "en-US";
 
-    rec.onresult = (e: SpeechRecognitionEvent) => {
+    rec.onresult = (e) => {
       const transcript = Array.from(e.results)
         .map((r) => r[0].transcript)
         .join("");
