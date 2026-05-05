@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import { Card, Category, Status, STATUSES, STATUS_LABELS } from "../types";
 import api from "../api/client";
+import CardDetail from "./CardDetail";
 
 type SortKey = keyof Pick<
   Card,
@@ -26,6 +27,7 @@ export default function ListView({
   const [search, setSearch] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
+  const [selectedCard, setSelectedCard] = useState<Card | null>(null);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -133,7 +135,11 @@ export default function ListView({
             {filtered.map((card) => {
               const category = categoryMap[card.category_id];
               return (
-                <tr key={card.id} className="hover:bg-gray-50">
+                <tr
+                  key={card.id}
+                  className="hover:bg-gray-50 cursor-pointer"
+                  onClick={() => setSelectedCard(card)}
+                >
                   <td className="py-3 px-4 max-w-xs">
                     <p className="text-sm font-medium text-gray-800 truncate">
                       {card.title}
@@ -163,6 +169,7 @@ export default function ListView({
                       onChange={(e) =>
                         handleStatusChange(card, e.target.value as Status)
                       }
+                      onClick={(e) => e.stopPropagation()}
                       className="text-xs border rounded px-2 py-1 focus:outline-none focus:ring-1 focus:ring-blue-500"
                     >
                       {STATUSES.map((s) => (
@@ -180,7 +187,7 @@ export default function ListView({
                   </td>
                   <td className="py-3 px-4">
                     <button
-                      onClick={() => handleDelete(card)}
+                      onClick={(e) => { e.stopPropagation(); handleDelete(card); }}
                       className="text-xs text-gray-400 hover:text-red-500 transition-colors"
                     >
                       Delete
@@ -202,6 +209,14 @@ export default function ListView({
           </tbody>
         </table>
       </div>
+      {selectedCard && (
+        <CardDetail
+          card={selectedCard}
+          categories={categories}
+          onSave={() => { onUpdate(); setSelectedCard(null); }}
+          onClose={() => setSelectedCard(null)}
+        />
+      )}
     </div>
   );
 }

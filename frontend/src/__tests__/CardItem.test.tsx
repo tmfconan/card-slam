@@ -11,6 +11,7 @@ const mockCard: Card = {
   category_id: "cat-1",
   status: "brainstorm",
   priority: 0,
+  duration: 30,
   created_at: "2024-01-01T00:00:00Z",
   updated_at: "2024-01-01T00:00:00Z",
 };
@@ -28,43 +29,61 @@ describe("CardItem", () => {
   });
 
   it("renders the card title", () => {
-    const onUpdate = vi.fn();
-    render(<CardItem card={mockCard} category={mockCategory} onUpdate={onUpdate} />);
+    render(<CardItem card={mockCard} category={mockCategory} onUpdate={vi.fn()} />);
     expect(screen.getByText("Build login page")).toBeInTheDocument();
   });
 
   it("renders the category badge", () => {
-    const onUpdate = vi.fn();
-    render(<CardItem card={mockCard} category={mockCategory} onUpdate={onUpdate} />);
+    render(<CardItem card={mockCard} category={mockCategory} onUpdate={vi.fn()} />);
     expect(screen.getByText("Frontend")).toBeInTheDocument();
   });
 
-  it("clicking edit button shows input fields with current title", async () => {
+  it("clicking the card body opens the CardDetail modal", async () => {
     const user = userEvent.setup();
-    const onUpdate = vi.fn();
-    render(<CardItem card={mockCard} category={mockCategory} onUpdate={onUpdate} />);
+    render(
+      <CardItem
+        card={mockCard}
+        category={mockCategory}
+        onUpdate={vi.fn()}
+        categories={[mockCategory]}
+      />
+    );
 
-    const editButton = screen.getByTitle("Edit");
-    await user.click(editButton);
-
-    const titleInput = screen.getByDisplayValue("Build login page");
-    expect(titleInput).toBeInTheDocument();
+    await user.click(screen.getByRole("article"));
+    expect(screen.getByDisplayValue("Build login page")).toBeInTheDocument();
   });
 
-  it("save button calls PUT /api/cards/:id", async () => {
+  it("CardDetail modal has a Save button", async () => {
     const user = userEvent.setup();
-    const onUpdate = vi.fn();
-    render(<CardItem card={mockCard} category={mockCategory} onUpdate={onUpdate} />);
+    render(
+      <CardItem
+        card={mockCard}
+        category={mockCategory}
+        onUpdate={vi.fn()}
+        categories={[mockCategory]}
+      />
+    );
 
-    const editButton = screen.getByTitle("Edit");
-    await user.click(editButton);
+    await user.click(screen.getByRole("article"));
+    expect(screen.getByRole("button", { name: /save/i })).toBeInTheDocument();
+  });
 
-    const saveButton = screen.getByRole("button", { name: /save/i });
-    await user.click(saveButton);
+  it("CardDetail modal can be closed via Cancel", async () => {
+    const user = userEvent.setup();
+    render(
+      <CardItem
+        card={mockCard}
+        category={mockCategory}
+        onUpdate={vi.fn()}
+        categories={[mockCategory]}
+      />
+    );
 
-    await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalled();
-    });
+    await user.click(screen.getByRole("article"));
+    expect(screen.getByDisplayValue("Build login page")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(screen.queryByRole("button", { name: /save/i })).not.toBeInTheDocument();
   });
 
   it("delete button calls DELETE /api/cards/:id", async () => {
@@ -73,11 +92,7 @@ describe("CardItem", () => {
     const onUpdate = vi.fn();
     render(<CardItem card={mockCard} category={mockCategory} onUpdate={onUpdate} />);
 
-    const deleteButton = screen.getByTitle("Delete");
-    await user.click(deleteButton);
-
-    await waitFor(() => {
-      expect(onUpdate).toHaveBeenCalled();
-    });
+    await user.click(screen.getByTitle("Delete"));
+    await waitFor(() => expect(onUpdate).toHaveBeenCalled());
   });
 });

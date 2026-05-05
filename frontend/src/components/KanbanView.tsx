@@ -151,6 +151,7 @@ export default function KanbanView({
                               category={categoryMap[card.category_id]}
                               isDragging={snapshot.isDragging}
                               onUpdate={onUpdate}
+                              categories={categories}
                             />
                           </div>
                         )}

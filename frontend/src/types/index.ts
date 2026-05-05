@@ -38,7 +38,9 @@ export interface Card {
   category_id: string;
   status: Status;
   priority: number;
-  todo_date?: string;   // YYYY-MM-DD, optional
+  duration: number;     // minutes, minimum 30
+  todo_date?: string;   // YYYY-MM-DD
+  todo_time?: string;   // HH:MM
   created_at: string;
   updated_at: string;
 }

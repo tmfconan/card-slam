@@ -240,3 +240,114 @@ def test_create_card_defaults(client, auth_headers):
     assert data["status"] == "brainstorm"
     assert data["priority"] == 0
     assert data.get("todo_date") is None
+
+
+# ── duration tests ─────────────────────────────────────────────────────────────
+
+def test_create_card_default_duration_is_30(client, auth_headers):
+    resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    assert resp.status_code == 201
+    assert resp.json()["duration"] == 30
+
+
+def test_create_card_with_custom_duration(client, auth_headers):
+    resp = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "duration": 90}, headers=auth_headers
+    )
+    assert resp.status_code == 201
+    assert resp.json()["duration"] == 90
+
+
+def test_update_card_duration(client, auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}", json={"duration": 60}, headers=auth_headers
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["duration"] == 60
+
+
+# ── todo_time tests ────────────────────────────────────────────────────────────
+
+def test_create_card_with_todo_time(client, auth_headers):
+    resp = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "todo_time": "09:00"}, headers=auth_headers
+    )
+    assert resp.status_code == 201
+    assert resp.json()["todo_time"] == "09:00"
+
+
+def test_create_card_without_todo_time_is_null(client, auth_headers):
+    resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    assert resp.json().get("todo_time") is None
+
+
+def test_update_card_todo_time(client, auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}", json={"todo_time": "14:30"}, headers=auth_headers
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["todo_time"] == "14:30"
+
+
+def test_clear_card_todo_time(client, auth_headers):
+    create_resp = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "todo_time": "09:00"}, headers=auth_headers
+    )
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}", json={"todo_time": None}, headers=auth_headers
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json().get("todo_time") is None
+
+
+# ── batch status tests ─────────────────────────────────────────────────────────
+
+def test_batch_status_update(client, auth_headers):
+    batch = [
+        {**CARD_PAYLOAD, "title": f"Card {i}", "status": "brainstorm"} for i in range(3)
+    ]
+    created = client.post("/api/cards/batch", json=batch, headers=auth_headers).json()
+    ids = [c["id"] for c in created]
+
+    resp = client.post(
+        "/api/cards/batch-status",
+        json={"ids": ids, "status": "in_progress"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 3
+
+    cards = client.get("/api/cards/", headers=auth_headers).json()
+    for card in cards:
+        assert card["status"] == "in_progress"
+
+
+def test_batch_status_update_empty_ids(client, auth_headers):
+    resp = client.post(
+        "/api/cards/batch-status",
+        json={"ids": [], "status": "done"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+
+
+def test_batch_status_skips_nonexistent_ids(client, auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    real_id = create_resp.json()["id"]
+
+    resp = client.post(
+        "/api/cards/batch-status",
+        json={"ids": [real_id, "does-not-exist"], "status": "done"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1

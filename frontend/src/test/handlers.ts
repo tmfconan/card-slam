@@ -24,6 +24,7 @@ export const mockCards: Card[] = [
     category_id: "cat-1",
     status: "brainstorm",
     priority: 0,
+    duration: 30,
     created_at: "2024-01-01T00:00:00Z",
     updated_at: "2024-01-01T00:00:00Z",
   },
@@ -34,6 +35,7 @@ export const mockCards: Card[] = [
     category_id: "cat-2",
     status: "in_progress",
     priority: 1,
+    duration: 60,
     todo_date: "2026-05-05",
     created_at: "2024-01-02T00:00:00Z",
     updated_at: "2024-01-02T00:00:00Z",
@@ -45,6 +47,7 @@ export const mockCards: Card[] = [
     category_id: "cat-2",
     status: "done",
     priority: 2,
+    duration: 30,
     created_at: "2024-01-03T00:00:00Z",
     updated_at: "2024-01-03T00:00:00Z",
   },
@@ -131,6 +134,11 @@ export const handlers = [
 
   http.post("/api/cards/reorder", () => {
     return HttpResponse.json({ ok: true });
+  }),
+
+  http.post("/api/cards/batch-status", async ({ request }) => {
+    const body = (await request.json()) as { ids: string[]; status: string };
+    return HttpResponse.json({ updated: body.ids.length });
   }),
 
   http.post("/api/ai/parse", () => {

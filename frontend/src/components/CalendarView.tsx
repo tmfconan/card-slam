@@ -8,6 +8,7 @@ import {
 import { Card, Category, Status, STATUSES, STATUS_LABELS } from "../types";
 import api from "../api/client";
 import CardItem from "./CardItem";
+import DailyView from "./DailyView";
 
 interface Props {
   cards: Card[];
@@ -16,19 +17,20 @@ interface Props {
   onUpdate: () => void;
 }
 
-// Statuses excluded from the calendar by default
 const DEFAULT_EXCLUDED: Status[] = ["brainstorm", "done"];
+const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-function buildDays(count = 14): { key: string; label: string; sub: string }[] {
+function todayStr() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().split("T")[0];
+}
+
+function buildDays(startDate: string, count = 14) {
   const days = [];
-  const DAY_NAMES = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-  const MONTH_NAMES = [
-    "Jan","Feb","Mar","Apr","May","Jun",
-    "Jul","Aug","Sep","Oct","Nov","Dec",
-  ];
   for (let i = 0; i < count; i++) {
-    const d = new Date();
-    d.setHours(0, 0, 0, 0);
+    const d = new Date(startDate + "T00:00:00");
     d.setDate(d.getDate() + i);
     days.push({
       key: d.toISOString().split("T")[0],
@@ -39,17 +41,20 @@ function buildDays(count = 14): { key: string; label: string; sub: string }[] {
   return days;
 }
 
-const DAYS = buildDays(14);
-const VALID_KEYS = new Set(DAYS.map((d) => d.key));
+function shiftDate(date: string, days: number): string {
+  const d = new Date(date + "T00:00:00");
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split("T")[0];
+}
 
-export default function CalendarView({
-  cards,
-  categories,
-  categoryMap,
-  onUpdate,
-}: Props) {
+type ViewMode = "week" | "day";
+
+export default function CalendarView({ cards, categories, categoryMap, onUpdate }: Props) {
+  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [weekStart, setWeekStart] = useState(todayStr());
+  const [selectedDay, setSelectedDay] = useState(todayStr());
+
   const [filterCategory, setFilterCategory] = useState("");
-  // Track which excluded statuses the user has toggled back on
   const [includedStatuses, setIncludedStatuses] = useState<Set<Status>>(
     new Set(STATUSES.filter((s) => !DEFAULT_EXCLUDED.includes(s)))
   );
@@ -63,6 +68,9 @@ export default function CalendarView({
     });
   };
 
+  const days = buildDays(weekStart, 14);
+  const validKeys = new Set(days.map((d) => d.key));
+
   const visible = cards.filter(
     (c) =>
       includedStatuses.has(c.status) &&
@@ -70,15 +78,12 @@ export default function CalendarView({
   );
 
   const byDate: Record<string, Card[]> = { unscheduled: [] };
-  DAYS.forEach((d) => (byDate[d.key] = []));
+  days.forEach((d) => (byDate[d.key] = []));
   for (const card of visible) {
     const key =
-      card.todo_date && VALID_KEYS.has(card.todo_date)
-        ? card.todo_date
-        : "unscheduled";
+      card.todo_date && validKeys.has(card.todo_date) ? card.todo_date : "unscheduled";
     byDate[key].push(card);
   }
-  // Sort each bucket by priority
   Object.values(byDate).forEach((bucket) =>
     bucket.sort((a, b) => a.priority - b.priority)
   );
@@ -87,36 +92,93 @@ export default function CalendarView({
     async (result: DropResult) => {
       const { destination, source, draggableId } = result;
       if (!destination) return;
-      if (
-        destination.droppableId === source.droppableId &&
-        destination.index === source.index
-      )
-        return;
+      if (destination.droppableId === source.droppableId && destination.index === source.index) return;
 
-      const newDate =
-        destination.droppableId === "unscheduled"
-          ? null
-          : destination.droppableId;
-
+      const newDate = destination.droppableId === "unscheduled" ? null : destination.droppableId;
       await api.put(`/cards/${draggableId}`, { todo_date: newDate });
       onUpdate();
     },
     [onUpdate]
   );
 
-  const columnClass =
-    "flex-shrink-0 w-44 flex flex-col";
+  // ── Daily view ─────────────────────────────────────────────────────────────
+  if (viewMode === "day") {
+    return (
+      <div className="flex flex-col h-full">
+        <div className="bg-white border-b px-5 py-2 flex items-center gap-3 flex-shrink-0">
+          <button
+            onClick={() => setViewMode("week")}
+            className="text-sm text-blue-600 hover:underline"
+          >
+            ← Week view
+          </button>
+          <span className="text-gray-300">|</span>
+          <span className="text-sm text-gray-500">Day view</span>
+        </div>
+        <div className="flex-1 overflow-hidden">
+          <DailyView
+            cards={cards}
+            categories={categories}
+            categoryMap={categoryMap}
+            selectedDate={selectedDay}
+            onDateChange={setSelectedDay}
+            onUpdate={onUpdate}
+          />
+        </div>
+      </div>
+    );
+  }
 
+  // ── Week view ──────────────────────────────────────────────────────────────
   return (
     <div className="p-4 h-full flex flex-col">
       {/* Controls */}
       <div className="mb-4 flex flex-wrap items-center gap-4">
+        {/* View mode toggle */}
+        <div className="flex rounded-lg border overflow-hidden text-sm">
+          <button
+            onClick={() => setViewMode("week")}
+            className={`px-3 py-1.5 transition-colors ${
+              viewMode === "week" ? "bg-gray-800 text-white" : "hover:bg-gray-50"
+            }`}
+          >
+            2 Weeks
+          </button>
+          <button
+            onClick={() => { setViewMode("day"); setSelectedDay(selectedDay); }}
+            className={`px-3 py-1.5 transition-colors ${
+              viewMode === "day" ? "bg-gray-800 text-white" : "hover:bg-gray-50"
+            }`}
+          >
+            Day
+          </button>
+        </div>
+
+        {/* Week navigation */}
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => setWeekStart(shiftDate(weekStart, -14))}
+            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+          >
+            ← Prev
+          </button>
+          <button
+            onClick={() => setWeekStart(todayStr())}
+            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+          >
+            Today
+          </button>
+          <button
+            onClick={() => setWeekStart(shiftDate(weekStart, 14))}
+            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+          >
+            Next →
+          </button>
+        </div>
+
         {/* Category filter */}
         <div className="flex items-center gap-2">
-          <label
-            htmlFor="cal-category"
-            className="text-xs font-medium text-gray-500"
-          >
+          <label htmlFor="cal-category" className="text-xs font-medium text-gray-500">
             Category
           </label>
           <select
@@ -128,21 +190,16 @@ export default function CalendarView({
           >
             <option value="">All</option>
             {categories.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
+              <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>
         </div>
 
-        {/* Status toggles — only show the ones excluded by default */}
+        {/* Status toggles */}
         <div className="flex items-center gap-2">
           <span className="text-xs font-medium text-gray-500">Show:</span>
           {DEFAULT_EXCLUDED.map((s) => (
-            <label
-              key={s}
-              className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none"
-            >
+            <label key={s} className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
               <input
                 type="checkbox"
                 aria-label={STATUS_LABELS[s]}
@@ -159,8 +216,8 @@ export default function CalendarView({
       {/* Calendar grid */}
       <DragDropContext onDragEnd={onDragEnd}>
         <div className="flex gap-3 overflow-x-auto flex-1 pb-4">
-          {/* Unscheduled column */}
-          <div className={columnClass}>
+          {/* Unscheduled */}
+          <div className="flex-shrink-0 w-44 flex flex-col">
             <div className="mb-2 px-1">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Unscheduled
@@ -179,16 +236,13 @@ export default function CalendarView({
                   {byDate.unscheduled.map((card, i) => (
                     <Draggable key={card.id} draggableId={card.id} index={i}>
                       {(prov, snap) => (
-                        <div
-                          ref={prov.innerRef}
-                          {...prov.draggableProps}
-                          {...prov.dragHandleProps}
-                        >
+                        <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}>
                           <CardItem
                             card={card}
                             category={categoryMap[card.category_id]}
                             isDragging={snap.isDragging}
                             onUpdate={onUpdate}
+                            categories={categories}
                             showUpdatedAt
                           />
                         </div>
@@ -202,25 +256,26 @@ export default function CalendarView({
           </div>
 
           {/* Day columns */}
-          {DAYS.map((day) => {
-            const isToday = day.key === DAYS[0].key;
+          {days.map((day) => {
+            const isToday = day.key === todayStr();
             return (
-              <div key={day.key} className={columnClass}>
-                <div className="mb-2 px-1">
-                  <p
-                    className={`text-xs font-semibold uppercase tracking-wide ${
-                      isToday ? "text-blue-600" : "text-gray-500"
-                    }`}
+              <div key={day.key} className="flex-shrink-0 w-44 flex flex-col">
+                <div className="mb-2 px-1 flex items-center justify-between">
+                  <div>
+                    <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-blue-600" : "text-gray-500"}`}>
+                      {day.label}
+                    </p>
+                    <p className={`text-xs ${isToday ? "text-blue-500 font-medium" : "text-gray-400"}`}>
+                      {day.sub}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => { setSelectedDay(day.key); setViewMode("day"); }}
+                    className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+                    title="Open day view"
                   >
-                    {day.label}
-                  </p>
-                  <p
-                    className={`text-xs ${
-                      isToday ? "text-blue-500 font-medium" : "text-gray-400"
-                    }`}
-                  >
-                    {day.sub}
-                  </p>
+                    ⏱
+                  </button>
                 </div>
                 <Droppable droppableId={day.key}>
                   {(provided, snapshot) => (
@@ -228,30 +283,19 @@ export default function CalendarView({
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={`flex-1 min-h-20 rounded-xl p-2 space-y-2 transition-colors ${
-                        snapshot.isDraggingOver
-                          ? "bg-blue-50"
-                          : isToday
-                          ? "bg-blue-50/50"
-                          : "bg-gray-100"
+                        snapshot.isDraggingOver ? "bg-blue-50" : isToday ? "bg-blue-50/50" : "bg-gray-100"
                       }`}
                     >
                       {byDate[day.key].map((card, i) => (
-                        <Draggable
-                          key={card.id}
-                          draggableId={card.id}
-                          index={i}
-                        >
+                        <Draggable key={card.id} draggableId={card.id} index={i}>
                           {(prov, snap) => (
-                            <div
-                              ref={prov.innerRef}
-                              {...prov.draggableProps}
-                              {...prov.dragHandleProps}
-                            >
+                            <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}>
                               <CardItem
                                 card={card}
                                 category={categoryMap[card.category_id]}
                                 isDragging={snap.isDragging}
                                 onUpdate={onUpdate}
+                                categories={categories}
                                 showUpdatedAt
                               />
                             </div>
@@ -259,12 +303,9 @@ export default function CalendarView({
                         </Draggable>
                       ))}
                       {provided.placeholder}
-                      {byDate[day.key].length === 0 &&
-                        !snapshot.isDraggingOver && (
-                          <p className="text-xs text-gray-300 text-center pt-4">
-                            —
-                          </p>
-                        )}
+                      {byDate[day.key].length === 0 && !snapshot.isDraggingOver && (
+                        <p className="text-xs text-gray-300 text-center pt-4">—</p>
+                      )}
                     </div>
                   )}
                 </Droppable>

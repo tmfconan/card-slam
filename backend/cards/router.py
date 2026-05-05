@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime, timezone
 from typing import Optional
 
-from .models import CardCreate, CardUpdate, CardReorderItem, Card, Status
+from .models import CardCreate, CardUpdate, CardReorderItem, BatchStatusUpdate, Card, Status
 from auth.router import verify_token
 from db import get_cards_table
 
@@ -12,6 +12,7 @@ router = APIRouter(prefix="/cards", tags=["cards"])
 
 def _normalize(item: dict) -> dict:
     item["priority"] = int(item.get("priority", 0))
+    item["duration"] = int(item.get("duration", 30))
     return item
 
 
@@ -41,11 +42,14 @@ def create_card(body: CardCreate, user: str = Depends(verify_token)):
         "category_id": body.category_id,
         "status": body.status,
         "priority": body.priority,
+        "duration": body.duration,
         "created_at": now,
         "updated_at": now,
     }
     if body.todo_date is not None:
         item["todo_date"] = body.todo_date
+    if body.todo_time is not None:
+        item["todo_time"] = body.todo_time
     table.put_item(Item=item)
     return item
 
@@ -63,12 +67,35 @@ def create_cards_batch(bodies: list[CardCreate], user: str = Depends(verify_toke
             "category_id": body.category_id,
             "status": body.status,
             "priority": i,
+            "duration": body.duration,
             "created_at": now,
             "updated_at": now,
         }
+        if body.todo_date is not None:
+            item["todo_date"] = body.todo_date
+        if body.todo_time is not None:
+            item["todo_time"] = body.todo_time
         table.put_item(Item=item)
         items.append(item)
     return items
+
+
+@router.post("/batch-status", status_code=200)
+def batch_status_update(
+    body: BatchStatusUpdate, user: str = Depends(verify_token)
+):
+    table = get_cards_table()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = 0
+    for card_id in body.ids:
+        response = table.get_item(Key={"id": card_id})
+        card = response.get("Item")
+        if card:
+            card["status"] = body.status
+            card["updated_at"] = now
+            table.put_item(Item=card)
+            updated += 1
+    return {"updated": updated}
 
 
 @router.post("/reorder", status_code=200)
