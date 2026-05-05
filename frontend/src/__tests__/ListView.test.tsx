@@ -1,8 +1,10 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import ListView from "../components/ListView";
 import { Card, Category } from "../types";
+
+const TODAY = new Date().toISOString().split("T")[0];
 
 const mockCategories: Category[] = [
   { id: "cat-1", name: "Frontend", color: "#3b82f6", created_at: "2024-01-01T00:00:00Z" },
@@ -22,6 +24,8 @@ const mockCards: Card[] = [
     category_id: "cat-1",
     status: "brainstorm",
     priority: 0,
+    duration: 30,
+    todo_date: TODAY,
     created_at: "2024-01-01T00:00:00Z",
     updated_at: "2024-01-01T00:00:00Z",
   },
@@ -32,6 +36,8 @@ const mockCards: Card[] = [
     category_id: "cat-2",
     status: "in_progress",
     priority: 1,
+    duration: 30,
+    todo_date: "2024-06-15",
     created_at: "2024-01-02T00:00:00Z",
     updated_at: "2024-01-02T00:00:00Z",
   },
@@ -42,110 +48,160 @@ const mockCards: Card[] = [
     category_id: "cat-2",
     status: "done",
     priority: 2,
+    duration: 30,
     created_at: "2024-01-03T00:00:00Z",
     updated_at: "2024-01-03T00:00:00Z",
   },
 ];
+
+// Helper — both mobile card list and desktop table are in DOM in jsdom
+// (CSS media queries aren't applied). Use queryAllByText to handle duplicates.
+const present = (text: string) => screen.queryAllByText(text).length > 0;
+const absent = (text: string) => screen.queryAllByText(text).length === 0;
+
+function renderList(onUpdate = vi.fn()) {
+  localStorage.setItem("token", "mock-token");
+  return render(
+    <ListView
+      cards={mockCards}
+      categories={mockCategories}
+      categoryMap={mockCategoryMap}
+      onUpdate={onUpdate}
+    />
+  );
+}
 
 describe("ListView", () => {
   beforeEach(() => {
     localStorage.setItem("token", "mock-token");
   });
 
-  it("all card titles appear in the table", () => {
-    const onUpdate = vi.fn();
-    render(
-      <ListView
-        cards={mockCards}
-        categories={mockCategories}
-        categoryMap={mockCategoryMap}
-        onUpdate={onUpdate}
-      />
-    );
-    expect(screen.getByText("Build login page")).toBeInTheDocument();
-    expect(screen.getByText("Set up database")).toBeInTheDocument();
-    expect(screen.getByText("Write API tests")).toBeInTheDocument();
+  // ── Core rendering ──────────────────────────────────────────────────────────
+
+  it("all card titles are rendered", () => {
+    renderList();
+    expect(present("Build login page")).toBe(true);
+    expect(present("Set up database")).toBe(true);
+    expect(present("Write API tests")).toBe(true);
   });
+
+  // ── Existing filters ────────────────────────────────────────────────────────
 
   it("search input filters cards by title substring", async () => {
     const user = userEvent.setup();
-    const onUpdate = vi.fn();
-    render(
-      <ListView
-        cards={mockCards}
-        categories={mockCategories}
-        categoryMap={mockCategoryMap}
-        onUpdate={onUpdate}
-      />
-    );
-
-    const searchInput = screen.getByPlaceholderText(/search/i);
-    await user.type(searchInput, "login");
-
-    expect(screen.getByText("Build login page")).toBeInTheDocument();
-    expect(screen.queryByText("Set up database")).not.toBeInTheDocument();
-    expect(screen.queryByText("Write API tests")).not.toBeInTheDocument();
+    renderList();
+    await user.type(screen.getByPlaceholderText(/search/i), "login");
+    expect(present("Build login page")).toBe(true);
+    expect(absent("Set up database")).toBe(true);
+    expect(absent("Write API tests")).toBe(true);
   });
 
-  it("status filter dropdown filters cards", async () => {
+  it("status filter dropdown filters to done", async () => {
     const user = userEvent.setup();
-    const onUpdate = vi.fn();
-    render(
-      <ListView
-        cards={mockCards}
-        categories={mockCategories}
-        categoryMap={mockCategoryMap}
-        onUpdate={onUpdate}
-      />
-    );
-
-    // The filter status select contains "All statuses" as its first option
-    const statusSelect = screen.getByDisplayValue("All statuses");
-    await user.selectOptions(statusSelect, "done");
-
-    expect(screen.queryByText("Build login page")).not.toBeInTheDocument();
-    expect(screen.queryByText("Set up database")).not.toBeInTheDocument();
-    expect(screen.getByText("Write API tests")).toBeInTheDocument();
+    renderList();
+    await user.selectOptions(screen.getByDisplayValue("All statuses"), "done");
+    expect(absent("Build login page")).toBe(true);
+    expect(absent("Set up database")).toBe(true);
+    expect(present("Write API tests")).toBe(true);
   });
 
-  it("category filter dropdown filters cards", async () => {
+  it("category filter dropdown filters to cat-1", async () => {
     const user = userEvent.setup();
-    const onUpdate = vi.fn();
-    render(
-      <ListView
-        cards={mockCards}
-        categories={mockCategories}
-        categoryMap={mockCategoryMap}
-        onUpdate={onUpdate}
-      />
-    );
-
-    // The category filter select contains "All categories" as its first option
-    const categorySelect = screen.getByDisplayValue("All categories");
-    await user.selectOptions(categorySelect, "cat-1");
-
-    expect(screen.getByText("Build login page")).toBeInTheDocument();
-    expect(screen.queryByText("Set up database")).not.toBeInTheDocument();
-    expect(screen.queryByText("Write API tests")).not.toBeInTheDocument();
+    renderList();
+    await user.selectOptions(screen.getByDisplayValue("All categories"), "cat-1");
+    expect(present("Build login page")).toBe(true);
+    expect(absent("Set up database")).toBe(true);
+    expect(absent("Write API tests")).toBe(true);
   });
 
   it("clicking Priority column header shows sort indicator", async () => {
     const user = userEvent.setup();
-    const onUpdate = vi.fn();
-    render(
-      <ListView
-        cards={mockCards}
-        categories={mockCategories}
-        categoryMap={mockCategoryMap}
-        onUpdate={onUpdate}
-      />
-    );
-
-    const priorityHeader = screen.getByText(/priority/i);
-    // Priority is already the default sort — clicking toggles direction
-    await user.click(priorityHeader);
-
-    // After clicking, the sort indicator should appear (↓ for desc)
+    renderList();
+    await user.click(screen.getByText(/priority/i));
     expect(screen.getByText(/priority/i).closest("th")).toHaveTextContent("↓");
+  });
+
+  // ── Date filter ─────────────────────────────────────────────────────────────
+
+  it("renders a date filter input", () => {
+    renderList();
+    expect(screen.getByLabelText(/scheduled date/i)).toBeInTheDocument();
+  });
+
+  it("renders a Today shortcut button", () => {
+    renderList();
+    expect(screen.getByRole("button", { name: /today/i })).toBeInTheDocument();
+  });
+
+  it("date filter shows only cards with matching todo_date", async () => {
+    const user = userEvent.setup();
+    renderList();
+    await user.type(screen.getByLabelText(/scheduled date/i), "2024-06-15");
+    expect(absent("Build login page")).toBe(true);
+    expect(present("Set up database")).toBe(true);
+    expect(absent("Write API tests")).toBe(true);
+  });
+
+  it("Today button filters to today's cards only", async () => {
+    const user = userEvent.setup();
+    renderList();
+    await user.click(screen.getByRole("button", { name: /today/i }));
+    // card-1 has todo_date = TODAY; card-2 = 2024-06-15; card-3 has no date
+    expect(present("Build login page")).toBe(true);
+    expect(absent("Set up database")).toBe(true);
+    expect(absent("Write API tests")).toBe(true);
+  });
+
+  it("Clear date button restores all cards", async () => {
+    const user = userEvent.setup();
+    renderList();
+    await user.click(screen.getByRole("button", { name: /today/i }));
+    expect(absent("Write API tests")).toBe(true);
+    await user.click(screen.getByRole("button", { name: /clear date/i }));
+    expect(present("Write API tests")).toBe(true);
+  });
+
+  it("date filter with no matching cards shows empty state", async () => {
+    const user = userEvent.setup();
+    renderList();
+    await user.type(screen.getByLabelText(/scheduled date/i), "1999-01-01");
+    // Mobile empty state text
+    const mobile = screen.getByTestId("list-mobile");
+    expect(within(mobile).getByText(/no cards/i)).toBeInTheDocument();
+  });
+
+  // ── Mobile card list ────────────────────────────────────────────────────────
+
+  it("renders a mobile card list container", () => {
+    renderList();
+    expect(screen.getByTestId("list-mobile")).toBeInTheDocument();
+  });
+
+  it("mobile card list shows all card titles", () => {
+    renderList();
+    const mobile = screen.getByTestId("list-mobile");
+    expect(mobile).toHaveTextContent("Build login page");
+    expect(mobile).toHaveTextContent("Set up database");
+    expect(mobile).toHaveTextContent("Write API tests");
+  });
+
+  it("mobile cards show category badge", () => {
+    renderList();
+    expect(screen.getByTestId("list-mobile")).toHaveTextContent("Frontend");
+  });
+
+  it("mobile cards show todo_date when set", () => {
+    renderList();
+    // card-2 has todo_date 2024-06-15
+    expect(screen.getByTestId("list-mobile")).toHaveTextContent("2024-06-15");
+  });
+
+  it("mobile list respects active filters", async () => {
+    const user = userEvent.setup();
+    renderList();
+    await user.click(screen.getByRole("button", { name: /today/i }));
+    const mobile = screen.getByTestId("list-mobile");
+    expect(mobile).toHaveTextContent("Build login page");
+    expect(mobile).not.toHaveTextContent("Set up database");
   });
 });

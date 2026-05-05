@@ -374,4 +374,69 @@ describe("DailyView", () => {
     expect(screen.getByTestId("daily-card-d-1")).toBeInTheDocument();
     expect(screen.getByTestId("daily-card-d-c2")).toBeInTheDocument();
   });
+
+  // ── Mobile bottom sheet ─────────────────────────────────────────────────────
+
+  it("renders an unscheduled bottom-sheet trigger button", () => {
+    renderDailyView();
+    expect(screen.getByTestId("unscheduled-sheet-trigger")).toBeInTheDocument();
+  });
+
+  it("trigger shows the count of unscheduled cards", () => {
+    renderDailyView();
+    // d-3 is the only unscheduled card for TODAY
+    expect(screen.getByTestId("unscheduled-sheet-trigger")).toHaveTextContent("1");
+  });
+
+  it("clicking the trigger opens the bottom sheet", async () => {
+    const user = userEvent.setup();
+    renderDailyView();
+    expect(screen.queryByTestId("unscheduled-sheet")).not.toBeInTheDocument();
+    await user.click(screen.getByTestId("unscheduled-sheet-trigger"));
+    expect(screen.getByTestId("unscheduled-sheet")).toBeInTheDocument();
+  });
+
+  it("bottom sheet displays the unscheduled cards", async () => {
+    const user = userEvent.setup();
+    renderDailyView();
+    await user.click(screen.getByTestId("unscheduled-sheet-trigger"));
+    expect(
+      within(screen.getByTestId("unscheduled-sheet")).getByText("Unscheduled task")
+    ).toBeInTheDocument();
+  });
+
+  it("clicking the overlay closes the bottom sheet", async () => {
+    const user = userEvent.setup();
+    renderDailyView();
+    await user.click(screen.getByTestId("unscheduled-sheet-trigger"));
+    expect(screen.getByTestId("unscheduled-sheet")).toBeInTheDocument();
+    await user.click(screen.getByTestId("unscheduled-sheet-overlay"));
+    expect(screen.queryByTestId("unscheduled-sheet")).not.toBeInTheDocument();
+  });
+
+  it("close button inside the sheet closes it", async () => {
+    const user = userEvent.setup();
+    renderDailyView();
+    await user.click(screen.getByTestId("unscheduled-sheet-trigger"));
+    await user.click(screen.getByRole("button", { name: /close sheet/i }));
+    expect(screen.queryByTestId("unscheduled-sheet")).not.toBeInTheDocument();
+  });
+
+  // ── Touch drag handles ──────────────────────────────────────────────────────
+
+  it("each scheduled card has a touch drag handle", () => {
+    renderDailyView();
+    // d-1 and d-2 are scheduled for TODAY
+    expect(screen.getByTestId("drag-handle-d-1")).toBeInTheDocument();
+    expect(screen.getByTestId("drag-handle-d-2")).toBeInTheDocument();
+  });
+
+  it("unscheduled cards in the sheet also have drag handles", async () => {
+    const user = userEvent.setup();
+    renderDailyView();
+    await user.click(screen.getByTestId("unscheduled-sheet-trigger"));
+    expect(
+      within(screen.getByTestId("unscheduled-sheet")).getByTestId("drag-handle-d-3")
+    ).toBeInTheDocument();
+  });
 });
