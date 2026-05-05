@@ -138,17 +138,13 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate 
         <div className="flex rounded-lg border overflow-hidden text-sm">
           <button
             onClick={() => setViewMode("week")}
-            className={`px-3 py-1.5 transition-colors ${
-              viewMode === "week" ? "bg-gray-800 text-white" : "hover:bg-gray-50"
-            }`}
+            className="px-3 py-1.5 transition-colors bg-gray-800 text-white"
           >
             2 Weeks
           </button>
           <button
             onClick={() => { setViewMode("day"); setSelectedDay(selectedDay); }}
-            className={`px-3 py-1.5 transition-colors ${
-              viewMode === "day" ? "bg-gray-800 text-white" : "hover:bg-gray-50"
-            }`}
+            className="px-3 py-1.5 transition-colors hover:bg-gray-50"
           >
             Day
           </button>

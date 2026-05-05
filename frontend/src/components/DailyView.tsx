@@ -59,14 +59,18 @@ export default function DailyView({
   const scheduled   = todayCards.filter((c) => c.todo_time && SLOTS.includes(c.todo_time));
   const unscheduled = todayCards.filter((c) => !c.todo_time || !SLOTS.includes(c.todo_time));
 
-  const slotMap: Record<string, Card> = {};
-  for (const card of scheduled) if (card.todo_time) slotMap[card.todo_time] = card;
+  // Multiple cards can share a slot — group them
+  const slotMap: Record<string, Card[]> = {};
+  for (const card of scheduled) {
+    if (!card.todo_time) continue;
+    (slotMap[card.todo_time] ??= []).push(card);
+  }
 
   // ── Native drag ─────────────────────────────────────────────────────────────
   const startDrag = useCallback((e: React.MouseEvent, card: Card) => {
-    // Only primary button; let checkbox clicks through
     if (e.button !== 0) return;
-    e.preventDefault();
+    // Do NOT call e.preventDefault() — it suppresses the click event on child buttons
+    // (text selection is handled by CSS select-none instead)
     setDragState({ cardId: card.id, card });
     document.body.style.cursor = "grabbing";
     document.body.style.userSelect = "none";
@@ -214,56 +218,74 @@ export default function DailyView({
               <div className="absolute inset-0" style={{ zIndex: 5, cursor: "grabbing" }} />
             )}
 
-            {/* Scheduled cards — absolutely placed at their exact slot offset */}
-            {scheduled.map((card) => {
-              const idx = SLOTS.indexOf(card.todo_time!);
-              const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 30));
-              const isBeingDragged = dragState?.cardId === card.id;
+            {/* Scheduled cards — grouped by slot, multiple cards rendered side-by-side */}
+            {Object.entries(slotMap).map(([slot, slotCards]) => {
+              const slotIdx = SLOTS.indexOf(slot);
+              const maxSpans = Math.max(
+                ...slotCards.map((c) => Math.max(1, Math.ceil((c.duration ?? 30) / 30)))
+              );
 
               return (
                 <div
-                  key={card.id}
-                  data-testid={`daily-card-${card.id}`}
-                  data-slot={card.todo_time}
-                  data-duration={card.duration ?? 30}
-                  className="absolute"
+                  key={slot}
+                  className="absolute flex gap-1"
                   style={{
-                    top: idx * SLOT_H,
+                    top: slotIdx * SLOT_H,
                     left: TIME_W,
                     right: 8,
-                    height: spans * SLOT_H - 2,
-                    zIndex: isBeingDragged ? 30 : 10,
-                    opacity: isBeingDragged ? 0.45 : 1,
-                    cursor: "grab",
-                  }}
-                  onMouseDown={(e) => {
-                    // Don't start drag if clicking the checkbox
-                    if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return;
-                    startDrag(e, card);
+                    height: maxSpans * SLOT_H - 2,
+                    zIndex: 10,
                   }}
                 >
-                  <div className="flex items-start gap-1 h-full">
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(card.id)}
-                      onChange={() => toggleSelect(card.id)}
-                      className="mt-1 flex-shrink-0 cursor-pointer"
-                      style={{ pointerEvents: "auto" }}
-                    />
-                    <div className="flex-1 min-h-0 overflow-hidden">
-                      <CardItem
-                        card={card}
-                        category={categoryMap[card.category_id]}
-                        isDragging={isBeingDragged}
-                        onUpdate={onUpdate}
-                        categories={categories}
-                        onRemoveFromSchedule={async () => {
-                          await api.put(`/cards/${card.id}`, { todo_time: null });
-                          onUpdate();
+                  {slotCards.map((card) => {
+                    const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 30));
+                    const isBeingDragged = dragState?.cardId === card.id;
+
+                    return (
+                      <div
+                        key={card.id}
+                        data-testid={`daily-card-${card.id}`}
+                        data-slot={card.todo_time}
+                        data-duration={card.duration ?? 30}
+                        className="flex-1 min-w-0 select-none"
+                        style={{
+                          height: spans * SLOT_H - 2,
+                          cursor: "grab",
+                          opacity: isBeingDragged ? 0.45 : 1,
+                          zIndex: isBeingDragged ? 30 : undefined,
                         }}
-                      />
-                    </div>
-                  </div>
+                        onMouseDown={(e) => {
+                          const t = e.target as HTMLElement;
+                          if (t.closest('input[type="checkbox"]')) return;
+                          if (t.closest("button")) return; // let button clicks fire normally
+                          startDrag(e, card);
+                        }}
+                      >
+                        <div className="flex items-start gap-1 h-full">
+                          <input
+                            type="checkbox"
+                            checked={selectedIds.has(card.id)}
+                            onChange={() => toggleSelect(card.id)}
+                            className="mt-1 flex-shrink-0 cursor-pointer"
+                            style={{ pointerEvents: "auto" }}
+                          />
+                          <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+                            <CardItem
+                              card={card}
+                              category={categoryMap[card.category_id]}
+                              isDragging={isBeingDragged}
+                              onUpdate={onUpdate}
+                              categories={categories}
+                              onRemoveFromSchedule={async () => {
+                                await api.put(`/cards/${card.id}`, { todo_time: null });
+                                onUpdate();
+                              }}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
@@ -304,7 +326,9 @@ export default function DailyView({
                 data-duration={card.duration ?? 30}
                 className="flex items-start gap-1"
                 onMouseDown={(e) => {
-                  if ((e.target as HTMLElement).closest('input[type="checkbox"]')) return;
+                  const t = e.target as HTMLElement;
+                  if (t.closest('input[type="checkbox"]')) return;
+                  if (t.closest("button")) return;
                   startDrag(e, card);
                 }}
               >

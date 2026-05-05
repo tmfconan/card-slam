@@ -265,4 +265,113 @@ describe("DailyView", () => {
       expect(onUpdate).toHaveBeenCalled();
     });
   });
+
+  // ── × button: unschedule, not delete ───────────────────────────────────────
+
+  it("× button on a scheduled card calls PUT with todo_time null", async () => {
+    const user = userEvent.setup();
+    let capturedBody: unknown;
+    server.use(
+      http.put("/api/cards/:id", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json(dailyCards[0]);
+      })
+    );
+
+    renderDailyView();
+
+    // The delete (×) button title is "Delete"
+    const deleteButtons = screen.getAllByTitle("Delete");
+    await user.click(deleteButtons[0]);
+
+    await waitFor(() => {
+      expect(capturedBody).toMatchObject({ todo_time: null });
+    });
+  });
+
+  it("× button does NOT call DELETE /api/cards/:id", async () => {
+    const user = userEvent.setup();
+    let deleteCalled = false;
+    server.use(
+      http.delete("/api/cards/:id", () => {
+        deleteCalled = true;
+        return new HttpResponse(null, { status: 204 });
+      })
+    );
+
+    renderDailyView();
+    const deleteButtons = screen.getAllByTitle("Delete");
+    await user.click(deleteButtons[0]);
+
+    // Give time for any async operations
+    await new Promise((r) => setTimeout(r, 50));
+    expect(deleteCalled).toBe(false);
+  });
+
+  // ── Multiple cards per slot ─────────────────────────────────────────────────
+
+  it("shows two cards at the same time slot", () => {
+    const parallel: Card = {
+      id: "d-parallel",
+      title: "Parallel meeting",
+      description: "Same slot as morning standup",
+      category_id: "cat-2",
+      status: "in_progress",
+      priority: 5,
+      duration: 30,
+      todo_date: TODAY,
+      todo_time: "09:00",
+      created_at: "2024-01-05T00:00:00Z",
+      updated_at: "2024-01-05T00:00:00Z",
+    };
+
+    localStorage.setItem("token", "mock-token");
+    render(
+      <DailyView
+        cards={[...dailyCards, parallel]}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        selectedDate={TODAY}
+        onDateChange={vi.fn()}
+        onUpdate={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText("Morning standup")).toBeInTheDocument();
+    expect(screen.getByText("Parallel meeting")).toBeInTheDocument();
+
+    expect(screen.getByTestId("daily-card-d-1")).toHaveAttribute("data-slot", "09:00");
+    expect(screen.getByTestId("daily-card-d-parallel")).toHaveAttribute("data-slot", "09:00");
+  });
+
+  it("cards in the same slot each get their own data-testid", () => {
+    const c2: Card = {
+      id: "d-c2",
+      title: "Second 09:00 card",
+      description: "",
+      category_id: "cat-1",
+      status: "ready_to_do",
+      priority: 6,
+      duration: 60,
+      todo_date: TODAY,
+      todo_time: "09:00",
+      created_at: "2024-01-06T00:00:00Z",
+      updated_at: "2024-01-06T00:00:00Z",
+    };
+
+    localStorage.setItem("token", "mock-token");
+    render(
+      <DailyView
+        cards={[...dailyCards, c2]}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        selectedDate={TODAY}
+        onDateChange={vi.fn()}
+        onUpdate={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("daily-card-d-1")).toBeInTheDocument();
+    expect(screen.getByTestId("daily-card-d-c2")).toBeInTheDocument();
+  });
 });

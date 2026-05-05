@@ -114,7 +114,12 @@ export default function KanbanView({
 
       {/* Kanban columns */}
       <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-4 overflow-x-auto flex-1 pb-4">
+        {/*
+          min-h-0 lets the flex-1 row shrink properly inside the flex-col parent.
+          items-stretch ensures all columns reach the row's full height so the
+          Droppable bounding-rect covers the entire column, not just the cards in it.
+        */}
+        <div className="flex gap-4 overflow-x-auto flex-1 min-h-0 pb-4 items-stretch">
           {STATUSES.map((status) => (
             <div key={status} className="flex-shrink-0 w-60 flex flex-col">
               <div className="mb-2 flex items-center justify-between px-1">
@@ -130,7 +135,7 @@ export default function KanbanView({
                   <div
                     ref={provided.innerRef}
                     {...provided.droppableProps}
-                    className={`flex-1 min-h-24 rounded-xl p-2 space-y-2 transition-colors ${
+                    className={`flex-1 min-h-24 overflow-y-auto rounded-xl p-2 space-y-2 transition-colors ${
                       snapshot.isDraggingOver ? "bg-blue-50" : "bg-gray-100"
                     }`}
                   >
