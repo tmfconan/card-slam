@@ -16,6 +16,10 @@ interface Props {
   onUpdate: () => void;
 }
 
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
 export default function KanbanView({
   cards,
   categories,
@@ -23,10 +27,13 @@ export default function KanbanView({
   onUpdate,
 }: Props) {
   const [filterCategory, setFilterCategory] = useState("");
+  const [filterToday, setFilterToday] = useState(false);
 
-  const filtered = filterCategory
-    ? cards.filter((c) => c.category_id === filterCategory)
-    : cards;
+  const filtered = cards.filter((c) => {
+    if (filterCategory && c.category_id !== filterCategory) return false;
+    if (filterToday && c.todo_date !== todayStr()) return false;
+    return true;
+  });
 
   const byStatus = STATUSES.reduce(
     (acc, s) => {
@@ -85,14 +92,24 @@ export default function KanbanView({
       <div className="mb-4 flex items-center gap-2 flex-wrap">
         <span className="text-xs text-gray-500 font-medium">Filter:</span>
         <button
-          onClick={() => setFilterCategory("")}
+          onClick={() => { setFilterCategory(""); setFilterToday(false); }}
           className={`text-xs px-3 py-1 rounded-full transition-colors ${
-            !filterCategory
+            !filterCategory && !filterToday
               ? "bg-gray-800 text-white"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
         >
           All
+        </button>
+        <button
+          onClick={() => setFilterToday((t) => !t)}
+          className={`text-xs px-3 py-1 rounded-full transition-colors font-medium ${
+            filterToday
+              ? "bg-blue-600 text-white"
+              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+          }`}
+        >
+          Today
         </button>
         {categories.map((cat) => (
           <button
