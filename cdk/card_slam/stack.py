@@ -56,6 +56,17 @@ class CardSlamStack(Stack):
             ),
         )
 
+        users_table = dynamodb.Table(
+            self,
+            "UsersTable",
+            table_name="card-slam-users",
+            partition_key=dynamodb.Attribute(
+                name="username", type=dynamodb.AttributeType.STRING
+            ),
+            billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
+            removal_policy=RemovalPolicy.RETAIN,
+        )
+
         # Secret is created/managed by scripts/bootstrap.sh — import it here
         app_secret = secretsmanager.Secret.from_secret_name_v2(
             self,
@@ -83,6 +94,7 @@ class CardSlamStack(Stack):
         )
         categories_table.grant_read_write_data(task_role)
         cards_table.grant_read_write_data(task_role)
+        users_table.grant_read_write_data(task_role)
         app_secret.grant_read(task_role)
 
         task_def = ecs.FargateTaskDefinition(
@@ -104,6 +116,7 @@ class CardSlamStack(Stack):
             environment={
                 "CATEGORIES_TABLE": categories_table.table_name,
                 "CARDS_TABLE": cards_table.table_name,
+                "USERS_TABLE": users_table.table_name,
                 "SECRET_NAME": app_secret.secret_name,
                 "AWS_DEFAULT_REGION": self.region,
             },

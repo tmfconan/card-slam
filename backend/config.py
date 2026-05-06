@@ -8,11 +8,10 @@ from functools import lru_cache
 def get_secret() -> dict:
     secret_name = os.environ.get("SECRET_NAME")
 
-    # Local dev: fall back to env vars
+    # Local dev: fall back to env vars (password_hash removed — now stored in DynamoDB)
     if not secret_name:
         return {
             "jwt_secret": os.environ.get("JWT_SECRET", "dev-only-secret"),
-            "password_hash": os.environ.get("PASSWORD_HASH", ""),
             "anthropic_api_key": os.environ.get("ANTHROPIC_API_KEY", ""),
         }
 
@@ -26,10 +25,6 @@ def get_secret() -> dict:
 
 def get_jwt_secret() -> str:
     return get_secret()["jwt_secret"]
-
-
-def get_password_hash() -> str:
-    return get_secret()["password_hash"]
 
 
 def get_anthropic_key() -> str:

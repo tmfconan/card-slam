@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends, Query, Body
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
+from boto3.dynamodb.conditions import Attr
 
 from .models import CardCreate, CardUpdate, CardReorderItem, BatchStatusUpdate, Card, Status
 from auth.router import verify_token
@@ -13,17 +14,34 @@ router = APIRouter(prefix="/cards", tags=["cards"])
 def _normalize(item: dict) -> dict:
     item["priority"] = int(item.get("priority", 0))
     item["duration"] = int(item.get("duration", 30))
+    item.setdefault("username", "admin")  # migrate legacy records
     return item
+
+
+def _owned(item: dict, username: str) -> bool:
+    return item.get("username", "admin") == username
+
+
+def _get_owned(table, card_id: str, username: str) -> dict:
+    item = table.get_item(Key={"id": card_id}).get("Item")
+    if not item or not _owned(item, username):
+        raise HTTPException(status_code=404, detail="Card not found")
+    return _normalize(item)
 
 
 @router.get("/", response_model=list[Card])
 def list_cards(
     status: Optional[Status] = Query(None),
     category_id: Optional[str] = Query(None),
-    user: str = Depends(verify_token),
+    username: str = Depends(verify_token),
 ):
     table = get_cards_table()
-    items = [_normalize(i) for i in table.scan().get("Items", [])]
+    items = [_normalize(i) for i in
+             table.scan(FilterExpression=Attr("username").eq(username)).get("Items", [])]
+    # Include legacy records for admin
+    if username == "admin":
+        legacy = [_normalize(i) for i in table.scan().get("Items", []) if "username" not in i]
+        items = items + legacy
     if status:
         items = [i for i in items if i["status"] == status]
     if category_id:
@@ -32,11 +50,12 @@ def list_cards(
 
 
 @router.post("/", response_model=Card, status_code=201)
-def create_card(body: CardCreate, user: str = Depends(verify_token)):
+def create_card(body: CardCreate, username: str = Depends(verify_token)):
     table = get_cards_table()
     now = datetime.now(timezone.utc).isoformat()
     item: dict = {
         "id": str(uuid.uuid4()),
+        "username": username,
         "title": body.title,
         "description": body.description,
         "category_id": body.category_id,
@@ -55,13 +74,14 @@ def create_card(body: CardCreate, user: str = Depends(verify_token)):
 
 
 @router.post("/batch", response_model=list[Card], status_code=201)
-def create_cards_batch(bodies: list[CardCreate], user: str = Depends(verify_token)):
+def create_cards_batch(bodies: list[CardCreate], username: str = Depends(verify_token)):
     table = get_cards_table()
     now = datetime.now(timezone.utc).isoformat()
     items = []
     for i, body in enumerate(bodies):
         item = {
             "id": str(uuid.uuid4()),
+            "username": username,
             "title": body.title,
             "description": body.description,
             "category_id": body.category_id,
@@ -82,15 +102,14 @@ def create_cards_batch(bodies: list[CardCreate], user: str = Depends(verify_toke
 
 @router.post("/batch-status", status_code=200)
 def batch_status_update(
-    body: BatchStatusUpdate, user: str = Depends(verify_token)
+    body: BatchStatusUpdate, username: str = Depends(verify_token)
 ):
     table = get_cards_table()
     now = datetime.now(timezone.utc).isoformat()
     updated = 0
     for card_id in body.ids:
-        response = table.get_item(Key={"id": card_id})
-        card = response.get("Item")
-        if card:
+        card = table.get_item(Key={"id": card_id}).get("Item")
+        if card and _owned(card, username):
             card["status"] = body.status
             card["updated_at"] = now
             table.put_item(Item=card)
@@ -101,14 +120,13 @@ def batch_status_update(
 @router.post("/reorder", status_code=200)
 def reorder_cards(
     items: list[CardReorderItem] = Body(...),
-    user: str = Depends(verify_token),
+    username: str = Depends(verify_token),
 ):
     table = get_cards_table()
     now = datetime.now(timezone.utc).isoformat()
     for item in items:
-        response = table.get_item(Key={"id": item.id})
-        card = response.get("Item")
-        if card:
+        card = table.get_item(Key={"id": item.id}).get("Item")
+        if card and _owned(card, username):
             card["status"] = item.status
             card["priority"] = item.priority
             card["updated_at"] = now
@@ -117,25 +135,17 @@ def reorder_cards(
 
 
 @router.get("/{card_id}", response_model=Card)
-def get_card(card_id: str, user: str = Depends(verify_token)):
-    table = get_cards_table()
-    response = table.get_item(Key={"id": card_id})
-    item = response.get("Item")
-    if not item:
-        raise HTTPException(status_code=404, detail="Card not found")
-    return _normalize(item)
+def get_card(card_id: str, username: str = Depends(verify_token)):
+    return _get_owned(get_cards_table(), card_id, username)
 
 
 @router.put("/{card_id}", response_model=Card)
-def update_card(card_id: str, body: CardUpdate, user: str = Depends(verify_token)):
+def update_card(card_id: str, body: CardUpdate, username: str = Depends(verify_token)):
     table = get_cards_table()
-    response = table.get_item(Key={"id": card_id})
-    item = response.get("Item")
-    if not item:
-        raise HTTPException(status_code=404, detail="Card not found")
+    item = _get_owned(table, card_id, username)
     for k, v in body.model_dump(exclude_unset=True).items():
         if v is None:
-            item.pop(k, None)  # explicitly nulled → remove the attribute
+            item.pop(k, None)
         else:
             item[k] = v
     item["updated_at"] = datetime.now(timezone.utc).isoformat()
@@ -144,8 +154,7 @@ def update_card(card_id: str, body: CardUpdate, user: str = Depends(verify_token
 
 
 @router.delete("/{card_id}", status_code=204)
-def delete_card(card_id: str, user: str = Depends(verify_token)):
+def delete_card(card_id: str, username: str = Depends(verify_token)):
     table = get_cards_table()
-    if not table.get_item(Key={"id": card_id}).get("Item"):
-        raise HTTPException(status_code=404, detail="Card not found")
+    _get_owned(table, card_id, username)  # raises 404 if not owned
     table.delete_item(Key={"id": card_id})

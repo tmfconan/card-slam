@@ -5,12 +5,14 @@ import KanbanView from "./KanbanView";
 import ListView from "./ListView";
 import CalendarView from "./CalendarView";
 import CategoryManager from "./CategoryManager";
+import UserManagement from "./UserManagement";
 import PromptBar from "./PromptBar";
 import { Category, Card } from "../types";
 import api from "../api/client";
 
 export default function Layout() {
-  const { logout } = useAuth();
+  const { logout, currentUser } = useAuth();
+  const isAdmin = currentUser?.role === "admin";
   const location = useLocation();
   const [categories, setCategories] = useState<Category[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
@@ -40,7 +42,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users"].includes(location.pathname);
 
   const navLink = (to: string, label: string) => {
     const active = location.pathname === to;
@@ -89,6 +91,7 @@ export default function Layout() {
             {navLink("/list", "List")}
             {navLink("/calendar", "Calendar")}
             {navLink("/categories", "Categories")}
+            {isAdmin && navLink("/users", "Users")}
           </nav>
           <div className="p-4 border-t border-gray-700">
             <button
@@ -170,6 +173,9 @@ export default function Layout() {
                   <CategoryManager categories={categories} onUpdate={fetchAll} />
                 }
               />
+              {isAdmin && (
+                <Route path="/users" element={<UserManagement />} />
+              )}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}

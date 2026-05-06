@@ -20,3 +20,7 @@ def get_categories_table():
 
 def get_cards_table():
     return _dynamodb().Table(os.environ.get("CARDS_TABLE", "card-slam-cards"))
+
+
+def get_users_table():
+    return _dynamodb().Table(os.environ.get("USERS_TABLE", "card-slam-users"))

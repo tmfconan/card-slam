@@ -54,9 +54,34 @@ export const mockCards: Card[] = [
 ];
 
 export const handlers = [
-  http.post("/api/auth/login", () => {
-    return HttpResponse.json({ access_token: "mock-token" }, { status: 200 });
+  http.post("/api/auth/login", async ({ request }) => {
+    const body = (await request.json()) as { username?: string };
+    const token = body.username === "testuser" ? "mock-user-token" : "mock-admin-token";
+    return HttpResponse.json({ access_token: token }, { status: 200 });
   }),
+
+  http.get("/api/auth/me", ({ request }) => {
+    const auth = request.headers.get("Authorization") ?? "";
+    if (auth.includes("mock-user-token")) {
+      return HttpResponse.json({ username: "testuser", role: "user" });
+    }
+    return HttpResponse.json({ username: "admin", role: "admin" });
+  }),
+
+  // Admin user management
+  http.get("/api/admin/users", () =>
+    HttpResponse.json([
+      { username: "admin", role: "admin", created_at: "2024-01-01T00:00:00Z" },
+    ])
+  ),
+  http.post("/api/admin/users", async ({ request }) => {
+    const body = (await request.json()) as { username: string };
+    return HttpResponse.json(
+      { username: body.username, role: "user", created_at: new Date().toISOString() },
+      { status: 201 }
+    );
+  }),
+  http.delete("/api/admin/users/:username", () => new HttpResponse(null, { status: 204 })),
 
   http.get("/api/categories/", () => {
     return HttpResponse.json(mockCategories);

@@ -49,6 +49,7 @@ fi
 export JWT_SECRET="${JWT_SECRET:-local-dev-jwt-secret}"
 export DYNAMODB_ENDPOINT="$DYNAMO_ENDPOINT"
 export AWS_DEFAULT_REGION="us-east-2"
+export USERS_TABLE="card-slam-users"
 # DynamoDB Local doesn't validate credentials, but boto3 requires non-empty values
 export AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID:-local}"
 export AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY:-local}"
@@ -101,6 +102,12 @@ tables = [
         AttributeDefinitions=[{"AttributeName": "id", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     ),
+    dict(
+        TableName="card-slam-users",
+        KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    ),
 ]
 
 for t in tables:
@@ -110,6 +117,31 @@ for t in tables:
     else:
         print(f"  {t['TableName']} already exists")
 PYEOF
+
+# ── Seed admin user (idempotent) ──────────────────────────────────────────────
+if [[ -n "${PASSWORD_HASH:-}" ]]; then
+  echo "Seeding admin user in DynamoDB…"
+  python3 - "$PASSWORD_HASH" <<'PYEOF'
+import boto3, os, sys, json
+from datetime import datetime, timezone
+
+endpoint = os.environ["DYNAMODB_ENDPOINT"]
+db = boto3.resource("dynamodb", endpoint_url=endpoint,
+    region_name="us-east-2", aws_access_key_id="local", aws_secret_access_key="local")
+table = db.Table("card-slam-users")
+existing = table.get_item(Key={"username": "admin"}).get("Item")
+if not existing:
+    table.put_item(Item={
+        "username": "admin",
+        "password_hash": sys.argv[1],
+        "role": "admin",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    print("  Admin user seeded.")
+else:
+    print("  Admin user already exists.")
+PYEOF
+fi
 
 # ── Backend ───────────────────────────────────────────────────────────────────
 echo ""
