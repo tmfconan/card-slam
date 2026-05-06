@@ -42,7 +42,8 @@
       "Bash(python3 -m pytest backend/tests/ -q)",
       "Bash(python3.12 -m pytest /Users/maxk/codes/card-slam/backend/tests/ -q)",
       "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/__tests__/PromptBar.test.tsx frontend/src/components/PromptBar.tsx)",
-      "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/components/PromptBar.tsx)"
+      "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/components/PromptBar.tsx)",
+      "Bash(chmod +x /Users/maxk/codes/card-slam/scripts/migrate-users.sh)"
     ]
   }
 }

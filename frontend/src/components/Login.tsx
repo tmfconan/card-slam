@@ -5,6 +5,7 @@ import { useAuth } from "../contexts/AuthContext";
 export default function Login() {
   const { login } = useAuth();
   const navigate = useNavigate();
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -14,10 +15,10 @@ export default function Login() {
     setError("");
     setLoading(true);
     try {
-      await login(password);
+      await login(username, password);
       navigate("/");
     } catch {
-      setError("Invalid password");
+      setError("Invalid credentials");
     } finally {
       setLoading(false);
     }
@@ -33,13 +34,27 @@ export default function Login() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
+              Username
+            </label>
+            <input
+              type="text"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              autoFocus
+              autoComplete="username"
+              className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Username"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
               Password
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              autoFocus
+              autoComplete="current-password"
               className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your password"
             />
@@ -47,10 +62,10 @@ export default function Login() {
           {error && <p className="text-red-500 text-sm">{error}</p>}
           <button
             type="submit"
-            disabled={!password || loading}
+            disabled={!username || !password || loading}
             className="w-full bg-blue-600 text-white py-2.5 rounded-lg text-sm font-medium hover:bg-blue-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
       </div>

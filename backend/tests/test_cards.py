@@ -351,3 +351,43 @@ def test_batch_status_skips_nonexistent_ids(client, auth_headers):
     )
     assert resp.status_code == 200
     assert resp.json()["updated"] == 1
+
+
+# ── User isolation tests ───────────────────────────────────────────────────────
+
+def test_user_cannot_see_other_users_cards(client, auth_headers, user_auth_headers):
+    """Admin's cards are invisible to regular user and vice versa."""
+    # Admin creates a card
+    client.post("/api/cards/", json={**CARD_PAYLOAD, "title": "Admin only card"}, headers=auth_headers)
+    # Regular user cannot see it
+    resp = client.get("/api/cards/", headers=user_auth_headers)
+    titles = [c["title"] for c in resp.json()]
+    assert "Admin only card" not in titles
+
+
+def test_user_sees_only_their_own_cards(client, auth_headers, user_auth_headers):
+    client.post("/api/cards/", json={**CARD_PAYLOAD, "title": "Admin card"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_PAYLOAD, "title": "User card"}, headers=user_auth_headers)
+
+    admin_titles = [c["title"] for c in client.get("/api/cards/", headers=auth_headers).json()]
+    user_titles = [c["title"] for c in client.get("/api/cards/", headers=user_auth_headers).json()]
+
+    assert "Admin card" in admin_titles
+    assert "User card" not in admin_titles
+    assert "User card" in user_titles
+    assert "Admin card" not in user_titles
+
+
+def test_user_cannot_update_another_users_card(client, auth_headers, user_auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    card_id = create_resp.json()["id"]
+    # Regular user cannot update admin's card
+    resp = client.put(f"/api/cards/{card_id}", json={"title": "Hacked"}, headers=user_auth_headers)
+    assert resp.status_code == 404
+
+
+def test_user_cannot_delete_another_users_card(client, auth_headers, user_auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    card_id = create_resp.json()["id"]
+    resp = client.delete(f"/api/cards/{card_id}", headers=user_auth_headers)
+    assert resp.status_code == 404

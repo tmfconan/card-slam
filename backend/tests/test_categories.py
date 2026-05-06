@@ -73,3 +73,22 @@ def test_delete_category(client, auth_headers):
 def test_delete_nonexistent_category(client, auth_headers):
     response = client.delete("/api/categories/does-not-exist", headers=auth_headers)
     assert response.status_code == 404
+
+
+# ── User isolation tests ───────────────────────────────────────────────────────
+
+def test_user_cannot_see_other_users_categories(client, auth_headers, user_auth_headers):
+    client.post("/api/categories/", json={"name": "Admin cat", "color": "#000"}, headers=auth_headers)
+    cats = client.get("/api/categories/", headers=user_auth_headers).json()
+    assert all(c["name"] != "Admin cat" for c in cats)
+
+
+def test_user_sees_only_their_own_categories(client, auth_headers, user_auth_headers):
+    client.post("/api/categories/", json={"name": "Admin cat", "color": "#111"}, headers=auth_headers)
+    client.post("/api/categories/", json={"name": "User cat", "color": "#222"}, headers=user_auth_headers)
+
+    admin_names = [c["name"] for c in client.get("/api/categories/", headers=auth_headers).json()]
+    user_names = [c["name"] for c in client.get("/api/categories/", headers=user_auth_headers).json()]
+
+    assert "Admin cat" in admin_names and "User cat" not in admin_names
+    assert "User cat" in user_names and "Admin cat" not in user_names
