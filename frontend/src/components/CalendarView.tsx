@@ -254,6 +254,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                             isDragging={snap.isDragging}
                             onUpdate={onUpdate}
                             categories={categories}
+                            showStatusDot
                             showUpdatedAt
                           />
                         </div>

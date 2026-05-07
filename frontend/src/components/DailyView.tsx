@@ -215,6 +215,7 @@ export default function DailyView({
             isDragging={isBeingDragged}
             onUpdate={onUpdate}
             categories={categories}
+            showStatusDot
             onRemoveFromSchedule={
               card.todo_time
                 ? async () => {
@@ -360,6 +361,7 @@ export default function DailyView({
                               isDragging={isBeingDragged}
                               onUpdate={onUpdate}
                               categories={categories}
+                              showStatusDot
                               onRemoveFromSchedule={async () => {
                                 await api.put(`/cards/${card.id}`, { todo_time: null });
                                 onUpdate();
