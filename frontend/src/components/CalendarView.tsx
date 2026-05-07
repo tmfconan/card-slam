@@ -80,9 +80,12 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate 
   const byDate: Record<string, Card[]> = { unscheduled: [] };
   days.forEach((d) => (byDate[d.key] = []));
   for (const card of visible) {
-    const key =
-      card.todo_date && validKeys.has(card.todo_date) ? card.todo_date : "unscheduled";
-    byDate[key].push(card);
+    if (!card.todo_date) {
+      byDate.unscheduled.push(card);           // truly unscheduled
+    } else if (validKeys.has(card.todo_date)) {
+      byDate[card.todo_date].push(card);       // falls in visible window
+    }
+    // has a date outside the visible window → don't show it at all
   }
   Object.values(byDate).forEach((bucket) =>
     bucket.sort((a, b) => a.priority - b.priority)

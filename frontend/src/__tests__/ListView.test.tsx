@@ -121,6 +121,37 @@ describe("ListView", () => {
     expect(screen.getByText(/priority/i).closest("th")).toHaveTextContent("↓");
   });
 
+  it("Date column header is sortable and shows a sort indicator when clicked", async () => {
+    const user = userEvent.setup();
+    renderList();
+    const dateHeader = screen
+      .getAllByRole("columnheader")
+      .find((h) => h.textContent?.trim() === "Date")!;
+    await user.click(dateHeader);
+    // Re-query after click — React has updated the DOM, look for the indicator
+    const sorted = screen
+      .getAllByRole("columnheader")
+      .find((h) => h.textContent?.includes("Date") && h.textContent?.includes("↑"));
+    expect(sorted).toBeTruthy();
+  });
+
+  it("sorting by Date ascending puts earlier dates first and undated cards last", async () => {
+    const user = userEvent.setup();
+    renderList();
+    const dateHeader = screen
+      .getAllByRole("columnheader")
+      .find((h) => h.textContent?.trim() === "Date")!;
+    await user.click(dateHeader);
+
+    const mobile = screen.getByTestId("list-mobile");
+    const titles = Array.from(mobile.querySelectorAll("p.font-medium")).map(
+      (el) => el.textContent
+    );
+    // card-2 has 2024-06-15, card-1 has TODAY (~2026), card-3 has no date → bottom
+    expect(titles.indexOf("Set up database")).toBeLessThan(titles.indexOf("Build login page"));
+    expect(titles.indexOf("Build login page")).toBeLessThan(titles.indexOf("Write API tests"));
+  });
+
   // ── Date filter ─────────────────────────────────────────────────────────────
 
   it("renders a date filter input", () => {
