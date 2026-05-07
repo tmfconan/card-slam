@@ -60,6 +60,8 @@ const mockCategoryMap: Record<string, Category> = {
   "cat-2": mockCategories[1],
 };
 
+const TODAY = new Date().toISOString().split("T")[0];
+
 const mockCards: Card[] = [
   {
     id: "card-1",
@@ -68,6 +70,8 @@ const mockCards: Card[] = [
     category_id: "cat-1",
     status: "brainstorm",
     priority: 0,
+    duration: 30,
+    todo_date: TODAY,
     created_at: "2024-01-01T00:00:00Z",
     updated_at: "2024-01-01T00:00:00Z",
   },
@@ -78,6 +82,8 @@ const mockCards: Card[] = [
     category_id: "cat-2",
     status: "in_progress",
     priority: 0,
+    duration: 30,
+    todo_date: TODAY,
     created_at: "2024-01-02T00:00:00Z",
     updated_at: "2024-01-02T00:00:00Z",
   },
@@ -88,8 +94,21 @@ const mockCards: Card[] = [
     category_id: "cat-2",
     status: "done",
     priority: 0,
+    duration: 30,
+    todo_date: "2020-01-01",
     created_at: "2024-01-03T00:00:00Z",
     updated_at: "2024-01-03T00:00:00Z",
+  },
+  {
+    id: "card-4",
+    title: "No date card",
+    description: "No todo_date set",
+    category_id: "cat-1",
+    status: "brainstorm",
+    priority: 1,
+    duration: 30,
+    created_at: "2024-01-04T00:00:00Z",
+    updated_at: "2024-01-04T00:00:00Z",
   },
 ];
 
@@ -194,5 +213,53 @@ describe("KanbanView", () => {
     expect(screen.getByText("Build login page")).toBeInTheDocument();
     expect(screen.getByText("Set up database")).toBeInTheDocument();
     expect(screen.getByText("Write API tests")).toBeInTheDocument();
+  });
+
+  // ── Today filter ──────────────────────────────────────────────────────────
+
+  it("renders a Today filter button", () => {
+    render(<KanbanView cards={mockCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /today/i })).toBeInTheDocument();
+  });
+
+  it("Today button is inactive by default (all 4 cards visible)", () => {
+    render(<KanbanView cards={mockCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    expect(screen.getByText("Build login page")).toBeInTheDocument();
+    expect(screen.getByText("Write API tests")).toBeInTheDocument();
+    expect(screen.getByText("No date card")).toBeInTheDocument();
+  });
+
+  it("clicking Today shows only cards scheduled for today", async () => {
+    const user = userEvent.setup();
+    render(<KanbanView cards={mockCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /today/i }));
+    expect(screen.getByText("Build login page")).toBeInTheDocument();
+    expect(screen.getByText("Set up database")).toBeInTheDocument();
+    expect(screen.queryByText("Write API tests")).not.toBeInTheDocument();
+    expect(screen.queryByText("No date card")).not.toBeInTheDocument();
+  });
+
+  it("clicking Today again deactivates the filter", async () => {
+    const user = userEvent.setup();
+    render(<KanbanView cards={mockCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    const btn = screen.getByRole("button", { name: /today/i });
+    await user.click(btn);
+    await user.click(btn);
+    expect(screen.getByText("Write API tests")).toBeInTheDocument();
+    expect(screen.getByText("No date card")).toBeInTheDocument();
+  });
+
+  it("Today filter and category filter combine (AND logic)", async () => {
+    const user = userEvent.setup();
+    render(<KanbanView cards={mockCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /today/i }));
+    await user.click(screen.getByRole("button", { name: "Frontend" }));
+    expect(screen.getByText("Build login page")).toBeInTheDocument();
+    expect(screen.queryByText("Set up database")).not.toBeInTheDocument();
   });
 });
