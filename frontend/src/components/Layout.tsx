@@ -17,6 +17,9 @@ export default function Layout() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
   const [loading, setLoading] = useState(true);
+  // When the calendar is in Day view, store the selected date so the
+  // "Direct add" button can default to that day at 8 AM.
+  const [dayViewDate, setDayViewDate] = useState<string | null>(null);
   // Default open on desktop, closed on small screens
   const [sidebarOpen, setSidebarOpen] = useState(
     () => typeof window !== "undefined" && window.innerWidth >= 640
@@ -117,7 +120,12 @@ export default function Layout() {
           </button>
           {showPromptBar ? (
             <div className="flex-1 min-w-0">
-              <PromptBar categories={categories} onCardsCreated={fetchAll} />
+              <PromptBar
+                categories={categories}
+                onCardsCreated={fetchAll}
+                defaultDate={dayViewDate ?? undefined}
+                defaultTime={dayViewDate ? "08:00" : undefined}
+              />
             </div>
           ) : (
             <div className="flex-1 bg-white border-b px-4 py-3 flex items-center">
@@ -164,6 +172,7 @@ export default function Layout() {
                     categories={categories}
                     categoryMap={categoryMap}
                     onUpdate={fetchAll}
+                    onDayViewActive={setDayViewDate}
                   />
                 }
               />

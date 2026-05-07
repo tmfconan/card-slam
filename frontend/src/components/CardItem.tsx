@@ -3,6 +3,16 @@ import { Card, Category, Status, STATUSES, STATUS_LABELS } from "../types";
 import api from "../api/client";
 import CardDetail from "./CardDetail";
 
+// Colour for the status dot shown on calendar cards
+const STATUS_DOT_COLOR: Record<Status, string> = {
+  brainstorm:       "#9ca3af", // gray
+  intent_to_do:     "#eab308", // yellow
+  ready_to_do:      "#22c55e", // green
+  in_progress:      "#3b82f6", // blue
+  needs_finishing:  "#f97316", // orange
+  done:             "#9ca3af", // gray (unused — done cards never show the dot)
+};
+
 interface Props {
   card: Card;
   category: Category | undefined;
@@ -10,6 +20,8 @@ interface Props {
   onUpdate: () => void;
   showStatus?: boolean;
   showUpdatedAt?: boolean;
+  // Show a small coloured status dot (calendar/day views); never shown for done cards
+  showStatusDot?: boolean;
   // Provide categories to enable click-to-edit; omit to suppress it
   categories?: Category[];
   // If provided, the × button calls this instead of deleting (e.g. move to unscheduled)
@@ -23,11 +35,11 @@ export default function CardItem({
   onUpdate,
   showStatus,
   showUpdatedAt,
+  showStatusDot,
   categories,
   onRemoveFromSchedule,
 }: Props) {
   const [showDetail, setShowDetail] = useState(false);
-  // Detect drag vs click: track whether pointer moved > 5px since pointerdown
   const pointerOrigin = useRef<{ x: number; y: number } | null>(null);
   const didDrag = useRef(false);
 
@@ -50,10 +62,7 @@ export default function CardItem({
 
   const handleDelete = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (onRemoveFromSchedule) {
-      onRemoveFromSchedule();
-      return;
-    }
+    if (onRemoveFromSchedule) { onRemoveFromSchedule(); return; }
     if (!confirm(`Delete "${card.title}"?`)) return;
     await api.delete(`/cards/${card.id}`);
     onUpdate();
@@ -65,6 +74,8 @@ export default function CardItem({
   };
 
   const borderColor = category?.color ?? "#94a3b8";
+  const isDone = card.status === "done";
+  const showDot = showStatusDot && !isDone;
 
   return (
     <>
@@ -73,13 +84,28 @@ export default function CardItem({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onClick={handleClick}
-        className={`group bg-white rounded-lg shadow-sm border-l-4 p-3 select-none ${
+        className={`relative group bg-white rounded-lg shadow-sm border-l-4 p-3 select-none ${
           isDragging ? "shadow-lg rotate-1 opacity-90" : ""
-        } ${categories ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
+        } ${isDone ? "opacity-50" : ""} ${
+          categories ? "cursor-pointer hover:shadow-md transition-shadow" : ""
+        }`}
         style={{ borderLeftColor: borderColor }}
       >
+        {/* Status dot — top-right corner, only on active cards in calendar context */}
+        {showDot && (
+          <span
+            data-testid="status-dot"
+            className="absolute top-2 right-6 w-2 h-2 rounded-full flex-shrink-0"
+            style={{ backgroundColor: STATUS_DOT_COLOR[card.status] }}
+          />
+        )}
+
         <div className="flex items-start justify-between gap-1">
-          <p className="text-sm font-medium text-gray-800 leading-snug flex-1">
+          <p
+            className={`text-sm font-medium text-gray-800 leading-snug flex-1 ${
+              isDone ? "line-through" : ""
+            }`}
+          >
             {card.title}
           </p>
           <button
@@ -101,10 +127,7 @@ export default function CardItem({
           {category && (
             <span
               className="text-xs px-2 py-0.5 rounded-full font-medium"
-              style={{
-                backgroundColor: `${category.color}20`,
-                color: category.color,
-              }}
+              style={{ backgroundColor: `${category.color}20`, color: category.color }}
             >
               {category.name}
             </span>
@@ -117,9 +140,7 @@ export default function CardItem({
               className="text-xs border-0 text-gray-500 focus:outline-none bg-transparent ml-auto"
             >
               {STATUSES.map((s) => (
-                <option key={s} value={s}>
-                  {STATUS_LABELS[s]}
-                </option>
+                <option key={s} value={s}>{STATUS_LABELS[s]}</option>
               ))}
             </select>
           )}

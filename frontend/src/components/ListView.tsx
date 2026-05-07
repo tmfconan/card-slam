@@ -5,7 +5,7 @@ import CardDetail from "./CardDetail";
 
 type SortKey = keyof Pick<
   Card,
-  "title" | "status" | "category_id" | "priority" | "created_at" | "updated_at"
+  "title" | "status" | "category_id" | "priority" | "todo_date" | "created_at" | "updated_at"
 >;
 type SortDir = "asc" | "desc";
 
@@ -46,8 +46,10 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
       );
     }
     result.sort((a, b) => {
-      const av = a[sortKey] ?? "";
-      const bv = b[sortKey] ?? "";
+      // Cards without a todo_date always sort to the bottom regardless of direction
+      const sentinel = "9999-99-99";
+      const av = sortKey === "todo_date" ? (a.todo_date ?? sentinel) : (a[sortKey] ?? "");
+      const bv = sortKey === "todo_date" ? (b.todo_date ?? sentinel) : (b[sortKey] ?? "");
       if (av < bv) return sortDir === "asc" ? -1 : 1;
       if (av > bv) return sortDir === "asc" ? 1 : -1;
       return 0;
@@ -204,7 +206,7 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
               <Th label="Category" sortable="category_id" />
               <Th label="Status" sortable="status" />
               <Th label="Priority" sortable="priority" />
-              <Th label="Date" />
+              <Th label="Date" sortable="todo_date" />
               <Th label="Updated" sortable="updated_at" />
               <Th label="" />
             </tr>

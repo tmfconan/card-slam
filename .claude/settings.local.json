@@ -43,7 +43,12 @@
       "Bash(python3.12 -m pytest /Users/maxk/codes/card-slam/backend/tests/ -q)",
       "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/__tests__/PromptBar.test.tsx frontend/src/components/PromptBar.tsx)",
       "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/components/PromptBar.tsx)",
-      "Bash(chmod +x /Users/maxk/codes/card-slam/scripts/migrate-users.sh)"
+      "Bash(chmod +x /Users/maxk/codes/card-slam/scripts/migrate-users.sh)",
+      "Bash(python3.12 -c \"import ast; ast.parse\\(open\\('/Users/maxk/codes/card-slam/backend/main.py'\\).read\\(\\)\\); print\\('OK'\\)\")",
+      "Bash(git -C /Users/maxk/codes/card-slam add backend/main.py frontend/src/__tests__/CalendarView.test.tsx frontend/src/__tests__/ListView.test.tsx frontend/src/components/CalendarView.tsx frontend/src/components/ListView.tsx)",
+      "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/__tests__/CalendarView.test.tsx frontend/src/__tests__/CardDetail.test.tsx frontend/src/__tests__/DailyView.test.tsx frontend/src/__tests__/QuickAddCard.test.tsx frontend/src/components/CalendarView.tsx frontend/src/components/CardDetail.tsx frontend/src/components/DailyView.tsx frontend/src/components/Layout.tsx frontend/src/components/PromptBar.tsx frontend/src/components/QuickAddCard.tsx)",
+      "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/__tests__/CardItem.test.tsx frontend/src/components/CalendarView.tsx frontend/src/components/CardItem.tsx frontend/src/components/DailyView.tsx)",
+      "Bash(git -C /Users/maxk/codes/card-slam add frontend/src/__tests__/KanbanView.test.tsx frontend/src/components/KanbanView.tsx)"
     ]
   }
 }

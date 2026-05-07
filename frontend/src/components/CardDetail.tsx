@@ -178,11 +178,11 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 id="cd-duration"
                 aria-label="Duration"
                 type="number"
-                min="30"
-                step="30"
+                min="15"
+                step="15"
                 value={duration}
                 onChange={(e) =>
-                  setDuration(Math.max(30, parseInt(e.target.value) || 30))
+                  setDuration(Math.max(15, parseInt(e.target.value) || 15))
                 }
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
               />

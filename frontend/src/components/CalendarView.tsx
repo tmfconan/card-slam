@@ -15,6 +15,7 @@ interface Props {
   categories: Category[];
   categoryMap: Record<string, Category>;
   onUpdate: () => void;
+  onDayViewActive?: (date: string | null) => void;
 }
 
 const DEFAULT_EXCLUDED: Status[] = ["brainstorm", "done"];
@@ -49,10 +50,21 @@ function shiftDate(date: string, days: number): string {
 
 type ViewMode = "week" | "day";
 
-export default function CalendarView({ cards, categories, categoryMap, onUpdate }: Props) {
+export default function CalendarView({ cards, categories, categoryMap, onUpdate, onDayViewActive }: Props) {
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [weekStart, setWeekStart] = useState(todayStr());
   const [selectedDay, setSelectedDay] = useState(todayStr());
+
+  const enterDayView = (date: string) => {
+    setSelectedDay(date);
+    setViewMode("day");
+    onDayViewActive?.(date);
+  };
+
+  const leaveDayView = () => {
+    setViewMode("week");
+    onDayViewActive?.(null);
+  };
 
   const [filterCategory, setFilterCategory] = useState("");
   const [includedStatuses, setIncludedStatuses] = useState<Set<Status>>(
@@ -80,9 +92,12 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate 
   const byDate: Record<string, Card[]> = { unscheduled: [] };
   days.forEach((d) => (byDate[d.key] = []));
   for (const card of visible) {
-    const key =
-      card.todo_date && validKeys.has(card.todo_date) ? card.todo_date : "unscheduled";
-    byDate[key].push(card);
+    if (!card.todo_date) {
+      byDate.unscheduled.push(card);           // truly unscheduled
+    } else if (validKeys.has(card.todo_date)) {
+      byDate[card.todo_date].push(card);       // falls in visible window
+    }
+    // has a date outside the visible window → don't show it at all
   }
   Object.values(byDate).forEach((bucket) =>
     bucket.sort((a, b) => a.priority - b.priority)
@@ -107,7 +122,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate 
       <div className="flex flex-col h-full">
         <div className="bg-white border-b px-5 py-2 flex items-center gap-3 flex-shrink-0">
           <button
-            onClick={() => setViewMode("week")}
+            onClick={leaveDayView}
             className="text-sm text-blue-600 hover:underline"
           >
             ← Week view
@@ -137,13 +152,13 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate 
         {/* View mode toggle */}
         <div className="flex rounded-lg border overflow-hidden text-sm">
           <button
-            onClick={() => setViewMode("week")}
+            onClick={leaveDayView}
             className="px-3 py-1.5 transition-colors bg-gray-800 text-white"
           >
             2 Weeks
           </button>
           <button
-            onClick={() => { setViewMode("day"); setSelectedDay(selectedDay); }}
+            onClick={() => enterDayView(selectedDay)}
             className="px-3 py-1.5 transition-colors hover:bg-gray-50"
           >
             Day
@@ -239,6 +254,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate 
                             isDragging={snap.isDragging}
                             onUpdate={onUpdate}
                             categories={categories}
+                            showStatusDot
                             showUpdatedAt
                           />
                         </div>
@@ -266,7 +282,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate 
                     </p>
                   </div>
                   <button
-                    onClick={() => { setSelectedDay(day.key); setViewMode("day"); }}
+                    onClick={() => enterDayView(day.key)}
                     className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
                     title="Open day view"
                   >

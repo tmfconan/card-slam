@@ -203,4 +203,73 @@ describe("CalendarView", () => {
     // With the mock, we verify the component mounts without errors.
     expect(screen.getByText("Unscheduled")).toBeInTheDocument();
   });
+
+  it("cards scheduled outside the visible window are hidden, not shown as unscheduled", () => {
+    const futureCard: Card = {
+      id: "future-1",
+      title: "Far future card",
+      description: "Scheduled 60 days out",
+      category_id: "cat-1",
+      status: "ready_to_do",
+      priority: 0,
+      duration: 30,
+      todo_date: dateStr(60), // 60 days from today — outside the 14-day window
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    };
+
+    localStorage.setItem("token", "mock-token");
+    render(
+      <CalendarView
+        cards={[...calendarCards, futureCard]}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        onUpdate={vi.fn()}
+      />
+    );
+
+    // Should not appear anywhere — not in unscheduled, not in any day column
+    expect(screen.queryByText("Far future card")).not.toBeInTheDocument();
+    const unscheduled = screen.getByTestId("droppable-unscheduled");
+    expect(unscheduled).not.toHaveTextContent("Far future card");
+  });
+
+  // ── Day view active callback ───────────────────────────────────────────────
+
+  it("calls onDayViewActive with selected date when Day button is clicked", async () => {
+    const user = userEvent.setup();
+    const onDayViewActive = vi.fn();
+    localStorage.setItem("token", "mock-token");
+    render(
+      <CalendarView
+        cards={calendarCards}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        onUpdate={vi.fn()}
+        onDayViewActive={onDayViewActive}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^day$/i }));
+    expect(onDayViewActive).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+  });
+
+  it("calls onDayViewActive with null when returning to week view", async () => {
+    const user = userEvent.setup();
+    const onDayViewActive = vi.fn();
+    localStorage.setItem("token", "mock-token");
+    render(
+      <CalendarView
+        cards={calendarCards}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        onUpdate={vi.fn()}
+        onDayViewActive={onDayViewActive}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^day$/i }));
+    await user.click(screen.getByRole("button", { name: /week view/i }));
+    expect(onDayViewActive).toHaveBeenLastCalledWith(null);
+  });
 });

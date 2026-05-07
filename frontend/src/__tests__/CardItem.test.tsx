@@ -95,4 +95,53 @@ describe("CardItem", () => {
     await user.click(screen.getByTitle("Delete"));
     await waitFor(() => expect(onUpdate).toHaveBeenCalled());
   });
+
+  // ── Status visual indicators ────────────────────────────────────────────────
+
+  it("done card has a muted/dimmed appearance", () => {
+    const doneCard = { ...mockCard, status: "done" as const };
+    render(<CardItem card={doneCard} category={mockCategory} onUpdate={vi.fn()} />);
+    const article = screen.getByRole("article");
+    // opacity-50 applied to the article
+    expect(article.className).toMatch(/opacity-50/);
+  });
+
+  it("done card title has a strikethrough", () => {
+    const doneCard = { ...mockCard, status: "done" as const };
+    render(<CardItem card={doneCard} category={mockCategory} onUpdate={vi.fn()} />);
+    const title = screen.getByText("Build login page");
+    expect(title.className).toMatch(/line-through/);
+  });
+
+  it("non-done card does not have opacity-50", () => {
+    const activeCard = { ...mockCard, status: "in_progress" as const };
+    render(<CardItem card={activeCard} category={mockCategory} onUpdate={vi.fn()} />);
+    expect(screen.getByRole("article").className).not.toMatch(/opacity-50/);
+  });
+
+  it("active card with showStatusDot renders a status indicator", () => {
+    const inProgressCard = { ...mockCard, status: "in_progress" as const };
+    render(
+      <CardItem
+        card={inProgressCard}
+        category={mockCategory}
+        onUpdate={vi.fn()}
+        showStatusDot
+      />
+    );
+    expect(screen.getByTestId("status-dot")).toBeInTheDocument();
+  });
+
+  it("done card does not show a status dot even with showStatusDot", () => {
+    const doneCard = { ...mockCard, status: "done" as const };
+    render(
+      <CardItem card={doneCard} category={mockCategory} onUpdate={vi.fn()} showStatusDot />
+    );
+    expect(screen.queryByTestId("status-dot")).not.toBeInTheDocument();
+  });
+
+  it("status dot is not rendered by default (without showStatusDot)", () => {
+    render(<CardItem card={mockCard} category={mockCategory} onUpdate={vi.fn()} />);
+    expect(screen.queryByTestId("status-dot")).not.toBeInTheDocument();
+  });
 });
