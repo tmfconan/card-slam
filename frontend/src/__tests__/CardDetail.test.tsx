@@ -77,12 +77,12 @@ describe("CardDetail", () => {
     expect(input.value).toBe("60");
   });
 
-  it("duration input enforces minimum of 30", () => {
+  it("duration input enforces minimum of 15", () => {
     renderDetail();
     const input = screen.getByRole("spinbutton", {
       name: /duration/i,
     }) as HTMLInputElement;
-    expect(input.min).toBe("30");
+    expect(input.min).toBe("15");
   });
 
   it("renders todo_time input", () => {

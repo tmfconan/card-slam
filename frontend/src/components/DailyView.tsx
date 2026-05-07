@@ -12,18 +12,22 @@ interface Props {
   onUpdate: () => void;
 }
 
-// 6:00 AM → 5:30 PM, 30-min increments = 24 slots
+// 6:00 AM → 5:45 PM, 15-min increments = 48 slots
 const SLOTS: string[] = [];
 for (let h = 6; h < 18; h++) {
-  SLOTS.push(`${String(h).padStart(2, "0")}:00`);
-  SLOTS.push(`${String(h).padStart(2, "0")}:30`);
+  for (const m of ["00", "15", "30", "45"]) {
+    SLOTS.push(`${String(h).padStart(2, "0")}:${m}`);
+  }
 }
 
-const SLOT_H = 64;
+// Each slot represents 15 minutes. Total height stays 1536px (48 × 32 = 24 × 64).
+const SLOT_H = 32;
 const TIME_W = 64;
 
-function slotLabel(slot: string) {
+// Only show labels on the hour and half-hour to keep the grid readable.
+function slotLabel(slot: string): string | null {
   const [hStr, m] = slot.split(":");
+  if (m === "15" || m === "45") return null;
   const h = parseInt(hStr);
   return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h >= 12 ? "PM" : "AM"}`;
 }
@@ -289,7 +293,9 @@ export default function DailyView({
                 style={{ top: i * SLOT_H, left: 0, right: 0, height: SLOT_H }}
               >
                 <div className="flex-shrink-0 flex items-start pt-1 px-2" style={{ width: TIME_W }}>
-                  <span className="text-xs text-gray-400 leading-none">{slotLabel(slot)}</span>
+                  {slotLabel(slot) && (
+                    <span className="text-xs text-gray-400 leading-none">{slotLabel(slot)}</span>
+                  )}
                 </div>
               </div>
             ))}
@@ -303,12 +309,12 @@ export default function DailyView({
             {Object.entries(slotMap).map(([slot, slotCards]) => {
               const slotIdx = SLOTS.indexOf(slot);
               const maxSpans = Math.max(
-                ...slotCards.map((c) => Math.max(1, Math.ceil((c.duration ?? 30) / 30)))
+                ...slotCards.map((c) => Math.max(1, Math.ceil((c.duration ?? 30) / 15)))
               );
               return (
                 <div
                   key={slot}
-                  className="absolute flex gap-1"
+                  className="absolute flex gap-1 overflow-hidden"
                   style={{
                     top: slotIdx * SLOT_H,
                     left: TIME_W,
@@ -318,7 +324,7 @@ export default function DailyView({
                   }}
                 >
                   {slotCards.map((card) => {
-                    const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 30));
+                    const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 15));
                     const isBeingDragged = dragState?.cardId === card.id;
                     return (
                       <div
@@ -326,7 +332,7 @@ export default function DailyView({
                         data-testid={`daily-card-${card.id}`}
                         data-slot={card.todo_time}
                         data-duration={card.duration ?? 30}
-                        className="flex-1 min-w-0 flex flex-col select-none"
+                        className="flex-1 min-w-0 flex flex-col select-none overflow-hidden"
                         style={{
                           height: spans * SLOT_H - 2,
                           cursor: "grab",
@@ -370,7 +376,7 @@ export default function DailyView({
 
             {/* Drop placeholder */}
             {dragState && hoverSlot && (() => {
-              const spans = Math.max(1, Math.ceil((dragState.card.duration ?? 30) / 30));
+              const spans = Math.max(1, Math.ceil((dragState.card.duration ?? 30) / 15));
               const idx = SLOTS.indexOf(hoverSlot);
               return (
                 <div

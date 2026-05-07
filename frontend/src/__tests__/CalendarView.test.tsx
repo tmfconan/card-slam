@@ -233,4 +233,43 @@ describe("CalendarView", () => {
     const unscheduled = screen.getByTestId("droppable-unscheduled");
     expect(unscheduled).not.toHaveTextContent("Far future card");
   });
+
+  // ── Day view active callback ───────────────────────────────────────────────
+
+  it("calls onDayViewActive with selected date when Day button is clicked", async () => {
+    const user = userEvent.setup();
+    const onDayViewActive = vi.fn();
+    localStorage.setItem("token", "mock-token");
+    render(
+      <CalendarView
+        cards={calendarCards}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        onUpdate={vi.fn()}
+        onDayViewActive={onDayViewActive}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^day$/i }));
+    expect(onDayViewActive).toHaveBeenCalledWith(expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/));
+  });
+
+  it("calls onDayViewActive with null when returning to week view", async () => {
+    const user = userEvent.setup();
+    const onDayViewActive = vi.fn();
+    localStorage.setItem("token", "mock-token");
+    render(
+      <CalendarView
+        cards={calendarCards}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        onUpdate={vi.fn()}
+        onDayViewActive={onDayViewActive}
+      />
+    );
+
+    await user.click(screen.getByRole("button", { name: /^day$/i }));
+    await user.click(screen.getByRole("button", { name: /week view/i }));
+    expect(onDayViewActive).toHaveBeenLastCalledWith(null);
+  });
 });

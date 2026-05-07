@@ -94,18 +94,33 @@ describe("DailyView", () => {
     expect(screen.getByText("6:00 AM")).toBeInTheDocument();
   });
 
-  it("renders the last slot at 5:30 PM", () => {
+  it("renders the last slot at 5:45 PM", () => {
     renderDailyView();
-    expect(screen.getByText("5:30 PM")).toBeInTheDocument();
+    expect(screen.getByTestId("slot-17:45")).toBeInTheDocument();
   });
 
-  it("renders exactly 24 time slot rows (6:00 AM to 5:30 PM)", () => {
+  it("renders 15-minute slot markers between half-hour marks", () => {
+    renderDailyView();
+    // :15 and :45 marks exist as DOM rows even though they have no visible label
+    expect(screen.getByTestId("slot-09:15")).toBeInTheDocument();
+    expect(screen.getByTestId("slot-09:45")).toBeInTheDocument();
+  });
+
+  it("renders exactly 48 time slot rows (15-min intervals, 6:00 AM to 5:45 PM)", () => {
     renderDailyView();
     const slots = [
-      "06:00","06:30","07:00","07:30","08:00","08:30",
-      "09:00","09:30","10:00","10:30","11:00","11:30",
-      "12:00","12:30","13:00","13:30","14:00","14:30",
-      "15:00","15:30","16:00","16:30","17:00","17:30",
+      "06:00","06:15","06:30","06:45",
+      "07:00","07:15","07:30","07:45",
+      "08:00","08:15","08:30","08:45",
+      "09:00","09:15","09:30","09:45",
+      "10:00","10:15","10:30","10:45",
+      "11:00","11:15","11:30","11:45",
+      "12:00","12:15","12:30","12:45",
+      "13:00","13:15","13:30","13:45",
+      "14:00","14:15","14:30","14:45",
+      "15:00","15:15","15:30","15:45",
+      "16:00","16:15","16:30","16:45",
+      "17:00","17:15","17:30","17:45",
     ];
     for (const s of slots) {
       expect(screen.getByTestId(`slot-${s}`)).toBeInTheDocument();
@@ -128,6 +143,18 @@ describe("DailyView", () => {
       "data-slot",
       "10:00"
     );
+  });
+
+  it("30-min card spans 2 fifteen-minute slots (data-duration=30)", () => {
+    renderDailyView();
+    // d-1 has duration:30 → spans 2 × 15-min slots
+    expect(screen.getByTestId("daily-card-d-1")).toHaveAttribute("data-duration", "30");
+  });
+
+  it("90-min card spans 6 fifteen-minute slots (data-duration=90)", () => {
+    renderDailyView();
+    // d-2 has duration:90 → spans 6 × 15-min slots
+    expect(screen.getByTestId("daily-card-d-2")).toHaveAttribute("data-duration", "90");
   });
 
   it("card d-1 title is visible in the grid", () => {

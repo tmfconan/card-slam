@@ -7,6 +7,8 @@ import QuickAddCard from "./QuickAddCard";
 interface Props {
   categories: Category[];
   onCardsCreated: () => void;
+  defaultDate?: string;
+  defaultTime?: string;
 }
 
 // Minimal interface covering the subset we use — avoids relying on
@@ -31,7 +33,7 @@ function getSpeechRecognition(): (new () => ISpeechRecognition) | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-export default function PromptBar({ categories, onCardsCreated }: Props) {
+export default function PromptBar({ categories, onCardsCreated, defaultDate, defaultTime }: Props) {
   const [prompt, setPrompt] = useState("");
   const [categoryId, setCategoryId] = useState("");
   const [loading, setLoading] = useState(false);
@@ -209,6 +211,8 @@ export default function PromptBar({ categories, onCardsCreated }: Props) {
           categories={categories}
           onCardCreated={onCardsCreated}
           onClose={() => setShowQuickAdd(false)}
+          defaultDate={defaultDate}
+          defaultTime={defaultTime}
         />
       )}
     </>
