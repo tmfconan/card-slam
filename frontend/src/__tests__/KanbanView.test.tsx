@@ -95,7 +95,7 @@ const mockCards: Card[] = [
     status: "done",
     priority: 0,
     duration: 30,
-    todo_date: "2020-01-01",
+    todo_date: "2020-01-01",  // different day — should be hidden by Today filter
     created_at: "2024-01-03T00:00:00Z",
     updated_at: "2024-01-03T00:00:00Z",
   },
