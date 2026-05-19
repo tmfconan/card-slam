@@ -9,6 +9,7 @@ from categories.router import router as categories_router
 from cards.router import router as cards_router
 from ai.router import router as ai_router
 from users.router import router as users_router
+from reports.router import router as reports_router
 
 app = FastAPI(title="Card Slam", docs_url="/api/docs", redoc_url=None)
 
@@ -25,6 +26,7 @@ app.include_router(categories_router, prefix="/api")
 app.include_router(cards_router, prefix="/api")
 app.include_router(ai_router, prefix="/api")
 app.include_router(users_router, prefix="/api")
+app.include_router(reports_router, prefix="/api")
 
 
 @app.get("/health")

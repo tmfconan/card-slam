@@ -6,6 +6,7 @@ import ListView from "./ListView";
 import CalendarView from "./CalendarView";
 import CategoryManager from "./CategoryManager";
 import UserManagement from "./UserManagement";
+import Reports from "./Reports";
 import PromptBar from "./PromptBar";
 import { Category, Card } from "../types";
 import api from "../api/client";
@@ -45,7 +46,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories", "/users"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users", "/reports"].includes(location.pathname);
 
   const navLink = (to: string, label: string) => {
     const active = location.pathname === to;
@@ -94,6 +95,7 @@ export default function Layout() {
             {navLink("/list", "List")}
             {navLink("/calendar", "Calendar")}
             {navLink("/categories", "Categories")}
+            {navLink("/reports", "Reports")}
             {isAdmin && navLink("/users", "Users")}
           </nav>
           <div className="p-4 border-t border-gray-700">
@@ -129,7 +131,9 @@ export default function Layout() {
             </div>
           ) : (
             <div className="flex-1 bg-white border-b px-4 py-3 flex items-center">
-              <span className="text-sm font-medium text-gray-600">Categories</span>
+              <span className="text-sm font-medium text-gray-600">
+                {location.pathname === "/reports" ? "Reports" : "Categories"}
+              </span>
             </div>
           )}
         </div>
@@ -182,6 +186,7 @@ export default function Layout() {
                   <CategoryManager categories={categories} onUpdate={fetchAll} />
                 }
               />
+              <Route path="/reports" element={<Reports />} />
               {isAdmin && (
                 <Route path="/users" element={<UserManagement />} />
               )}
