@@ -228,3 +228,6 @@ frontend/dist/
 *.pem
 *.key
 .env
+
+#Claude
+.claude/
