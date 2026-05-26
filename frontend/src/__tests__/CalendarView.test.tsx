@@ -272,4 +272,32 @@ describe("CalendarView", () => {
     await user.click(screen.getByRole("button", { name: /week view/i }));
     expect(onDayViewActive).toHaveBeenLastCalledWith(null);
   });
+
+  it("calls onDayViewActive with new date when navigating days inside day view (bug 4)", async () => {
+    const user = userEvent.setup();
+    const onDayViewActive = vi.fn();
+    localStorage.setItem("token", "mock-token");
+    render(
+      <CalendarView
+        cards={calendarCards}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        onUpdate={vi.fn()}
+        onDayViewActive={onDayViewActive}
+      />
+    );
+
+    // Enter day view for today
+    await user.click(screen.getByRole("button", { name: /^day$/i }));
+    const enterCallDate = onDayViewActive.mock.calls[0][0] as string;
+    expect(enterCallDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+
+    // Navigate to next day
+    await user.click(screen.getByRole("button", { name: /next day/i }));
+
+    // onDayViewActive should have been called with the new (next) date
+    const nextCallDate = onDayViewActive.mock.calls[onDayViewActive.mock.calls.length - 1][0] as string;
+    expect(nextCallDate).not.toBe(enterCallDate);
+    expect(nextCallDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
 });

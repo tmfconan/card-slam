@@ -183,9 +183,10 @@ export default function PromptBar({ categories, onCardsCreated, defaultDate, def
 
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="hidden sm:block px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap transition-colors text-gray-700"
+            className="px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap transition-colors text-gray-700"
           >
-            + Direct add
+            <span className="sm:hidden">+</span>
+            <span className="hidden sm:inline">+ Direct add</span>
           </button>
         </div>
         {error && <p className="text-red-500 text-xs mt-1.5">{error}</p>}
