@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Bar,
   BarChart,
@@ -46,18 +46,51 @@ function StatCard({ label, value }: { label: string; value: string }) {
   );
 }
 
+function todayStr() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function shiftWeeks(date: string, weeks: number): string {
+  const d = new Date(date + "T00:00:00");
+  d.setDate(d.getDate() + weeks * 7);
+  return d.toISOString().split("T")[0];
+}
+
+function weekLabel(date: string): string {
+  const d = new Date(date + "T00:00:00");
+  const cal = getISOWeek(d);
+  return `Week ${cal.week}, ${cal.year}`;
+}
+
+function getISOWeek(d: Date): { year: number; week: number } {
+  const tmp = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  tmp.setUTCDate(tmp.getUTCDate() + 4 - (tmp.getUTCDay() || 7));
+  const yearStart = new Date(Date.UTC(tmp.getUTCFullYear(), 0, 1));
+  const week = Math.ceil((((tmp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+  return { year: tmp.getUTCFullYear(), week };
+}
+
 export default function Reports() {
   const [data, setData] = useState<VelocityData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refDate, setRefDate] = useState(todayStr);
 
-  useEffect(() => {
+  const fetchData = useCallback((date: string) => {
+    setLoading(true);
+    setError(null);
     api
-      .get("/reports/velocity")
+      .get("/reports/velocity", { params: { ref_date: date } })
       .then((r) => setData(r.data))
       .catch(() => setError("Failed to load report data."))
       .finally(() => setLoading(false));
   }, []);
+
+  useEffect(() => {
+    fetchData(refDate);
+  }, [refDate, fetchData]);
+
+  const isCurrentWeek = refDate === todayStr() || shiftWeeks(refDate, 1) > todayStr();
 
   if (loading) {
     return (
@@ -79,7 +112,29 @@ export default function Reports() {
 
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
-      <h2 className="text-lg font-semibold text-gray-800">Velocity Report</h2>
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <h2 className="text-lg font-semibold text-gray-800">Velocity Report</h2>
+        <div className="flex items-center gap-2">
+          <button
+            data-testid="reports-prev-week"
+            onClick={() => setRefDate((d) => shiftWeeks(d, -1))}
+            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+          >
+            ← Prev
+          </button>
+          <span data-testid="reports-week-label" className="text-sm text-gray-600 min-w-[120px] text-center">
+            {weekLabel(refDate)}
+          </span>
+          <button
+            data-testid="reports-next-week"
+            onClick={() => setRefDate((d) => shiftWeeks(d, 1))}
+            disabled={isCurrentWeek}
+            className="px-2 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            Next →
+          </button>
+        </div>
+      </div>
 
       {/* Lifetime summary */}
       <div className="grid grid-cols-3 gap-4">

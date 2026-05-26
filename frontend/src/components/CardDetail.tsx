@@ -1,4 +1,5 @@
 import { useState, FormEvent } from "react";
+import { createPortal } from "react-dom";
 import { Card, Category, Status, STATUSES, STATUS_LABELS } from "../types";
 import api from "../api/client";
 
@@ -50,7 +51,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
     onClose();
   };
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="p-5 border-b flex items-center justify-between">
@@ -218,6 +219,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

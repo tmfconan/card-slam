@@ -181,4 +181,35 @@ describe("PromptBar", () => {
     fireSpeechResult("build a dashboard");
     expect(screen.getByDisplayValue("build a dashboard")).toBeInTheDocument();
   });
+
+  // ── Bug 1: Direct add visible on mobile portrait ─────────────────────────
+
+  it("Direct add button is always rendered regardless of screen size (bug 1)", () => {
+    renderPromptBar();
+    // The button must be in the DOM unconditionally — no hidden-on-mobile guard
+    expect(screen.getByRole("button", { name: /direct add/i })).toBeInTheDocument();
+  });
+
+  it("clicking Direct add opens the QuickAddCard modal", async () => {
+    const user = userEvent.setup();
+    renderPromptBar();
+    await user.click(screen.getByRole("button", { name: /direct add/i }));
+    expect(screen.getByRole("heading", { name: /add card directly/i })).toBeInTheDocument();
+  });
+
+  it("Direct add modal pre-fills date when defaultDate prop is provided", async () => {
+    const user = userEvent.setup();
+    localStorage.setItem("token", "mock-token");
+    render(
+      <PromptBar
+        categories={mockCategories}
+        onCardsCreated={vi.fn()}
+        defaultDate="2026-06-10"
+        defaultTime="09:00"
+      />
+    );
+    await user.click(screen.getByRole("button", { name: /direct add/i }));
+    expect((screen.getByLabelText(/date/i) as HTMLInputElement).value).toBe("2026-06-10");
+    expect((screen.getByLabelText(/time/i) as HTMLInputElement).value).toBe("09:00");
+  });
 });

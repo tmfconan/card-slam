@@ -1,8 +1,9 @@
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
+from typing import Optional
 
 from boto3.dynamodb.conditions import Attr
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from auth.router import verify_token
 from db import get_cards_table
@@ -25,7 +26,10 @@ def _week_label(year: int, week: int) -> str:
 
 
 @router.get("/velocity")
-def get_velocity(username: str = Depends(verify_token)):
+def get_velocity(
+    ref_date: Optional[str] = Query(None, description="Anchor date YYYY-MM-DD; defaults to today"),
+    username: str = Depends(verify_token),
+):
     table = get_cards_table()
     items = table.scan(FilterExpression=Attr("username").eq(username)).get("Items", [])
     if username == "admin":
@@ -38,7 +42,13 @@ def get_velocity(username: str = Depends(verify_token)):
     completion_rate = total_done / total_intended if total_intended > 0 else 0.0
 
     # Build ordered list of the last WEEKS_BACK ISO weeks
-    now = datetime.now(timezone.utc)
+    if ref_date:
+        try:
+            now = datetime.fromisoformat(ref_date).replace(tzinfo=timezone.utc)
+        except ValueError:
+            now = datetime.now(timezone.utc)
+    else:
+        now = datetime.now(timezone.utc)
     weeks: list[tuple[int, int]] = []
     for w in range(WEEKS_BACK - 1, -1, -1):
         d = now - timedelta(weeks=w)

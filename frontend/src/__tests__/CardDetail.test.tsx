@@ -152,4 +152,22 @@ describe("CardDetail", () => {
       expect(screen.getByText(/failed to save/i)).toBeInTheDocument()
     );
   });
+
+  // ── Bug 2: Modal rendered via Portal escapes stacking context ─────────────
+
+  it("modal overlay is rendered as a direct child of document.body (portal) so it isn't clipped by card z-index stacking contexts (bug 2)", () => {
+    localStorage.setItem("token", "mock-token");
+    const { container } = render(
+      <CardDetail
+        card={mockCard}
+        categories={mockCategories}
+        onSave={vi.fn()}
+        onClose={vi.fn()}
+      />
+    );
+    // The modal must NOT be inside the render container — it's portalled to document.body
+    expect(container.querySelector('.fixed.inset-0')).toBeNull();
+    // But it IS in document.body
+    expect(document.body.querySelector('.fixed.inset-0')).not.toBeNull();
+  });
 });

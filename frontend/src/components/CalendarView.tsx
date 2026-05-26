@@ -136,7 +136,10 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
             categories={categories}
             categoryMap={categoryMap}
             selectedDate={selectedDay}
-            onDateChange={setSelectedDay}
+            onDateChange={(date) => {
+              setSelectedDay(date);
+              onDayViewActive?.(date);
+            }}
             onUpdate={onUpdate}
           />
         </div>
