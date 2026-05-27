@@ -46,6 +46,16 @@ function formatHeader(date: string) {
 
 interface DragState { cardId: string; card: Card }
 
+interface ResizeState {
+  cardId: string;
+  card: Card;
+  edge: "top" | "bottom";
+  originalStartIdx: number;
+  originalEndIdx: number;
+  newStartIdx: number;
+  newEndIdx: number;
+}
+
 // ── Drag handle component ──────────────────────────────────────────────────
 function DragHandle({
   card,
@@ -74,6 +84,40 @@ function DragHandle({
   );
 }
 
+// ── Resize handle component — top/bottom edges of a scheduled card ────────
+function ResizeHandle({
+  card,
+  edge,
+  onInitiate,
+}: {
+  card: Card;
+  edge: "top" | "bottom";
+  onInitiate: (card: Card, edge: "top" | "bottom") => void;
+}) {
+  return (
+    <div
+      data-testid={`resize-handle-${edge}-${card.id}`}
+      role="separator"
+      aria-label={`Resize ${edge}`}
+      onMouseDown={(e) => {
+        if (e.button !== 0) return;
+        e.stopPropagation(); // don't trigger move-drag on the parent card
+        e.preventDefault();
+        onInitiate(card, edge);
+      }}
+      onTouchStart={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onInitiate(card, edge);
+      }}
+      className={`absolute left-0 right-0 h-1.5 cursor-row-resize hover:bg-blue-300/70 ${
+        edge === "top" ? "top-0" : "bottom-0"
+      }`}
+      style={{ touchAction: "none", zIndex: 30 }}
+    />
+  );
+}
+
 export default function DailyView({
   cards, categories, categoryMap, selectedDate, onDateChange, onUpdate,
 }: Props) {
@@ -81,6 +125,8 @@ export default function DailyView({
   const [batchStatus, setBatchStatus] = useState<Status>("in_progress");
   const [dragState, setDragState] = useState<DragState | null>(null);
   const [hoverSlot, setHoverSlot] = useState<string | null>(null);
+  const [resizeState, setResizeState] = useState<ResizeState | null>(null);
+  const resizeStateRef = useRef<ResizeState | null>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
   const hoverSlotRef = useRef<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
@@ -108,6 +154,27 @@ export default function DailyView({
     if (t.closest('input[type="checkbox"]') || t.closest("button")) return;
     initiateDrag(card);
   }, [initiateDrag]);
+
+  // ── Resize initiation ────────────────────────────────────────────────────
+  const initiateResize = useCallback((card: Card, edge: "top" | "bottom") => {
+    if (!card.todo_time) return;
+    const startIdx = SLOTS.indexOf(card.todo_time);
+    if (startIdx < 0) return;
+    const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 15));
+    const endIdx = Math.min(SLOTS.length - 1, startIdx + spans - 1);
+    const state: ResizeState = {
+      cardId: card.id,
+      card,
+      edge,
+      originalStartIdx: startIdx,
+      originalEndIdx: endIdx,
+      newStartIdx: startIdx,
+      newEndIdx: endIdx,
+    };
+    resizeStateRef.current = state;
+    setResizeState(state);
+    document.body.style.userSelect = "none";
+  }, []);
 
   // ── Global pointer listeners during drag ─────────────────────────────────
   useEffect(() => {
@@ -165,6 +232,84 @@ export default function DailyView({
       document.body.style.userSelect = "";
     };
   }, [dragState, selectedDate, onUpdate]);
+
+  // ── Global pointer listeners during resize ───────────────────────────────
+  useEffect(() => {
+    if (!resizeState) return;
+
+    const calcSlotIdx = (clientY: number): number | null => {
+      if (!gridRef.current) return null;
+      const { top, bottom } = gridRef.current.getBoundingClientRect();
+      const scrollTop = gridRef.current.scrollTop;
+      if (clientY < top || clientY > bottom) return null;
+      return Math.max(
+        0,
+        Math.min(Math.floor((clientY - top + scrollTop) / SLOT_H), SLOTS.length - 1)
+      );
+    };
+
+    const updateFromY = (clientY: number) => {
+      const idx = calcSlotIdx(clientY);
+      if (idx === null) return;
+      const current = resizeStateRef.current;
+      if (!current) return;
+      let newStart = current.newStartIdx;
+      let newEnd = current.newEndIdx;
+      if (current.edge === "bottom") {
+        // Bottom edge — never crosses above the start; snaps to the slot at clientY
+        newEnd = Math.max(current.originalStartIdx, Math.min(idx, SLOTS.length - 1));
+      } else {
+        // Top edge — never crosses below the end; snaps to the slot at clientY
+        newStart = Math.max(0, Math.min(idx, current.originalEndIdx));
+      }
+      if (newStart === current.newStartIdx && newEnd === current.newEndIdx) return;
+      const updated: ResizeState = { ...current, newStartIdx: newStart, newEndIdx: newEnd };
+      resizeStateRef.current = updated;
+      setResizeState(updated);
+    };
+
+    const handleEnd = async () => {
+      document.body.style.userSelect = "";
+      const state = resizeStateRef.current;
+      if (state) {
+        const newDuration = (state.newEndIdx - state.newStartIdx + 1) * 15;
+        const newStartTime = SLOTS[state.newStartIdx];
+        const originalDuration = state.card.duration ?? 30;
+        const update: Record<string, string | number> = {};
+        if (newDuration !== originalDuration) update.duration = newDuration;
+        if (state.edge === "top" && newStartTime !== state.card.todo_time) {
+          update.todo_time = newStartTime;
+          update.todo_date = selectedDate;
+        }
+        if (Object.keys(update).length > 0) {
+          await api.put(`/cards/${state.cardId}`, update);
+          onUpdate();
+        }
+      }
+      resizeStateRef.current = null;
+      setResizeState(null);
+    };
+
+    const onMouseMove = (e: MouseEvent) => updateFromY(e.clientY);
+    const onTouchMove = (e: TouchEvent) => {
+      if (!e.touches[0]) return;
+      e.preventDefault();
+      updateFromY(e.touches[0].clientY);
+    };
+
+    window.addEventListener("mousemove", onMouseMove);
+    window.addEventListener("mouseup", handleEnd);
+    window.addEventListener("touchmove", onTouchMove, { passive: false });
+    window.addEventListener("touchend", handleEnd);
+
+    return () => {
+      window.removeEventListener("mousemove", onMouseMove);
+      window.removeEventListener("mouseup", handleEnd);
+      window.removeEventListener("touchmove", onTouchMove);
+      window.removeEventListener("touchend", handleEnd);
+      document.body.style.userSelect = "";
+    };
+  }, [resizeState, selectedDate, onUpdate]);
 
   // ── Batch ────────────────────────────────────────────────────────────────
   const toggleSelect = (id: string) =>
@@ -279,7 +424,7 @@ export default function DailyView({
       {/* Grid + desktop sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Time grid scrolls internally; no bottom padding needed on mobile now */}
-        <div ref={gridRef} className="flex-1 overflow-y-auto relative"
+        <div ref={gridRef} data-testid="daily-grid" className="flex-1 overflow-y-auto relative"
           onMouseLeave={() => { hoverSlotRef.current = null; setHoverSlot(null); }}>
           <div className="relative" style={{ height: SLOTS.length * SLOT_H }}>
 
@@ -327,20 +472,22 @@ export default function DailyView({
                   {slotCards.map((card) => {
                     const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 15));
                     const isBeingDragged = dragState?.cardId === card.id;
+                    const isBeingResized = resizeState?.cardId === card.id;
                     return (
                       <div
                         key={card.id}
                         data-testid={`daily-card-${card.id}`}
                         data-slot={card.todo_time}
                         data-duration={card.duration ?? 30}
-                        className="flex-1 min-w-0 flex flex-col select-none overflow-hidden"
+                        className="relative flex-1 min-w-0 flex flex-col select-none overflow-hidden"
                         style={{
                           height: spans * SLOT_H - 2,
                           cursor: "grab",
-                          opacity: isBeingDragged ? 0.45 : 1,
+                          opacity: isBeingDragged || isBeingResized ? 0.45 : 1,
                         }}
                         onMouseDown={(e) => startMouseDrag(e, card)}
                       >
+                        <ResizeHandle card={card} edge="top" onInitiate={initiateResize} />
                         <div className="flex items-start gap-1 h-full">
                           <DragHandle
                             card={card}
@@ -369,6 +516,7 @@ export default function DailyView({
                             />
                           </div>
                         </div>
+                        <ResizeHandle card={card} edge="bottom" onInitiate={initiateResize} />
                       </div>
                     );
                   })}
@@ -384,6 +532,24 @@ export default function DailyView({
                 <div
                   className="absolute rounded border-2 border-dashed border-blue-400 bg-blue-100/60 pointer-events-none"
                   style={{ top: idx * SLOT_H, left: TIME_W, right: 8, height: spans * SLOT_H - 2, zIndex: 20 }}
+                />
+              );
+            })()}
+
+            {/* Resize preview — shows the new size while a resize is in progress */}
+            {resizeState && (() => {
+              const top = resizeState.newStartIdx * SLOT_H;
+              const height =
+                (resizeState.newEndIdx - resizeState.newStartIdx + 1) * SLOT_H - 2;
+              return (
+                <div
+                  data-testid="resize-placeholder"
+                  data-start-slot={SLOTS[resizeState.newStartIdx]}
+                  data-duration={
+                    (resizeState.newEndIdx - resizeState.newStartIdx + 1) * 15
+                  }
+                  className="absolute rounded border-2 border-dashed border-green-500 bg-green-100/50 pointer-events-none"
+                  style={{ top, left: TIME_W, right: 8, height, zIndex: 25 }}
                 />
               );
             })()}
