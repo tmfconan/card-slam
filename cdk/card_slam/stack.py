@@ -243,6 +243,7 @@ class CardSlamStack(Stack):
                             'test -n "${CARD_ID}" || { echo "ERROR: CARD_ID is not set. This build must be triggered by the queue processor Lambda, not manually."; exit 1; }',
                             'git config user.email "autocode@card-slam"',
                             'git config user.name "Card Slam Auto-Code"',
+                            'git config --global --add safe.directory "${CODEBUILD_SRC_DIR}"',
                             'git remote set-url origin "https://${GITHUB_TOKEN}@github.com/tmfconan/card-slam.git"',
                             'git checkout -b "auto-code/${CARD_ID}"',
                             'aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_REPO"',
