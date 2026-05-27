@@ -12,6 +12,15 @@ class Status(str, Enum):
     done = "done"
 
 
+class FeatureRequestStatus(str, Enum):
+    pending_validation = "pending_validation"
+    validation_failed = "validation_failed"
+    queued = "queued"
+    in_progress = "in_progress"
+    completed = "completed"
+    failed = "failed"
+
+
 class CardCreate(BaseModel):
     title: str
     description: str = ""
@@ -57,3 +66,5 @@ class Card(BaseModel):
     todo_time: Optional[str] = None
     created_at: str
     updated_at: str
+    is_feature_request: bool = False
+    feature_request_status: Optional[FeatureRequestStatus] = None

@@ -24,3 +24,9 @@ def get_cards_table():
 
 def get_users_table():
     return _dynamodb().Table(os.environ.get("USERS_TABLE", "card-slam-users"))
+
+
+def get_feature_runs_table():
+    return _dynamodb().Table(
+        os.environ.get("FEATURE_RUNS_TABLE", "card-slam-feature-runs")
+    )

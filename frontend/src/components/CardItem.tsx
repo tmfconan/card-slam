@@ -1,7 +1,16 @@
 import { useState, useRef } from "react";
-import { Card, Category, Status, STATUSES, STATUS_LABELS } from "../types";
+import { Card, Category, FeatureRequestStatus, Status, STATUSES, STATUS_LABELS } from "../types";
 import api from "../api/client";
 import CardDetail from "./CardDetail";
+
+const FR_BADGE: Record<FeatureRequestStatus, { label: string; classes: string }> = {
+  pending_validation: { label: "Validating…",  classes: "bg-yellow-100 text-yellow-700 animate-pulse" },
+  validation_failed:  { label: "Invalid",       classes: "bg-red-100 text-red-600" },
+  queued:             { label: "Queued",         classes: "bg-blue-100 text-blue-700" },
+  in_progress:        { label: "Building…",     classes: "bg-purple-100 text-purple-700 animate-pulse" },
+  completed:          { label: "Deployed",       classes: "bg-green-100 text-green-700" },
+  failed:             { label: "Build failed",   classes: "bg-red-100 text-red-600" },
+};
 
 // Colour for the status dot shown on calendar cards
 const STATUS_DOT_COLOR: Record<Status, string> = {
@@ -98,6 +107,15 @@ export default function CardItem({
             className="absolute top-2 right-6 w-2 h-2 rounded-full flex-shrink-0"
             style={{ backgroundColor: STATUS_DOT_COLOR[card.status] }}
           />
+        )}
+
+        {/* Feature request badge */}
+        {card.is_feature_request && card.feature_request_status && (
+          <span
+            className={`absolute top-1 right-7 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${FR_BADGE[card.feature_request_status].classes}`}
+          >
+            ⚙ {FR_BADGE[card.feature_request_status].label}
+          </span>
         )}
 
         <div className="flex items-start justify-between gap-1">

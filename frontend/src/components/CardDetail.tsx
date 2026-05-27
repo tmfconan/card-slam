@@ -2,6 +2,7 @@ import { useState, FormEvent } from "react";
 import { createPortal } from "react-dom";
 import { Card, Category, Status, STATUSES, STATUS_LABELS } from "../types";
 import api from "../api/client";
+import { useAuth } from "../contexts/AuthContext";
 
 interface Props {
   card: Card;
@@ -11,6 +12,8 @@ interface Props {
 }
 
 export default function CardDetail({ card, categories, onSave, onClose }: Props) {
+  const { currentUser } = useAuth();
+  const isAdmin = currentUser?.role === "admin";
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description);
   const [categoryId, setCategoryId] = useState(card.category_id);
@@ -20,6 +23,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   const [todoTime, setTodoTime] = useState(card.todo_time ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [flagging, setFlagging] = useState(false);
+  const [flagResult, setFlagResult] = useState<{ valid: boolean; reason: string } | null>(null);
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -50,6 +55,29 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
     onSave();
     onClose();
   };
+
+  const handleFlag = async () => {
+    setFlagging(true);
+    setFlagResult(null);
+    try {
+      const res = await api.post(`/autocode/flag/${card.id}`);
+      setFlagResult({ valid: res.data.valid, reason: res.data.reason });
+      onSave(); // refresh cards so badge updates
+    } catch {
+      setFlagResult({ valid: false, reason: "Failed to submit. Try again." });
+    } finally {
+      setFlagging(false);
+    }
+  };
+
+  const handleUnflag = async () => {
+    await api.delete(`/autocode/flag/${card.id}`);
+    onSave();
+    onClose();
+  };
+
+  const isFlagged = card.is_feature_request;
+  const canUnflag = isFlagged && card.feature_request_status !== "in_progress";
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -192,6 +220,44 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
 
           {error && <p className="text-red-500 text-xs">{error}</p>}
         </form>
+
+        {/* Feature-request section (admin only) */}
+        {isAdmin && (
+          <div className="px-5 py-3 border-t bg-gray-50 rounded-b-none space-y-2">
+            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Auto-Code</p>
+            {flagResult && (
+              <p className={`text-xs ${flagResult.valid ? "text-green-700" : "text-red-600"}`}>
+                {flagResult.valid ? "✓ Queued:" : "✗ Invalid:"} {flagResult.reason}
+              </p>
+            )}
+            <div className="flex gap-2">
+              {!isFlagged && (
+                <button
+                  type="button"
+                  onClick={handleFlag}
+                  disabled={flagging}
+                  className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors"
+                >
+                  {flagging ? "Validating…" : "⚙ Flag as Feature Request"}
+                </button>
+              )}
+              {canUnflag && (
+                <button
+                  type="button"
+                  onClick={handleUnflag}
+                  className="px-3 py-1.5 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                >
+                  Remove from queue
+                </button>
+              )}
+              {isFlagged && !canUnflag && (
+                <span className="text-xs text-purple-600 font-medium animate-pulse">
+                  ⚙ Build in progress…
+                </span>
+              )}
+            </div>
+          </div>
+        )}
 
         <div className="p-5 border-t flex items-center justify-between">
           <button

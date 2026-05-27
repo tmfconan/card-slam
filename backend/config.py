@@ -29,3 +29,7 @@ def get_jwt_secret() -> str:
 
 def get_anthropic_key() -> str:
     return get_secret()["anthropic_api_key"]
+
+
+def get_github_pat() -> str:
+    return get_secret().get("github_pat", "")

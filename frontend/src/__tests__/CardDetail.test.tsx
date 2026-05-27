@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
 import CardDetail from "../components/CardDetail";
+import { AuthProvider } from "../contexts/AuthContext";
 import { Card, Category } from "../types";
 
 const mockCard: Card = {
@@ -30,12 +31,14 @@ function renderDetail(overrides: Partial<Card> = {}) {
   const onSave = vi.fn();
   const onClose = vi.fn();
   render(
-    <CardDetail
-      card={{ ...mockCard, ...overrides }}
-      categories={mockCategories}
-      onSave={onSave}
-      onClose={onClose}
-    />
+    <AuthProvider>
+      <CardDetail
+        card={{ ...mockCard, ...overrides }}
+        categories={mockCategories}
+        onSave={onSave}
+        onClose={onClose}
+      />
+    </AuthProvider>
   );
   return { onSave, onClose };
 }
@@ -158,12 +161,14 @@ describe("CardDetail", () => {
   it("modal overlay is rendered as a direct child of document.body (portal) so it isn't clipped by card z-index stacking contexts (bug 2)", () => {
     localStorage.setItem("token", "mock-token");
     const { container } = render(
-      <CardDetail
-        card={mockCard}
-        categories={mockCategories}
-        onSave={vi.fn()}
-        onClose={vi.fn()}
-      />
+      <AuthProvider>
+        <CardDetail
+          card={mockCard}
+          categories={mockCategories}
+          onSave={vi.fn()}
+          onClose={vi.fn()}
+        />
+      </AuthProvider>
     );
     // The modal must NOT be inside the render container — it's portalled to document.body
     expect(container.querySelector('.fixed.inset-0')).toBeNull();

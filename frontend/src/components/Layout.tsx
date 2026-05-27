@@ -7,6 +7,7 @@ import CalendarView from "./CalendarView";
 import CategoryManager from "./CategoryManager";
 import UserManagement from "./UserManagement";
 import Reports from "./Reports";
+import AutoCodeView from "./AutoCodeView";
 import PromptBar from "./PromptBar";
 import { Category, Card } from "../types";
 import api from "../api/client";
@@ -46,7 +47,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories", "/users", "/reports"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users", "/reports", "/autocode"].includes(location.pathname);
 
   const navLink = (to: string, label: string) => {
     const active = location.pathname === to;
@@ -97,6 +98,7 @@ export default function Layout() {
             {navLink("/categories", "Categories")}
             {navLink("/reports", "Reports")}
             {isAdmin && navLink("/users", "Users")}
+            {isAdmin && navLink("/autocode", "Auto-Code")}
           </nav>
           <div className="p-4 border-t border-gray-700">
             <button
@@ -132,7 +134,11 @@ export default function Layout() {
           ) : (
             <div className="flex-1 bg-white border-b px-4 py-3 flex items-center">
               <span className="text-sm font-medium text-gray-600">
-                {location.pathname === "/reports" ? "Reports" : "Categories"}
+                {location.pathname === "/reports"
+                  ? "Reports"
+                  : location.pathname === "/autocode"
+                  ? "Auto-Code"
+                  : "Categories"}
               </span>
             </div>
           )}
@@ -189,6 +195,9 @@ export default function Layout() {
               <Route path="/reports" element={<Reports />} />
               {isAdmin && (
                 <Route path="/users" element={<UserManagement />} />
+              )}
+              {isAdmin && (
+                <Route path="/autocode" element={<AutoCodeView />} />
               )}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
