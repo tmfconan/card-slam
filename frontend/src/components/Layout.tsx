@@ -47,7 +47,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories", "/users", "/reports", "/autocode"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests"].includes(location.pathname);
 
   const navLink = (to: string, label: string) => {
     const active = location.pathname === to;
@@ -98,7 +98,7 @@ export default function Layout() {
             {navLink("/categories", "Categories")}
             {navLink("/reports", "Reports")}
             {isAdmin && navLink("/users", "Users")}
-            {isAdmin && navLink("/autocode", "Auto-Code")}
+            {isAdmin && navLink("/feature-requests", "Feature Requests")}
           </nav>
           <div className="p-4 border-t border-gray-700">
             <button
@@ -136,8 +136,8 @@ export default function Layout() {
               <span className="text-sm font-medium text-gray-600">
                 {location.pathname === "/reports"
                   ? "Reports"
-                  : location.pathname === "/autocode"
-                  ? "Auto-Code"
+                  : location.pathname === "/feature-requests"
+                  ? "Feature Requests"
                   : "Categories"}
               </span>
             </div>
@@ -197,7 +197,7 @@ export default function Layout() {
                 <Route path="/users" element={<UserManagement />} />
               )}
               {isAdmin && (
-                <Route path="/autocode" element={<AutoCodeView />} />
+                <Route path="/feature-requests" element={<AutoCodeView />} />
               )}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
