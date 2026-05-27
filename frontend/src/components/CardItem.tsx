@@ -124,6 +124,16 @@ export default function CardItem({
               isDone ? "line-through" : ""
             }`}
           >
+            {card.high_priority && (
+              <span
+                data-testid="high-priority-flag"
+                aria-label="High priority"
+                title="High priority"
+                className="text-red-500 mr-1"
+              >
+                !
+              </span>
+            )}
             {card.title}
           </p>
           <button

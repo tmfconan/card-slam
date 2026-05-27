@@ -27,6 +27,7 @@ class CardCreate(BaseModel):
     category_id: str
     status: Status = Status.brainstorm
     priority: int = 0
+    high_priority: bool = False
     todo_date: Optional[str] = None   # YYYY-MM-DD
     todo_time: Optional[str] = None   # HH:MM
     duration: int = 30                # minutes; minimum 30
@@ -38,6 +39,7 @@ class CardUpdate(BaseModel):
     category_id: Optional[str] = None
     status: Optional[Status] = None
     priority: Optional[int] = None
+    high_priority: Optional[bool] = None
     todo_date: Optional[str] = None   # set to null to clear
     todo_time: Optional[str] = None   # set to null to clear
     duration: Optional[int] = None
@@ -61,6 +63,7 @@ class Card(BaseModel):
     category_id: str
     status: Status
     priority: int
+    high_priority: bool = False
     duration: int = 30
     todo_date: Optional[str] = None
     todo_time: Optional[str] = None

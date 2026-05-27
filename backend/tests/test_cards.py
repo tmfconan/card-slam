@@ -391,3 +391,64 @@ def test_user_cannot_delete_another_users_card(client, auth_headers, user_auth_h
     card_id = create_resp.json()["id"]
     resp = client.delete(f"/api/cards/{card_id}", headers=user_auth_headers)
     assert resp.status_code == 404
+
+
+# ── high_priority tests ────────────────────────────────────────────────────────
+
+def test_create_card_default_high_priority_is_false(client, auth_headers):
+    resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    assert resp.status_code == 201
+    assert resp.json()["high_priority"] is False
+
+
+def test_create_card_with_high_priority_true(client, auth_headers):
+    resp = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "high_priority": True},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["high_priority"] is True
+
+
+def test_update_card_set_high_priority(client, auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"high_priority": True},
+        headers=auth_headers,
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["high_priority"] is True
+
+
+def test_update_card_clear_high_priority(client, auth_headers):
+    create_resp = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "high_priority": True},
+        headers=auth_headers,
+    )
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"high_priority": False},
+        headers=auth_headers,
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["high_priority"] is False
+
+
+def test_high_priority_persists_across_get(client, auth_headers):
+    create_resp = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "high_priority": True},
+        headers=auth_headers,
+    )
+    card_id = create_resp.json()["id"]
+
+    get_resp = client.get(f"/api/cards/{card_id}", headers=auth_headers)
+    assert get_resp.status_code == 200
+    assert get_resp.json()["high_priority"] is True

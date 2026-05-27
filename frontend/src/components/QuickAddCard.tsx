@@ -24,6 +24,7 @@ export default function QuickAddCard({
   const [todoDate, setTodoDate] = useState(defaultDate);
   const [todoTime, setTodoTime] = useState(defaultTime);
   const [duration, setDuration] = useState(30);
+  const [highPriority, setHighPriority] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e: FormEvent) => {
@@ -36,6 +37,7 @@ export default function QuickAddCard({
       category_id: categoryId,
       status,
       priority: 0,
+      high_priority: highPriority,
       duration,
       todo_date: todoDate || null,
       todo_time: todoTime || null,
@@ -161,6 +163,20 @@ export default function QuickAddCard({
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                id="qac-high-priority"
+                aria-label="High priority"
+                type="checkbox"
+                checked={highPriority}
+                onChange={(e) => setHighPriority(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+              />
+              <span>High priority</span>
+            </label>
           </div>
         </form>
 

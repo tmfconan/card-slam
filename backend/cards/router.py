@@ -14,6 +14,7 @@ router = APIRouter(prefix="/cards", tags=["cards"])
 def _normalize(item: dict) -> dict:
     item["priority"] = int(item.get("priority", 0))
     item["duration"] = int(item.get("duration", 30))
+    item["high_priority"] = bool(item.get("high_priority", False))
     item.setdefault("username", "admin")  # migrate legacy records
     item.setdefault("is_feature_request", False)
     item.setdefault("feature_request_status", None)
@@ -63,6 +64,7 @@ def create_card(body: CardCreate, username: str = Depends(verify_token)):
         "category_id": body.category_id,
         "status": body.status,
         "priority": body.priority,
+        "high_priority": body.high_priority,
         "duration": body.duration,
         "created_at": now,
         "updated_at": now,
@@ -89,6 +91,7 @@ def create_cards_batch(bodies: list[CardCreate], username: str = Depends(verify_
             "category_id": body.category_id,
             "status": body.status,
             "priority": i,
+            "high_priority": body.high_priority,
             "duration": body.duration,
             "created_at": now,
             "updated_at": now,

@@ -131,6 +131,35 @@ describe("QuickAddCard", () => {
     expect(timeInput.value).toBe("08:00");
   });
 
+  it("renders a high priority checkbox that defaults to unchecked", () => {
+    renderQuickAdd();
+    const checkbox = screen.getByLabelText(/high priority/i) as HTMLInputElement;
+    expect(checkbox.type).toBe("checkbox");
+    expect(checkbox.checked).toBe(false);
+  });
+
+  it("submission includes high_priority=true when the checkbox is checked", async () => {
+    const user = userEvent.setup();
+    let capturedBody: any;
+    server.use(
+      http.post("/api/cards/", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json(
+          { id: "new", title: "x", description: "", category_id: "", status: "brainstorm",
+            priority: 0, duration: 30, created_at: "", updated_at: "" },
+          { status: 201 }
+        );
+      })
+    );
+
+    renderQuickAdd();
+    await user.type(screen.getByPlaceholderText(/title/i), "Urgent task");
+    await user.click(screen.getByLabelText(/high priority/i));
+    await user.click(screen.getByRole("button", { name: /create card/i }));
+
+    await waitFor(() => expect(capturedBody?.high_priority).toBe(true));
+  });
+
   it("submission includes todo_date, todo_time, and duration in the payload", async () => {
     const user = userEvent.setup();
     let capturedBody: unknown;

@@ -156,6 +156,39 @@ describe("CardDetail", () => {
     );
   });
 
+  // ── High priority ─────────────────────────────────────────────────────────
+
+  it("renders an unchecked high priority checkbox by default", () => {
+    renderDetail();
+    const checkbox = screen.getByLabelText(/high priority/i) as HTMLInputElement;
+    expect(checkbox.type).toBe("checkbox");
+    expect(checkbox.checked).toBe(false);
+  });
+
+  it("renders a checked high priority checkbox when card.high_priority is true", () => {
+    renderDetail({ high_priority: true });
+    const checkbox = screen.getByLabelText(/high priority/i) as HTMLInputElement;
+    expect(checkbox.checked).toBe(true);
+  });
+
+  it("toggling high priority and saving sends high_priority in PUT body", async () => {
+    let captured: any = null;
+    server.use(
+      http.put("/api/cards/:id", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ ok: true });
+      })
+    );
+    const user = userEvent.setup();
+    renderDetail();
+
+    await user.click(screen.getByLabelText(/high priority/i));
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => expect(captured).not.toBeNull());
+    expect(captured.high_priority).toBe(true);
+  });
+
   // ── Bug 2: Modal rendered via Portal escapes stacking context ─────────────
 
   it("modal overlay is rendered as a direct child of document.body (portal) so it isn't clipped by card z-index stacking contexts (bug 2)", () => {

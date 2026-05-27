@@ -18,6 +18,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   const [description, setDescription] = useState(card.description);
   const [categoryId, setCategoryId] = useState(card.category_id);
   const [status, setStatus] = useState<Status>(card.status);
+  const [highPriority, setHighPriority] = useState(card.high_priority ?? false);
   const [duration, setDuration] = useState(card.duration ?? 30);
   const [todoDate, setTodoDate] = useState(card.todo_date ?? "");
   const [todoTime, setTodoTime] = useState(card.todo_time ?? "");
@@ -36,6 +37,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
         description,
         category_id: categoryId,
         status,
+        high_priority: highPriority,
         duration,
         todo_date: todoDate || null,
         todo_time: todoTime || null,
@@ -216,6 +218,20 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+              <input
+                id="cd-high-priority"
+                aria-label="High priority"
+                type="checkbox"
+                checked={highPriority}
+                onChange={(e) => setHighPriority(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+              />
+              <span>High priority</span>
+            </label>
           </div>
 
           {error && <p className="text-red-500 text-xs">{error}</p>}
