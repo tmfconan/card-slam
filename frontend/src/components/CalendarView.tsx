@@ -80,7 +80,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
     });
   };
 
-  const days = buildDays(weekStart, 14);
+  const days = buildDays(shiftDate(weekStart, -1), 15);
   const validKeys = new Set(days.map((d) => d.key));
 
   const visible = cards.filter(

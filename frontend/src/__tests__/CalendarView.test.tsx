@@ -115,14 +115,33 @@ describe("CalendarView", () => {
     server.use(http.get("/api/cards/", () => HttpResponse.json(calendarCards)));
   });
 
-  it("renders 14 day columns plus an Unscheduled column", () => {
+  it("renders yesterday + 14 day columns plus an Unscheduled column", () => {
     renderCalendar();
     // Unscheduled column header (exact label, not the card title)
     expect(screen.getByText("Unscheduled")).toBeInTheDocument();
-    // Each of the 14 day droppables should be in the DOM
+    // Yesterday column is included to help manage completed cards
+    expect(screen.getByTestId(`droppable-${dateStr(-1)}`)).toBeInTheDocument();
+    // Each of the 14 day droppables (today + next 13) should be in the DOM
     for (let i = 0; i < 14; i++) {
       expect(screen.getByTestId(`droppable-${dateStr(i)}`)).toBeInTheDocument();
     }
+  });
+
+  it("shows cards with todo_date of yesterday in the yesterday column", () => {
+    const yesterdayCard: Card = {
+      id: "cal-yesterday",
+      title: "Completed yesterday",
+      description: "Card from yesterday",
+      category_id: "cat-1",
+      status: "ready_to_do",
+      priority: 0,
+      todo_date: dateStr(-1),
+      created_at: "2024-01-01T00:00:00Z",
+      updated_at: "2024-01-01T00:00:00Z",
+    };
+    renderCalendar([...calendarCards, yesterdayCard]);
+    const yesterdayCol = screen.getByTestId(`droppable-${dateStr(-1)}`);
+    expect(within(yesterdayCol).getByText("Completed yesterday")).toBeInTheDocument();
   });
 
   it("shows cards with todo_date in the correct day column", () => {
