@@ -3,7 +3,7 @@ from fastapi import APIRouter, HTTPException
 from auth.router import require_admin
 from fastapi import Depends
 
-from .service import flag_card_as_feature_request, unflag_card, get_queue, get_history
+from .service import flag_card_as_feature_request, unflag_card, get_queue, get_history, merge_to_main
 
 router = APIRouter(prefix="/autocode", tags=["autocode"])
 
@@ -32,3 +32,11 @@ def queue(_: str = Depends(require_admin)):
 @router.get("/history")
 def history(_: str = Depends(require_admin)):
     return get_history()
+
+
+@router.post("/merge/{card_id}")
+def merge(card_id: str, _: str = Depends(require_admin)):
+    result = merge_to_main(card_id)
+    if "error" in result:
+        raise HTTPException(status_code=400, detail=result["error"])
+    return result

@@ -37,7 +37,8 @@ export type FeatureRequestStatus =
   | "queued"
   | "in_progress"
   | "completed"
-  | "failed";
+  | "failed"
+  | "merged";
 
 export interface Card {
   id: string;

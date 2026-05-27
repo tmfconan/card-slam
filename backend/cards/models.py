@@ -19,6 +19,7 @@ class FeatureRequestStatus(str, Enum):
     in_progress = "in_progress"
     completed = "completed"
     failed = "failed"
+    merged = "merged"
 
 
 class CardCreate(BaseModel):

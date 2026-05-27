@@ -26,6 +26,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   const [error, setError] = useState("");
   const [flagging, setFlagging] = useState(false);
   const [flagResult, setFlagResult] = useState<{ valid: boolean; reason: string } | null>(null);
+  const [merging, setMerging] = useState(false);
+  const [mergeResult, setMergeResult] = useState<{ merged?: boolean; conflict?: boolean; message?: string } | null>(null);
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
@@ -78,8 +80,23 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
     onClose();
   };
 
+  const handleMerge = async () => {
+    setMerging(true);
+    setMergeResult(null);
+    try {
+      const res = await api.post(`/autocode/merge/${card.id}`);
+      setMergeResult(res.data);
+      if (res.data.merged) onSave();
+    } catch (err: any) {
+      setMergeResult({ merged: false, message: err.response?.data?.detail ?? "Merge failed." });
+    } finally {
+      setMerging(false);
+    }
+  };
+
   const isFlagged = card.is_feature_request;
   const canUnflag = isFlagged && card.feature_request_status !== "in_progress";
+  const canMerge = card.feature_request_status === "completed";
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -246,7 +263,16 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 {flagResult.valid ? "✓ Queued:" : "✗ Invalid:"} {flagResult.reason}
               </p>
             )}
-            <div className="flex gap-2">
+            {mergeResult && (
+              <p className={`text-xs ${mergeResult.merged ? "text-teal-700" : mergeResult.conflict ? "text-amber-600" : "text-red-600"}`}>
+                {mergeResult.merged
+                  ? "✓ Merged into main successfully."
+                  : mergeResult.conflict
+                  ? `⚠ ${mergeResult.message}`
+                  : `✗ ${mergeResult.message}`}
+              </p>
+            )}
+            <div className="flex gap-2 flex-wrap">
               {!isFlagged && (
                 <button
                   type="button"
@@ -257,7 +283,17 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                   {flagging ? "Validating…" : "⚙ Flag as Feature Request"}
                 </button>
               )}
-              {canUnflag && (
+              {canMerge && (
+                <button
+                  type="button"
+                  onClick={handleMerge}
+                  disabled={merging}
+                  className="px-3 py-1.5 text-xs bg-teal-600 text-white rounded-lg hover:bg-teal-700 disabled:opacity-50 transition-colors"
+                >
+                  {merging ? "Merging…" : "⤴ Merge to main"}
+                </button>
+              )}
+              {canUnflag && card.feature_request_status !== "completed" && (
                 <button
                   type="button"
                   onClick={handleUnflag}
@@ -266,7 +302,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                   Remove from queue
                 </button>
               )}
-              {isFlagged && !canUnflag && (
+              {isFlagged && !canUnflag && card.feature_request_status === "in_progress" && (
                 <span className="text-xs text-purple-600 font-medium animate-pulse">
                   ⚙ Build in progress…
                 </span>

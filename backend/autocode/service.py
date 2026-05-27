@@ -2,13 +2,16 @@ import json
 import os
 import uuid
 import boto3
+import httpx
 from datetime import datetime, timezone
 
 import anthropic
 from boto3.dynamodb.conditions import Attr
 
-from config import get_anthropic_key
+from config import get_anthropic_key, get_github_pat
 from db import get_cards_table, get_feature_runs_table
+
+_GITHUB_REPO = os.environ.get("GITHUB_REPO", "tmfconan/card-slam")
 
 _CODEBUILD_PROJECT = os.environ.get("CODEBUILD_PROJECT", "card-slam-auto-code")
 _REGION = os.environ.get("AWS_DEFAULT_REGION", "us-east-2")
@@ -103,6 +106,70 @@ def get_queue() -> list:
         item["priority"] = int(item.get("priority", 0))
         item["duration"] = int(item.get("duration", 30))
     return sorted(items, key=lambda c: (c["priority"], c.get("created_at", "")))
+
+
+def merge_to_main(card_id: str) -> dict:
+    table = get_cards_table()
+    item = table.get_item(Key={"id": card_id}).get("Item")
+    if not item:
+        return {"error": "Card not found"}
+    if item.get("feature_request_status") != "completed":
+        return {"error": "Card must be in completed state to merge"}
+
+    pat = get_github_pat()
+    if not pat:
+        return {"error": "GitHub PAT not configured in Secrets Manager"}
+
+    branch = f"auto-code/{card_id}"
+    title = item.get("title", "")
+
+    headers = {
+        "Authorization": f"Bearer {pat}",
+        "Accept": "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28",
+    }
+
+    try:
+        response = httpx.post(
+            f"https://api.github.com/repos/{_GITHUB_REPO}/merges",
+            headers=headers,
+            json={
+                "base": "main",
+                "head": branch,
+                "commit_message": f"Merge auto-code feature: {title}",
+            },
+            timeout=30,
+        )
+    except httpx.RequestError as exc:
+        return {"error": f"GitHub API request failed: {exc}"}
+
+    if response.status_code in (201, 204):
+        now = datetime.now(timezone.utc).isoformat()
+        table.update_item(
+            Key={"id": card_id},
+            UpdateExpression="SET feature_request_status = :s, updated_at = :t",
+            ExpressionAttributeValues={":s": "merged", ":t": now},
+        )
+        return {"merged": True}
+    elif response.status_code == 409:
+        return {
+            "merged": False,
+            "conflict": True,
+            "message": f"Merge conflict detected — please merge 'auto-code/{card_id}' into main manually.",
+        }
+    elif response.status_code == 404:
+        return {
+            "merged": False,
+            "conflict": False,
+            "message": f"Branch 'auto-code/{card_id}' not found on GitHub.",
+        }
+    else:
+        body = response.json() if response.headers.get("content-type", "").startswith("application/json") else {}
+        return {
+            "merged": False,
+            "conflict": False,
+            "message": body.get("message", f"GitHub API error {response.status_code}"),
+        }
 
 
 def get_history() -> list:

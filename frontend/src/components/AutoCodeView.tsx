@@ -12,6 +12,7 @@ const STATUS_BADGE: Record<
   in_progress:        { label: "Building",       classes: "bg-purple-100 text-purple-700 animate-pulse" },
   completed:          { label: "Deployed",       classes: "bg-green-100 text-green-700" },
   failed:             { label: "Failed",         classes: "bg-red-100 text-red-600" },
+  merged:             { label: "Merged",          classes: "bg-teal-100 text-teal-700" },
 };
 
 function Badge({ status }: { status: string }) {
