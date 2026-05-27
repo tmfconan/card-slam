@@ -46,6 +46,7 @@ export interface Card {
   category_id: string;
   status: Status;
   priority: number;
+  high_priority?: boolean;
   duration: number;     // minutes, minimum 30
   todo_date?: string;   // YYYY-MM-DD
   todo_time?: string;   // HH:MM

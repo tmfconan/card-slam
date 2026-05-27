@@ -155,4 +155,17 @@ describe("CardItem", () => {
     render(<CardItem card={mockCard} category={mockCategory} onUpdate={vi.fn()} />);
     expect(screen.queryByTestId("status-dot")).not.toBeInTheDocument();
   });
+
+  // ── High priority flag ─────────────────────────────────────────────────────
+
+  it("high_priority card shows a high-priority flag", () => {
+    const hpCard = { ...mockCard, high_priority: true };
+    render(<CardItem card={hpCard} category={mockCategory} onUpdate={vi.fn()} />);
+    expect(screen.getByTestId("high-priority-flag")).toBeInTheDocument();
+  });
+
+  it("non-high-priority card does not show a high-priority flag", () => {
+    render(<CardItem card={mockCard} category={mockCategory} onUpdate={vi.fn()} />);
+    expect(screen.queryByTestId("high-priority-flag")).not.toBeInTheDocument();
+  });
 });
