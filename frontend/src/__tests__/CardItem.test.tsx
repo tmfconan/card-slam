@@ -2,7 +2,12 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import CardItem from "../components/CardItem";
+import { AuthProvider } from "../contexts/AuthContext";
 import { Card, Category } from "../types";
+
+function withAuth(ui: React.ReactElement) {
+  return <AuthProvider>{ui}</AuthProvider>;
+}
 
 const mockCard: Card = {
   id: "card-1",
@@ -41,12 +46,14 @@ describe("CardItem", () => {
   it("clicking the card body opens the CardDetail modal", async () => {
     const user = userEvent.setup();
     render(
-      <CardItem
-        card={mockCard}
-        category={mockCategory}
-        onUpdate={vi.fn()}
-        categories={[mockCategory]}
-      />
+      withAuth(
+        <CardItem
+          card={mockCard}
+          category={mockCategory}
+          onUpdate={vi.fn()}
+          categories={[mockCategory]}
+        />
+      )
     );
 
     await user.click(screen.getByRole("article"));
@@ -56,12 +63,14 @@ describe("CardItem", () => {
   it("CardDetail modal has a Save button", async () => {
     const user = userEvent.setup();
     render(
-      <CardItem
-        card={mockCard}
-        category={mockCategory}
-        onUpdate={vi.fn()}
-        categories={[mockCategory]}
-      />
+      withAuth(
+        <CardItem
+          card={mockCard}
+          category={mockCategory}
+          onUpdate={vi.fn()}
+          categories={[mockCategory]}
+        />
+      )
     );
 
     await user.click(screen.getByRole("article"));
@@ -71,12 +80,14 @@ describe("CardItem", () => {
   it("CardDetail modal can be closed via Cancel", async () => {
     const user = userEvent.setup();
     render(
-      <CardItem
-        card={mockCard}
-        category={mockCategory}
-        onUpdate={vi.fn()}
-        categories={[mockCategory]}
-      />
+      withAuth(
+        <CardItem
+          card={mockCard}
+          category={mockCategory}
+          onUpdate={vi.fn()}
+          categories={[mockCategory]}
+        />
+      )
     );
 
     await user.click(screen.getByRole("article"));

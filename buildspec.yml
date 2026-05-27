@@ -1,0 +1,78 @@
+version: 0.2
+
+# Card Slam auto-code pipeline.
+# Required env vars (passed by the queue processor Lambda at build start):
+#   CARD_ID, FEATURE_TITLE, FEATURE_DESCRIPTION, RUN_ID
+# Injected by CDK project definition:
+#   REGION, ECR_REPO, ECS_CLUSTER, CARDS_TABLE, FEATURE_RUNS_TABLE,
+#   ANTHROPIC_API_KEY (from Secrets Manager), GITHUB_TOKEN (from Secrets Manager)
+
+phases:
+  install:
+    runtime-versions:
+      nodejs: 20
+      python: 3.12
+    commands:
+      - npm install -g @anthropic-ai/claude-code
+      - pip install -r backend/requirements.txt
+
+  pre_build:
+    commands:
+      - git config user.email "autocode@card-slam"
+      - git config user.name "Card Slam Auto-Code"
+      - git remote set-url origin "https://${GITHUB_TOKEN}@github.com/tmfconan/card-slam.git"
+      - git checkout -b "auto-code/${CARD_ID}"
+      - aws ecr get-login-password --region "$REGION" | docker login --username AWS --password-stdin "$ECR_REPO"
+
+  build:
+    commands:
+      - |
+        PROMPT="Implement the following feature for the Card Slam work management app.
+
+Card Slam is a personal task manager:
+- Frontend: React 18 + TypeScript + Vite + Tailwind CSS (in /frontend/src/)
+- Backend: FastAPI + Python + DynamoDB (in /backend/)
+- Both served from a single Fargate container
+
+Feature to implement:
+Title: ${FEATURE_TITLE}
+Description:
+${FEATURE_DESCRIPTION}
+
+Requirements:
+- Make all changes needed across frontend and backend
+- Follow existing code patterns and conventions
+- Add or update tests in backend/tests/ and frontend/src/__tests__/ as appropriate
+- Ensure all existing tests still pass after your changes
+- Do not modify the auto-code feature itself (backend/autocode/, buildspec.yml, cdk/)"
+
+        claude --dangerously-skip-permissions -p "$PROMPT"
+      - make test
+
+  post_build:
+    commands:
+      - git add -A
+      - git diff --staged --quiet || git commit -m "auto-code: ${FEATURE_TITLE}"
+      - git push -u origin "auto-code/${CARD_ID}" || true
+      - docker build --platform linux/amd64 -t card-slam:latest .
+      - docker tag card-slam:latest "${ECR_REPO}:latest"
+      - docker push "${ECR_REPO}:latest"
+      - |
+        SERVICE=$(aws ecs list-services \
+          --cluster "$ECS_CLUSTER" \
+          --region "$REGION" \
+          --query "serviceArns[0]" \
+          --output text | awk -F/ '{print $NF}')
+        aws ecs update-service \
+          --cluster "$ECS_CLUSTER" \
+          --service "$SERVICE" \
+          --force-new-deployment \
+          --region "$REGION"
+      - python3 scripts/update_run_status.py success
+
+  finally:
+    commands:
+      - |
+        if [ "${CODEBUILD_BUILD_SUCCEEDING}" = "0" ]; then
+          python3 scripts/update_run_status.py failure || true
+        fi

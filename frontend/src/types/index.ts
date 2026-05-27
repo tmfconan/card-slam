@@ -31,6 +31,14 @@ export interface Category {
   created_at: string;
 }
 
+export type FeatureRequestStatus =
+  | "pending_validation"
+  | "validation_failed"
+  | "queued"
+  | "in_progress"
+  | "completed"
+  | "failed";
+
 export interface Card {
   id: string;
   title: string;
@@ -43,6 +51,20 @@ export interface Card {
   todo_time?: string;   // HH:MM
   created_at: string;
   updated_at: string;
+  is_feature_request?: boolean;
+  feature_request_status?: FeatureRequestStatus;
+}
+
+export interface FeatureRun {
+  run_id: string;
+  card_id: string;
+  card_title: string;
+  card_description: string;
+  status: "in_progress" | "completed" | "failed";
+  codebuild_build_id?: string;
+  started_at: string;
+  completed_at?: string;
+  error_message?: string;
 }
 
 export interface WorkItem {

@@ -15,6 +15,8 @@ def _normalize(item: dict) -> dict:
     item["priority"] = int(item.get("priority", 0))
     item["duration"] = int(item.get("duration", 30))
     item.setdefault("username", "admin")  # migrate legacy records
+    item.setdefault("is_feature_request", False)
+    item.setdefault("feature_request_status", None)
     return item
 
 
