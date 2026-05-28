@@ -33,7 +33,7 @@ def test_velocity_empty(client, auth_headers):
     assert data["lifetime"]["total_intended"] == 0
     assert data["lifetime"]["total_done"] == 0
     assert data["lifetime"]["completion_rate"] == 0.0
-    assert len(data["weekly_throughput"]) == 16
+    assert "weekly_throughput" not in data
     assert len(data["weekly_cohort"]) == 16
 
 
@@ -64,17 +64,25 @@ def test_velocity_lifetime_completion_rate(client, auth_headers):
 def test_velocity_weekly_series_has_correct_length(client, auth_headers):
     resp = client.get("/api/reports/velocity", headers=auth_headers)
     data = resp.json()
-    assert len(data["weekly_throughput"]) == 16
     assert len(data["weekly_cohort"]) == 16
 
 
 def test_velocity_weekly_series_keys_present(client, auth_headers):
     resp = client.get("/api/reports/velocity", headers=auth_headers)
-    throughput = resp.json()["weekly_throughput"]
-    for entry in throughput:
+    cohort = resp.json()["weekly_cohort"]
+    for entry in cohort:
         assert "week" in entry
         assert "week_label" in entry
         assert "done" in entry
+        assert "intended" in entry
+        assert "not_done" in entry
+        assert "rate" in entry
+
+
+def test_velocity_response_omits_weekly_throughput(client, auth_headers):
+    resp = client.get("/api/reports/velocity", headers=auth_headers)
+    data = resp.json()
+    assert "weekly_throughput" not in data
 
 
 # ── Bug 3: ref_date query parameter ────────────────────────────────────────────
@@ -95,8 +103,8 @@ def test_velocity_ref_date_changes_week_window(client, auth_headers):
         headers=auth_headers,
     )
 
-    labels_today = [e["week"] for e in resp_today.json()["weekly_throughput"]]
-    labels_past = [e["week"] for e in resp_past.json()["weekly_throughput"]]
+    labels_today = [e["week"] for e in resp_today.json()["weekly_cohort"]]
+    labels_past = [e["week"] for e in resp_past.json()["weekly_cohort"]]
 
     # The two windows must differ — a date 2 years ago is outside today's 16-week window
     assert labels_today != labels_past
@@ -108,8 +116,8 @@ def test_velocity_ref_date_last_week_in_series_matches_anchor(client, auth_heade
 
     ref = "2024-06-17"  # ISO week 25 of 2024
     resp = client.get(f"/api/reports/velocity?ref_date={ref}", headers=auth_headers)
-    throughput = resp.json()["weekly_throughput"]
-    last_week_key = throughput[-1]["week"]
+    cohort = resp.json()["weekly_cohort"]
+    last_week_key = cohort[-1]["week"]
 
     anchor = datetime.fromisoformat(ref).replace(tzinfo=timezone.utc)
     cal = anchor.isocalendar()
@@ -126,7 +134,7 @@ def test_velocity_invalid_ref_date_falls_back_to_today(client, auth_headers):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert len(data["weekly_throughput"]) == 16
+    assert len(data["weekly_cohort"]) == 16
 
 
 def test_velocity_requires_auth(client):

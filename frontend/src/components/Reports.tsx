@@ -16,12 +16,6 @@ interface LifetimeStats {
   completion_rate: number;
 }
 
-interface WeeklyThroughput {
-  week: string;
-  week_label: string;
-  done: number;
-}
-
 interface WeeklyCohort {
   week: string;
   week_label: string;
@@ -33,7 +27,6 @@ interface WeeklyCohort {
 
 interface VelocityData {
   lifetime: LifetimeStats;
-  weekly_throughput: WeeklyThroughput[];
   weekly_cohort: WeeklyCohort[];
 }
 
@@ -107,7 +100,7 @@ export default function Reports() {
     );
   }
 
-  const { lifetime, weekly_throughput, weekly_cohort } = data;
+  const { lifetime, weekly_cohort } = data;
   const pct = Math.round(lifetime.completion_rate * 100);
 
   return (
@@ -141,39 +134,6 @@ export default function Reports() {
         <StatCard label="Total Intended" value={String(lifetime.total_intended)} />
         <StatCard label="Total Done" value={String(lifetime.total_done)} />
         <StatCard label="Completion Rate" value={`${pct}%`} />
-      </div>
-
-      {/* Throughput chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-        <div>
-          <h3 className="text-sm font-semibold text-gray-700">Cards Completed Per Week</h3>
-          <p className="text-xs text-gray-400">Based on when cards were last updated to Done</p>
-        </div>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={weekly_throughput} barSize={16}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-            <XAxis
-              dataKey="week_label"
-              tick={{ fontSize: 11, fill: "#9ca3af" }}
-              axisLine={false}
-              tickLine={false}
-            />
-            <YAxis
-              allowDecimals={false}
-              tick={{ fontSize: 11, fill: "#9ca3af" }}
-              axisLine={false}
-              tickLine={false}
-              width={24}
-            />
-            <Tooltip
-              cursor={{ fill: "#f9fafb" }}
-              contentStyle={{ fontSize: 12, borderRadius: 8, borderColor: "#e5e7eb" }}
-              formatter={(v) => [v ?? 0, "Done"]}
-              labelFormatter={(l) => `Week of ${l}`}
-            />
-            <Bar dataKey="done" fill="#2563eb" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
       </div>
 
       {/* Cohort chart */}
