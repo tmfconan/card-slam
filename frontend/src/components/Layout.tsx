@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, ReactNode } from "react";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import KanbanView from "./KanbanView";
@@ -11,6 +11,15 @@ import AutoCodeView from "./AutoCodeView";
 import PromptBar from "./PromptBar";
 import { Category, Card } from "../types";
 import api from "../api/client";
+import {
+  KanbanIcon,
+  ListIcon,
+  CalendarIcon,
+  CategoriesIcon,
+  ReportsIcon,
+  UsersIcon,
+  FeatureRequestsIcon,
+} from "./NavIcons";
 
 export default function Layout() {
   const { logout, currentUser } = useAuth();
@@ -49,7 +58,7 @@ export default function Layout() {
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests"].includes(location.pathname);
 
-  const navLink = (to: string, label: string) => {
+  const navLink = (to: string, label: string, icon: ReactNode) => {
     const active = location.pathname === to;
     return (
       <Link
@@ -60,6 +69,9 @@ export default function Layout() {
             : "text-gray-400 hover:bg-gray-800 hover:text-white"
         }`}
       >
+        <span aria-hidden="true" className="flex-shrink-0">
+          {icon}
+        </span>
         {label}
       </Link>
     );
@@ -92,13 +104,14 @@ export default function Layout() {
             </button>
           </div>
           <nav className="flex-1 p-3 space-y-1">
-            {navLink("/", "Kanban")}
-            {navLink("/list", "List")}
-            {navLink("/calendar", "Calendar")}
-            {navLink("/categories", "Categories")}
-            {navLink("/reports", "Reports")}
-            {isAdmin && navLink("/users", "Users")}
-            {isAdmin && navLink("/feature-requests", "Feature Requests")}
+            {navLink("/", "Kanban", <KanbanIcon />)}
+            {navLink("/list", "List", <ListIcon />)}
+            {navLink("/calendar", "Calendar", <CalendarIcon />)}
+            {navLink("/categories", "Categories", <CategoriesIcon />)}
+            {navLink("/reports", "Reports", <ReportsIcon />)}
+            {isAdmin && navLink("/users", "Users", <UsersIcon />)}
+            {isAdmin &&
+              navLink("/feature-requests", "Feature Requests", <FeatureRequestsIcon />)}
           </nav>
           <div className="p-4 border-t border-gray-700">
             <button
