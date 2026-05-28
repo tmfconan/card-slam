@@ -58,6 +58,15 @@ class BatchStatusUpdate(BaseModel):
     status: Status
 
 
+class BatchDelete(BaseModel):
+    ids: list[str]
+
+
+class BatchArchive(BaseModel):
+    ids: list[str]
+    archived: bool = True   # True to archive, False to restore
+
+
 class Card(BaseModel):
     id: str
     title: str

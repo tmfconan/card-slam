@@ -353,6 +353,119 @@ def test_batch_status_skips_nonexistent_ids(client, auth_headers):
     assert resp.json()["updated"] == 1
 
 
+# ── batch archive tests ─────────────────────────────────────────────────────────
+
+def test_batch_archive(client, auth_headers):
+    batch = [{**CARD_PAYLOAD, "title": f"Card {i}"} for i in range(3)]
+    created = client.post("/api/cards/batch", json=batch, headers=auth_headers).json()
+    ids = [c["id"] for c in created]
+
+    resp = client.post(
+        "/api/cards/batch-archive", json={"ids": ids}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 3
+
+    # Archived cards drop out of the default listing
+    active = client.get("/api/cards/", headers=auth_headers).json()
+    assert all(c["id"] not in ids for c in active)
+    # …and surface under the archived listing
+    archived = client.get("/api/cards/?archived=true", headers=auth_headers).json()
+    assert {c["id"] for c in archived} == set(ids)
+
+
+def test_batch_archive_restore(client, auth_headers):
+    created = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers).json()
+    card_id = created["id"]
+    client.post("/api/cards/batch-archive", json={"ids": [card_id]}, headers=auth_headers)
+
+    resp = client.post(
+        "/api/cards/batch-archive",
+        json={"ids": [card_id], "archived": False},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1
+
+    active = client.get("/api/cards/", headers=auth_headers).json()
+    assert any(c["id"] == card_id for c in active)
+
+
+def test_batch_archive_empty_ids(client, auth_headers):
+    resp = client.post(
+        "/api/cards/batch-archive", json={"ids": []}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+
+
+def test_batch_archive_skips_other_users_cards(client, auth_headers, user_auth_headers):
+    other = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": "User card"}, headers=user_auth_headers
+    ).json()
+
+    resp = client.post(
+        "/api/cards/batch-archive", json={"ids": [other["id"]]}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+    # The other user's card remains active and untouched
+    active = client.get("/api/cards/", headers=user_auth_headers).json()
+    assert any(c["id"] == other["id"] for c in active)
+
+
+# ── batch delete tests ──────────────────────────────────────────────────────────
+
+def test_batch_delete(client, auth_headers):
+    batch = [{**CARD_PAYLOAD, "title": f"Card {i}"} for i in range(3)]
+    created = client.post("/api/cards/batch", json=batch, headers=auth_headers).json()
+    ids = [c["id"] for c in created]
+
+    resp = client.post(
+        "/api/cards/batch-delete", json={"ids": ids}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 3
+
+    for card_id in ids:
+        assert client.get(f"/api/cards/{card_id}", headers=auth_headers).status_code == 404
+
+
+def test_batch_delete_empty_ids(client, auth_headers):
+    resp = client.post(
+        "/api/cards/batch-delete", json={"ids": []}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 0
+
+
+def test_batch_delete_skips_nonexistent_ids(client, auth_headers):
+    created = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers).json()
+    real_id = created["id"]
+
+    resp = client.post(
+        "/api/cards/batch-delete",
+        json={"ids": [real_id, "does-not-exist"]},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 1
+
+
+def test_batch_delete_skips_other_users_cards(client, auth_headers, user_auth_headers):
+    other = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": "User card"}, headers=user_auth_headers
+    ).json()
+
+    resp = client.post(
+        "/api/cards/batch-delete", json={"ids": [other["id"]]}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 0
+    # The other user's card still exists
+    assert client.get(f"/api/cards/{other['id']}", headers=user_auth_headers).status_code == 200
+
+
 # ── User isolation tests ───────────────────────────────────────────────────────
 
 def test_user_cannot_see_other_users_cards(client, auth_headers, user_auth_headers):
