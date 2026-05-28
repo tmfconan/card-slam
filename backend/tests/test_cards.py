@@ -452,3 +452,99 @@ def test_high_priority_persists_across_get(client, auth_headers):
     get_resp = client.get(f"/api/cards/{card_id}", headers=auth_headers)
     assert get_resp.status_code == 200
     assert get_resp.json()["high_priority"] is True
+
+
+# ── Archived cards ──────────────────────────────────────────────────────────
+
+
+def test_new_card_is_not_archived(client, auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    assert create_resp.status_code == 201
+    assert create_resp.json()["archived"] is False
+
+
+def test_archive_card_via_update(client, auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}", json={"archived": True}, headers=auth_headers
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["archived"] is True
+
+
+def test_archived_cards_excluded_from_default_list(client, auth_headers):
+    active = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": "Active"}, headers=auth_headers
+    ).json()
+    archived = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": "Archived"}, headers=auth_headers
+    ).json()
+    client.put(
+        f"/api/cards/{archived['id']}", json={"archived": True}, headers=auth_headers
+    )
+
+    resp = client.get("/api/cards/", headers=auth_headers)
+    assert resp.status_code == 200
+    ids = [c["id"] for c in resp.json()]
+    assert active["id"] in ids
+    assert archived["id"] not in ids
+
+
+def test_list_archived_cards(client, auth_headers):
+    client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": "Active"}, headers=auth_headers
+    )
+    archived = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": "Archived"}, headers=auth_headers
+    ).json()
+    client.put(
+        f"/api/cards/{archived['id']}", json={"archived": True}, headers=auth_headers
+    )
+
+    resp = client.get("/api/cards/?archived=true", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert len(data) == 1
+    assert data[0]["id"] == archived["id"]
+    assert data[0]["archived"] is True
+
+
+def test_unarchive_restores_card_to_default_list(client, auth_headers):
+    card = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers).json()
+    client.put(f"/api/cards/{card['id']}", json={"archived": True}, headers=auth_headers)
+
+    # Confirm it is hidden from the active list
+    assert client.get("/api/cards/", headers=auth_headers).json() == []
+
+    # Restore it
+    restore = client.put(
+        f"/api/cards/{card['id']}", json={"archived": False}, headers=auth_headers
+    )
+    assert restore.status_code == 200
+    assert restore.json()["archived"] is False
+
+    active_ids = [c["id"] for c in client.get("/api/cards/", headers=auth_headers).json()]
+    assert card["id"] in active_ids
+    assert client.get("/api/cards/?archived=true", headers=auth_headers).json() == []
+
+
+def test_archived_status_filter_combine(client, auth_headers):
+    """The archived flag and status filter combine correctly."""
+    archived = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "title": "Archived done", "status": "done"},
+        headers=auth_headers,
+    ).json()
+    client.put(
+        f"/api/cards/{archived['id']}", json={"archived": True}, headers=auth_headers
+    )
+
+    # Archived list filtered to done returns it; brainstorm returns nothing
+    done = client.get("/api/cards/?archived=true&status=done", headers=auth_headers)
+    assert [c["id"] for c in done.json()] == [archived["id"]]
+    brainstorm = client.get(
+        "/api/cards/?archived=true&status=brainstorm", headers=auth_headers
+    )
+    assert brainstorm.json() == []

@@ -15,6 +15,7 @@ def _normalize(item: dict) -> dict:
     item["priority"] = int(item.get("priority", 0))
     item["duration"] = int(item.get("duration", 30))
     item["high_priority"] = bool(item.get("high_priority", False))
+    item["archived"] = bool(item.get("archived", False))
     item.setdefault("username", "admin")  # migrate legacy records
     item.setdefault("is_feature_request", False)
     item.setdefault("feature_request_status", None)
@@ -36,6 +37,7 @@ def _get_owned(table, card_id: str, username: str) -> dict:
 def list_cards(
     status: Optional[Status] = Query(None),
     category_id: Optional[str] = Query(None),
+    archived: bool = Query(False),
     username: str = Depends(verify_token),
 ):
     table = get_cards_table()
@@ -45,6 +47,9 @@ def list_cards(
     if username == "admin":
         legacy = [_normalize(i) for i in table.scan().get("Items", []) if "username" not in i]
         items = items + legacy
+    # Archived cards are surfaced separately from active content; the default
+    # listing (archived=False) returns only active cards.
+    items = [i for i in items if i["archived"] == archived]
     if status:
         items = [i for i in items if i["status"] == status]
     if category_id:

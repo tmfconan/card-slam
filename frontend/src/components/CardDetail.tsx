@@ -60,6 +60,12 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
     onClose();
   };
 
+  const handleArchiveToggle = async () => {
+    await api.put(`/cards/${card.id}`, { archived: !card.archived });
+    onSave();
+    onClose();
+  };
+
   const handleFlag = async () => {
     setFlagging(true);
     setFlagResult(null);
@@ -312,13 +318,22 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
         )}
 
         <div className="p-5 border-t flex items-center justify-between">
-          <button
-            type="button"
-            onClick={handleDelete}
-            className="text-sm text-red-500 hover:text-red-700 transition-colors"
-          >
-            Delete
-          </button>
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleDelete}
+              className="text-sm text-red-500 hover:text-red-700 transition-colors"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={handleArchiveToggle}
+              className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            >
+              {card.archived ? "Unarchive" : "Archive"}
+            </button>
+          </div>
           <div className="flex gap-3">
             <button
               type="button"

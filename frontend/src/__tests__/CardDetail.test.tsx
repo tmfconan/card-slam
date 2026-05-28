@@ -189,6 +189,54 @@ describe("CardDetail", () => {
     expect(captured.high_priority).toBe(true);
   });
 
+  // ── Archive / unarchive ──────────────────────────────────────────────────
+
+  it("shows an Archive action for an active card", () => {
+    renderDetail();
+    expect(screen.getByRole("button", { name: /^archive$/i })).toBeInTheDocument();
+  });
+
+  it("shows an Unarchive action for an archived card", () => {
+    renderDetail({ archived: true });
+    expect(screen.getByRole("button", { name: /unarchive/i })).toBeInTheDocument();
+  });
+
+  it("archiving PUTs archived=true and then closes", async () => {
+    let captured: any = null;
+    server.use(
+      http.put("/api/cards/:id", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ ok: true });
+      })
+    );
+    const user = userEvent.setup();
+    const { onSave, onClose } = renderDetail();
+
+    await user.click(screen.getByRole("button", { name: /^archive$/i }));
+
+    await waitFor(() => expect(captured).not.toBeNull());
+    expect(captured.archived).toBe(true);
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("unarchiving PUTs archived=false", async () => {
+    let captured: any = null;
+    server.use(
+      http.put("/api/cards/:id", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ ok: true });
+      })
+    );
+    const user = userEvent.setup();
+    renderDetail({ archived: true });
+
+    await user.click(screen.getByRole("button", { name: /unarchive/i }));
+
+    await waitFor(() => expect(captured).not.toBeNull());
+    expect(captured.archived).toBe(false);
+  });
+
   // ── Bug 2: Modal rendered via Portal escapes stacking context ─────────────
 
   it("modal overlay is rendered as a direct child of document.body (portal) so it isn't clipped by card z-index stacking contexts (bug 2)", () => {

@@ -48,6 +48,7 @@ export interface Card {
   status: Status;
   priority: number;
   high_priority?: boolean;
+  archived?: boolean;   // archived cards are hidden from active views
   duration: number;     // minutes, minimum 30
   todo_date?: string;   // YYYY-MM-DD
   todo_time?: string;   // HH:MM

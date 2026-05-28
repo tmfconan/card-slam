@@ -36,6 +36,8 @@ interface Props {
   categories?: Category[];
   // If provided, the × button calls this instead of deleting (e.g. move to unscheduled)
   onRemoveFromSchedule?: () => void;
+  // If provided, shows an inline "Restore" button (used by the Archive view)
+  onUnarchive?: () => void;
 }
 
 export default function CardItem({
@@ -48,6 +50,7 @@ export default function CardItem({
   showStatusDot,
   categories,
   onRemoveFromSchedule,
+  onUnarchive,
 }: Props) {
   const [showDetail, setShowDetail] = useState(false);
   const pointerOrigin = useRef<{ x: number; y: number } | null>(null);
@@ -81,6 +84,11 @@ export default function CardItem({
   const handleStatusChange = async (status: Status) => {
     await api.put(`/cards/${card.id}`, { status });
     onUpdate();
+  };
+
+  const handleUnarchive = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onUnarchive?.();
   };
 
   const borderColor = category?.color ?? "#94a3b8";
@@ -137,13 +145,25 @@ export default function CardItem({
             )}
             {card.title}
           </p>
-          <button
-            onClick={handleDelete}
-            className="text-gray-400 hover:text-red-500 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-            title="Delete"
-          >
-            ✕
-          </button>
+          <div className="flex items-center flex-shrink-0">
+            {onUnarchive && (
+              <button
+                onClick={handleUnarchive}
+                className="text-gray-400 hover:text-blue-600 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                title="Restore"
+                aria-label="Restore"
+              >
+                ↩
+              </button>
+            )}
+            <button
+              onClick={handleDelete}
+              className="text-gray-400 hover:text-red-500 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              title="Delete"
+            >
+              ✕
+            </button>
+          </div>
         </div>
 
         {card.description && (
