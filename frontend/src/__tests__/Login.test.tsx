@@ -86,4 +86,82 @@ describe("Login", () => {
       expect(screen.getByText(/invalid credentials/i)).toBeInTheDocument()
     );
   });
+
+  it("no captcha field is shown before the server requires one", () => {
+    renderLogin();
+    expect(screen.queryByPlaceholderText(/captcha answer/i)).not.toBeInTheDocument();
+  });
+
+  it("shows a captcha once the server flags captcha_required", async () => {
+    server.use(
+      http.post("/api/auth/login", () =>
+        HttpResponse.json(
+          { detail: { message: "Invalid credentials", captcha_required: true } },
+          { status: 401 }
+        )
+      )
+    );
+    const user = userEvent.setup();
+    renderLogin();
+    await user.type(screen.getByPlaceholderText(/username/i), "admin");
+    await user.type(screen.getByPlaceholderText(/enter your password/i), "wrong");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/what is 3 \+ 4/i)).toBeInTheDocument()
+    );
+    expect(screen.getByPlaceholderText(/captcha answer/i)).toBeInTheDocument();
+  });
+
+  it("submits the captcha answer and logs in", async () => {
+    server.use(
+      http.post("/api/auth/login", async ({ request }) => {
+        const body = (await request.json()) as {
+          captcha_id?: string;
+          captcha_answer?: string;
+        };
+        if (body.captcha_id === "captcha-1" && body.captcha_answer === "7") {
+          return HttpResponse.json({ access_token: "mock-admin-token" });
+        }
+        return HttpResponse.json(
+          { detail: { message: "Invalid credentials", captcha_required: true } },
+          { status: 401 }
+        );
+      })
+    );
+    const user = userEvent.setup();
+    renderLogin();
+    await user.type(screen.getByPlaceholderText(/username/i), "admin");
+    await user.type(screen.getByPlaceholderText(/enter your password/i), "wrong");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+
+    const captchaInput = await screen.findByPlaceholderText(/captcha answer/i);
+    await user.type(captchaInput, "7");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith("/"));
+  });
+
+  it("shows a lockout message on HTTP 429", async () => {
+    server.use(
+      http.post("/api/auth/login", () =>
+        HttpResponse.json(
+          {
+            detail: {
+              message: "Too many failed login attempts.",
+              retry_after: 30,
+              captcha_required: true,
+            },
+          },
+          { status: 429 }
+        )
+      )
+    );
+    const user = userEvent.setup();
+    renderLogin();
+    await user.type(screen.getByPlaceholderText(/username/i), "admin");
+    await user.type(screen.getByPlaceholderText(/enter your password/i), "wrong");
+    await user.click(screen.getByRole("button", { name: /sign in/i }));
+    await waitFor(() =>
+      expect(screen.getByText(/too many failed attempts/i)).toBeInTheDocument()
+    );
+  });
 });
