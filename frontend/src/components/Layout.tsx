@@ -20,7 +20,7 @@ import {
   ReportsIcon,
   UsersIcon,
   FeatureRequestsIcon,
-  GettingStartedIcon,
+  HelpIcon,
 } from "./NavIcons";
 
 export default function Layout() {
@@ -37,6 +37,7 @@ export default function Layout() {
   const [sidebarOpen, setSidebarOpen] = useState(
     () => typeof window !== "undefined" && window.innerWidth >= 640
   );
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const [catRes, cardsRes] = await Promise.all([
@@ -58,7 +59,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests", "/getting-started"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests"].includes(location.pathname);
 
   const navLink = (to: string, label: string, icon: ReactNode) => {
     const active = location.pathname === to;
@@ -95,8 +96,20 @@ export default function Layout() {
           className="w-52 bg-gray-900 flex flex-col flex-shrink-0
             fixed inset-y-0 left-0 z-50 sm:relative sm:z-auto"
         >
-          <div className="p-5 border-b border-gray-700 flex items-center justify-between">
-            <h1 className="text-lg font-bold text-white tracking-tight">Card Slam</h1>
+          <div className="p-5 border-b border-gray-700 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <h1 className="text-lg font-bold text-white tracking-tight">Card Slam</h1>
+              <button
+                type="button"
+                onClick={() => setOnboardingOpen(true)}
+                aria-label="Open Getting Started tutorial"
+                title="Getting Started"
+                data-testid="open-onboarding"
+                className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+              >
+                <HelpIcon className="w-5 h-5" />
+              </button>
+            </div>
             <button
               onClick={() => setSidebarOpen(false)}
               className="text-gray-500 hover:text-white text-lg leading-none sm:hidden"
@@ -111,7 +124,6 @@ export default function Layout() {
             {navLink("/calendar", "Calendar", <CalendarIcon />)}
             {navLink("/categories", "Categories", <CategoriesIcon />)}
             {navLink("/reports", "Reports", <ReportsIcon />)}
-            {navLink("/getting-started", "Getting Started", <GettingStartedIcon />)}
             {isAdmin && navLink("/users", "Users", <UsersIcon />)}
             {isAdmin &&
               navLink("/feature-requests", "Feature Requests", <FeatureRequestsIcon />)}
@@ -154,8 +166,6 @@ export default function Layout() {
                   ? "Reports"
                   : location.pathname === "/feature-requests"
                   ? "Feature Requests"
-                  : location.pathname === "/getting-started"
-                  ? "Getting Started"
                   : "Categories"}
               </span>
             </div>
@@ -211,7 +221,6 @@ export default function Layout() {
                 }
               />
               <Route path="/reports" element={<Reports />} />
-              <Route path="/getting-started" element={<OnboardingGuide />} />
               {isAdmin && (
                 <Route path="/users" element={<UserManagement />} />
               )}
@@ -223,6 +232,11 @@ export default function Layout() {
           )}
         </div>
       </div>
+
+      <OnboardingGuide
+        open={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+      />
     </div>
   );
 }
