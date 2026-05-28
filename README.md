@@ -2,6 +2,13 @@
 
 Work organizer powered by AI. Kanban-style task management with Claude-assisted card creation — describe work in plain text and let the AI break it into actionable items.
 
+## Recent Features
+
+- **Auto-Code Integration** — Submit feature requests directly from cards, automatically branch, code, test, and merge via AWS CodeBuild
+- **High Priority Cards** — Mark cards as high priority for better task organization
+- **Enhanced Daily View** — Adjust card duration in 15-minute increments for precise time blocking
+- **2-Week Calendar** — Extended calendar view now includes yesterday for better context
+
 ## Stack
 
 | Layer | Technology |
@@ -63,6 +70,23 @@ Vite runs on `http://localhost:5173` and proxies `/api` to `localhost:8000`.
 
 FastAPI auto-generates docs at `http://localhost:8000/api/docs`.
 
+## Auto-Code Feature
+
+Card Slam includes an automated feature implementation pipeline powered by Claude Code:
+
+1. **Request** — Mark a card with a feature description and submit it as a feature request
+2. **Build** — AWS CodeBuild spins up, creates a branch, and invokes Claude Code CLI to implement the feature
+3. **Test** — All tests run automatically (backend + frontend)
+4. **Deploy** — On success, the feature is built into a Docker image and deployed to ECS
+5. **Merge** — Review the auto-code branch and merge from the card detail view
+
+The pipeline is defined in `buildspec.yml` and requires these environment variables (configured in CDK):
+- `ANTHROPIC_API_KEY` — For Claude Code
+- `GITHUB_TOKEN` — For pushing branches
+- Infrastructure details (ECS cluster, ECR repo, DynamoDB tables)
+
+**Note:** The auto-code system is self-aware and won't modify its own implementation files (`backend/autocode/`, `buildspec.yml`, `cdk/`).
+
 ## Testing
 
 ```bash
@@ -110,7 +134,8 @@ Defined in `cdk/`. Key resources:
 - **ALB** — port 80, DNS output as `AppURL`
 - **DynamoDB** — pay-per-request, two tables
 - **Secrets Manager** — `card-slam/config` holds `jwt_secret`, `password_hash`, `anthropic_api_key`
-- **ECR** — image registry, URI output as `ECRRepository`
+- **ECR** — image registry, URI output as `ECRRepository` (uses ECR Public Gallery for base images to avoid Docker Hub rate limits)
+- **CodeBuild** — automated feature implementation via auto-code integration
 - **CloudWatch Logs** — 1-week retention
 
 ## Make Commands
