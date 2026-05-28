@@ -79,6 +79,16 @@ export function UsersIcon({ className = defaultClass }: IconProps) {
   );
 }
 
+export function GettingStartedIcon({ className = defaultClass }: IconProps) {
+  return (
+    <svg {...baseProps} className={className} data-testid="nav-icon-getting-started">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.7.3-1 .9-1 1.7" />
+      <line x1="12" y1="16.5" x2="12" y2="16.5" />
+    </svg>
+  );
+}
+
 export function FeatureRequestsIcon({ className = defaultClass }: IconProps) {
   return (
     <svg

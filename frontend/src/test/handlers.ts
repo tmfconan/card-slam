@@ -166,6 +166,37 @@ export const handlers = [
     return HttpResponse.json({ updated: body.ids.length });
   }),
 
+  http.get("/api/onboarding/steps", () =>
+    HttpResponse.json({
+      steps: [
+        {
+          id: 1,
+          title: "Sign in to your workspace",
+          summary: "Use your credentials on the login screen.",
+          location: "/login",
+          action: "Enter username and password, click Sign in.",
+          expect: "You land on the Kanban board.",
+        },
+        {
+          id: 2,
+          title: "Create your first category",
+          summary: "Categories color-code your cards.",
+          location: "Categories page",
+          action: "Click Categories, type a name, pick a color, click Add category.",
+          expect: "The new category appears in the list.",
+        },
+        {
+          id: 3,
+          title: "Move cards across the Kanban board",
+          summary: "Drag cards between columns.",
+          location: "Kanban view",
+          action: "Drag a card from Brainstorm to Ready to do.",
+          expect: "The card snaps into the target column.",
+        },
+      ],
+    })
+  ),
+
   http.post("/api/ai/parse", () => {
     return HttpResponse.json({
       items: [

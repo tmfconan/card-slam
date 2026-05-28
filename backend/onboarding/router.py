@@ -1,0 +1,106 @@
+from fastapi import APIRouter, Depends
+
+from auth.router import verify_token
+
+router = APIRouter(prefix="/onboarding", tags=["onboarding"])
+
+
+# Ordered walkthrough that guides a new user from account creation through
+# setting up their first board. Each step describes what to click, where to
+# look, and what to expect.
+STEPS = [
+    {
+        "id": 1,
+        "title": "Get an account from an admin",
+        "summary": "Admins create accounts from the Users page.",
+        "location": "Login screen at /login",
+        "action": "Ask an admin to add you. They will open the Users page in the sidebar, type your desired username and a temporary password, and click 'Add user'.",
+        "expect": "You receive a username and password you can use to sign in. The login screen shows the Card Slam logo and a Username/Password form.",
+    },
+    {
+        "id": 2,
+        "title": "Sign in to your workspace",
+        "summary": "Use your credentials at the login screen.",
+        "location": "The login page at /login",
+        "action": "Type your username and password, then click 'Sign in'.",
+        "expect": "The button label changes to 'Signing in…' briefly, then the page redirects to the Kanban board. If credentials are wrong, you'll see 'Invalid credentials' in red below the password field.",
+    },
+    {
+        "id": 3,
+        "title": "Get oriented in the sidebar",
+        "summary": "The dark sidebar on the left is your main navigation.",
+        "location": "Left edge of the screen",
+        "action": "Look at the sidebar. You'll see links for Kanban, List, Calendar, Categories, and Reports. Click the ◀ button at the top to collapse it, and the ☰ button to bring it back.",
+        "expect": "The active page is highlighted in blue. On small screens the sidebar starts collapsed — tap ☰ to open it.",
+    },
+    {
+        "id": 4,
+        "title": "Create your first category",
+        "summary": "Categories color-code your cards so your board stays readable.",
+        "location": "Categories page (sidebar → Categories)",
+        "action": "Click 'Categories' in the sidebar. In the 'New Category' card at the top, type a name (e.g. 'Work' or 'Personal'), pick a color from the swatches, and click 'Add category'.",
+        "expect": "The new category appears in the list below with the color dot you chose. You can edit or delete it later from the same page.",
+    },
+    {
+        "id": 5,
+        "title": "Add your first card with the prompt bar",
+        "summary": "The prompt bar at the top of the board uses AI to break work into cards.",
+        "location": "The bar across the top of the Kanban, List, and Calendar views",
+        "action": "Type a sentence describing something you need to do — for example, 'plan the team offsite' — and press Enter. A confirmation dialog lists the cards the AI proposes. Pick a category and click 'Create'.",
+        "expect": "The cards land in the leftmost 'Brainstorm' column of the Kanban board, color-coded by the category you chose.",
+    },
+    {
+        "id": 6,
+        "title": "Quick-add a card directly",
+        "summary": "Skip the AI if you already know what you want to add.",
+        "location": "Prompt bar's '+ Direct add' control",
+        "action": "Click '+ Direct add' on the prompt bar. Enter a title, optional description, category, and an optional due date, then click 'Create'.",
+        "expect": "The card appears in Brainstorm immediately, with no AI step in between.",
+    },
+    {
+        "id": 7,
+        "title": "Move cards across the Kanban board",
+        "summary": "Drag cards between columns to reflect their status.",
+        "location": "Kanban view (sidebar → Kanban, the default page)",
+        "action": "Grab a card from Brainstorm and drag it to 'Ready to do'. As work progresses, drag it through 'In progress', 'Needs finishing', and finally 'Done'.",
+        "expect": "The card snaps into the target column and its status persists across refreshes. Velocity reports start counting it once it leaves Brainstorm.",
+    },
+    {
+        "id": 8,
+        "title": "Open a card to add detail",
+        "summary": "The detail panel is where you flesh out a card.",
+        "location": "Any card on any view",
+        "action": "Click a card title to open the detail panel. Edit the title, description, category, priority, due date, or estimated duration, then click 'Save'.",
+        "expect": "Your changes appear immediately on the board. The 'High priority' toggle adds a flag so the card surfaces above others in lists.",
+    },
+    {
+        "id": 9,
+        "title": "Plan your day on the Calendar",
+        "summary": "Time-block cards into specific days and times.",
+        "location": "Calendar view (sidebar → Calendar)",
+        "action": "Click 'Calendar', then click a day to switch to Day view. Drag cards from the sidebar onto a time slot, or use 15-minute handles to resize.",
+        "expect": "The card now has a scheduled date and duration. The Direct-add control defaults to 8 AM on the day you've selected.",
+    },
+    {
+        "id": 10,
+        "title": "Check your velocity",
+        "summary": "Reports tell you how much of your intended work is getting done.",
+        "location": "Reports page (sidebar → Reports)",
+        "action": "Click 'Reports'. Read the three stat cards (Total Intended, Total Done, Completion Rate) and the weekly cohort chart. Use the Prev/Next buttons to scrub through prior weeks.",
+        "expect": "You'll see your completion rate as a percentage and a stacked bar chart of intended vs. done cards by week. New accounts start at 0% — that's normal.",
+    },
+    {
+        "id": 11,
+        "title": "You're set up",
+        "summary": "From here, build the habit.",
+        "location": "Anywhere in the app",
+        "action": "Capture work as it comes in via the prompt bar, move cards through the Kanban columns daily, and check Reports weekly to spot patterns.",
+        "expect": "Within a couple of weeks your weekly cohort chart will start filling in and Card Slam will reflect how you actually work.",
+    },
+]
+
+
+@router.get("/steps")
+def list_steps(_: str = Depends(verify_token)):
+    """Return the ordered onboarding walkthrough steps."""
+    return {"steps": STEPS}
