@@ -68,6 +68,15 @@ describe("Layout sidebar", () => {
     expect(screen.getByRole("link", { name: "Calendar" })).toBeInTheDocument();
   });
 
+  it("shows an Archive nav link pointing at /archive", async () => {
+    renderLayout();
+    await waitForLoad();
+    const link = screen.getByRole("link", { name: "Archive" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/archive");
+    expect(screen.getByTestId("nav-icon-archive")).toBeInTheDocument();
+  });
+
   it("clicking toggle hides the sidebar nav links", async () => {
     const user = userEvent.setup();
     renderLayout();

@@ -44,6 +44,7 @@ class CardUpdate(BaseModel):
     todo_date: Optional[str] = None   # set to null to clear
     todo_time: Optional[str] = None   # set to null to clear
     duration: Optional[int] = None
+    archived: Optional[bool] = None   # True to archive, False to restore
 
 
 class CardReorderItem(BaseModel):
@@ -66,6 +67,7 @@ class Card(BaseModel):
     priority: int
     high_priority: bool = False
     duration: int = 30
+    archived: bool = False
     todo_date: Optional[str] = None
     todo_time: Optional[str] = None
     created_at: str

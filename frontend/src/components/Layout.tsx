@@ -4,6 +4,7 @@ import { useAuth } from "../contexts/AuthContext";
 import KanbanView from "./KanbanView";
 import ListView from "./ListView";
 import CalendarView from "./CalendarView";
+import ArchiveView from "./ArchiveView";
 import CategoryManager from "./CategoryManager";
 import UserManagement from "./UserManagement";
 import Reports from "./Reports";
@@ -20,6 +21,7 @@ import {
   ReportsIcon,
   UsersIcon,
   FeatureRequestsIcon,
+  ArchiveIcon,
   HelpIcon,
 } from "./NavIcons";
 
@@ -59,7 +61,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests", "/archive"].includes(location.pathname);
 
   const navLink = (to: string, label: string, icon: ReactNode) => {
     const active = location.pathname === to;
@@ -122,6 +124,7 @@ export default function Layout() {
             {navLink("/", "Kanban", <KanbanIcon />)}
             {navLink("/list", "List", <ListIcon />)}
             {navLink("/calendar", "Calendar", <CalendarIcon />)}
+            {navLink("/archive", "Archive", <ArchiveIcon />)}
             {navLink("/categories", "Categories", <CategoriesIcon />)}
             {navLink("/reports", "Reports", <ReportsIcon />)}
             {isAdmin && navLink("/users", "Users", <UsersIcon />)}
@@ -166,6 +169,8 @@ export default function Layout() {
                   ? "Reports"
                   : location.pathname === "/feature-requests"
                   ? "Feature Requests"
+                  : location.pathname === "/archive"
+                  ? "Archive"
                   : "Categories"}
               </span>
             </div>
@@ -211,6 +216,16 @@ export default function Layout() {
                     categoryMap={categoryMap}
                     onUpdate={fetchAll}
                     onDayViewActive={setDayViewDate}
+                  />
+                }
+              />
+              <Route
+                path="/archive"
+                element={
+                  <ArchiveView
+                    categories={categories}
+                    categoryMap={categoryMap}
+                    onUpdate={fetchAll}
                   />
                 }
               />

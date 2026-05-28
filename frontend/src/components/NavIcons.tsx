@@ -89,6 +89,16 @@ export function HelpIcon({ className = defaultClass }: IconProps) {
   );
 }
 
+export function ArchiveIcon({ className = defaultClass }: IconProps) {
+  return (
+    <svg {...baseProps} className={className} data-testid="nav-icon-archive">
+      <rect x="3" y="4" width="18" height="4" rx="1" />
+      <path d="M5 8v11a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8" />
+      <line x1="10" y1="12" x2="14" y2="12" />
+    </svg>
+  );
+}
+
 export function FeatureRequestsIcon({ className = defaultClass }: IconProps) {
   return (
     <svg

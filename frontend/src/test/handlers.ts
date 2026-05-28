@@ -117,8 +117,11 @@ export const handlers = [
     return new HttpResponse(null, { status: 204 });
   }),
 
-  http.get("/api/cards/", () => {
-    return HttpResponse.json(mockCards);
+  http.get("/api/cards/", ({ request }) => {
+    const archived = new URL(request.url).searchParams.get("archived") === "true";
+    return HttpResponse.json(
+      mockCards.filter((c) => Boolean(c.archived) === archived)
+    );
   }),
 
   http.post("/api/cards/", async ({ request }) => {
