@@ -90,4 +90,31 @@ describe("Layout sidebar", () => {
       screen.queryByRole("link", { name: "Feature Requests" })
     ).not.toBeInTheDocument();
   });
+
+  it("renders an icon next to each nav link", async () => {
+    renderLayout({ admin: true });
+    await waitForLoad();
+    expect(screen.getByTestId("nav-icon-kanban")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-list")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-calendar")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-categories")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-reports")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-users")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-feature-requests")).toBeInTheDocument();
+  });
+
+  it("icons do not interfere with the accessible link names", async () => {
+    renderLayout({ admin: true });
+    await waitForLoad();
+    // Icons are aria-hidden, so the accessible name should still be the label only
+    expect(screen.getByRole("link", { name: "Kanban" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "List" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Calendar" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Categories" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Reports" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Feature Requests" })
+    ).toBeInTheDocument();
+  });
 });

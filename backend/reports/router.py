@@ -56,14 +56,6 @@ def get_velocity(
         weeks.append((cal[0], cal[1]))
     weeks_set = set(weeks)
 
-    # Weekly throughput: done cards keyed by updated_at week
-    throughput: dict[tuple[int, int], int] = defaultdict(int)
-    for item in items:
-        if item.get("status") == "done":
-            yw = _week_key(item.get("updated_at", item.get("created_at", "")))
-            if yw in weeks_set:
-                throughput[yw] += 1
-
     # Weekly cohort: cards keyed by created_at week, intended vs done (current status)
     cohort_intended: dict[tuple[int, int], int] = defaultdict(int)
     cohort_done: dict[tuple[int, int], int] = defaultdict(int)
@@ -79,13 +71,11 @@ def get_velocity(
         if item.get("status") == "done":
             cohort_done[yw] += 1
 
-    weekly_throughput = []
     weekly_cohort = []
     for year, week in weeks:
         yw = (year, week)
         label = _week_label(year, week)
         key = f"{year}-W{week:02d}"
-        weekly_throughput.append({"week": key, "week_label": label, "done": throughput.get(yw, 0)})
         ci = cohort_intended.get(yw, 0)
         cd = cohort_done.get(yw, 0)
         weekly_cohort.append({
@@ -103,6 +93,5 @@ def get_velocity(
             "total_done": total_done,
             "completion_rate": round(completion_rate, 3),
         },
-        "weekly_throughput": weekly_throughput,
         "weekly_cohort": weekly_cohort,
     }
