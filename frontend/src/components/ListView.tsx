@@ -28,6 +28,7 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
   const [sortKey, setSortKey] = useState<SortKey>("priority");
   const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [selectedCard, setSelectedCard] = useState<Card | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
@@ -65,6 +66,50 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
   const handleDelete = async (card: Card) => {
     if (!confirm(`Delete "${card.title}"?`)) return;
     await api.delete(`/cards/${card.id}`);
+    onUpdate();
+  };
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const allSelected = filtered.length > 0 && filtered.every((c) => selectedIds.has(c.id));
+
+  const toggleSelectAll = () => {
+    setSelectedIds((prev) => {
+      if (filtered.every((c) => prev.has(c.id))) {
+        // All visible cards are selected → clear the visible selection
+        const next = new Set(prev);
+        filtered.forEach((c) => next.delete(c.id));
+        return next;
+      }
+      const next = new Set(prev);
+      filtered.forEach((c) => next.add(c.id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedIds(new Set());
+
+  const handleBulkDelete = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    if (!confirm(`Delete ${ids.length} card${ids.length === 1 ? "" : "s"}?`)) return;
+    await api.post("/cards/batch-delete", { ids });
+    clearSelection();
+    onUpdate();
+  };
+
+  const handleBulkArchive = async () => {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    await api.post("/cards/batch-archive", { ids, archived: true });
+    clearSelection();
     onUpdate();
   };
 
@@ -147,6 +192,36 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
         <span className="text-sm text-gray-400 ml-auto">{filtered.length} items</span>
       </div>
 
+      {/* ── Bulk action bar ─────────────────────────────────────────────────── */}
+      {selectedIds.size > 0 && (
+        <div
+          data-testid="bulk-action-bar"
+          className="mb-4 flex items-center gap-3 bg-blue-50 border border-blue-200 rounded-lg px-4 py-2"
+        >
+          <span className="text-sm font-medium text-blue-700">
+            {selectedIds.size} selected
+          </span>
+          <button
+            onClick={handleBulkArchive}
+            className="text-sm font-medium text-gray-600 hover:text-gray-900 px-2 py-1"
+          >
+            Archive
+          </button>
+          <button
+            onClick={handleBulkDelete}
+            className="text-sm font-medium text-red-500 hover:text-red-700 px-2 py-1"
+          >
+            Delete
+          </button>
+          <button
+            onClick={clearSelection}
+            className="text-sm text-gray-400 hover:text-gray-600 ml-auto"
+          >
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* ── Mobile card list (no horizontal scroll) ─────────────────────────── */}
       <div data-testid="list-mobile" className="sm:hidden space-y-2">
         {filtered.map((card) => {
@@ -158,6 +233,14 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
               onClick={() => setSelectedCard(card)}
             >
               <div className="flex items-start justify-between gap-2">
+                <input
+                  type="checkbox"
+                  aria-label={`Select ${card.title}`}
+                  checked={selectedIds.has(card.id)}
+                  onChange={() => toggleSelect(card.id)}
+                  onClick={(e) => e.stopPropagation()}
+                  className="mt-1 flex-shrink-0"
+                />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-gray-800 truncate">{card.title}</p>
                   {card.description && (
@@ -202,6 +285,14 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
         <table className="w-full">
           <thead className="bg-gray-50 border-b">
             <tr>
+              <th className="py-3 px-4 w-10">
+                <input
+                  type="checkbox"
+                  aria-label="Select all"
+                  checked={allSelected}
+                  onChange={toggleSelectAll}
+                />
+              </th>
               <Th label="Title" sortable="title" />
               <Th label="Category" sortable="category_id" />
               <Th label="Status" sortable="status" />
@@ -220,6 +311,14 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
                   className="hover:bg-gray-50 cursor-pointer"
                   onClick={() => setSelectedCard(card)}
                 >
+                  <td className="py-3 px-4 w-10" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      aria-label={`Select ${card.title}`}
+                      checked={selectedIds.has(card.id)}
+                      onChange={() => toggleSelect(card.id)}
+                    />
+                  </td>
                   <td className="py-3 px-4 max-w-xs">
                     <p className="text-sm font-medium text-gray-800 truncate">{card.title}</p>
                     {card.description && (
@@ -266,7 +365,7 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
             })}
             {filtered.length === 0 && (
               <tr>
-                <td colSpan={7} className="py-16 text-center text-sm text-gray-400">
+                <td colSpan={8} className="py-16 text-center text-sm text-gray-400">
                   No cards found
                 </td>
               </tr>

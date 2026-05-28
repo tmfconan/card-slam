@@ -4,7 +4,16 @@ from datetime import datetime, timezone
 from typing import Optional
 from boto3.dynamodb.conditions import Attr
 
-from .models import CardCreate, CardUpdate, CardReorderItem, BatchStatusUpdate, Card, Status
+from .models import (
+    CardCreate,
+    CardUpdate,
+    CardReorderItem,
+    BatchStatusUpdate,
+    BatchDelete,
+    BatchArchive,
+    Card,
+    Status,
+)
 from auth.router import verify_token
 from db import get_cards_table
 
@@ -125,6 +134,33 @@ def batch_status_update(
             table.put_item(Item=card)
             updated += 1
     return {"updated": updated}
+
+
+@router.post("/batch-archive", status_code=200)
+def batch_archive(body: BatchArchive, username: str = Depends(verify_token)):
+    table = get_cards_table()
+    now = datetime.now(timezone.utc).isoformat()
+    updated = 0
+    for card_id in body.ids:
+        card = table.get_item(Key={"id": card_id}).get("Item")
+        if card and _owned(card, username):
+            card["archived"] = body.archived
+            card["updated_at"] = now
+            table.put_item(Item=card)
+            updated += 1
+    return {"updated": updated}
+
+
+@router.post("/batch-delete", status_code=200)
+def batch_delete(body: BatchDelete, username: str = Depends(verify_token)):
+    table = get_cards_table()
+    deleted = 0
+    for card_id in body.ids:
+        card = table.get_item(Key={"id": card_id}).get("Item")
+        if card and _owned(card, username):
+            table.delete_item(Key={"id": card_id})
+            deleted += 1
+    return {"deleted": deleted}
 
 
 @router.post("/reorder", status_code=200)

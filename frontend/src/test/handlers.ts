@@ -173,6 +173,16 @@ export const handlers = [
     return HttpResponse.json({ updated: body.ids.length });
   }),
 
+  http.post("/api/cards/batch-archive", async ({ request }) => {
+    const body = (await request.json()) as { ids: string[]; archived: boolean };
+    return HttpResponse.json({ updated: body.ids.length });
+  }),
+
+  http.post("/api/cards/batch-delete", async ({ request }) => {
+    const body = (await request.json()) as { ids: string[] };
+    return HttpResponse.json({ deleted: body.ids.length });
+  }),
+
   http.get("/api/onboarding/steps", () =>
     HttpResponse.json({
       steps: [

@@ -235,4 +235,74 @@ describe("ListView", () => {
     expect(mobile).toHaveTextContent("Build login page");
     expect(mobile).not.toHaveTextContent("Set up database");
   });
+
+  // ── Multi-select (bulk delete / archive) ─────────────────────────────────────
+
+  it("no bulk action bar is shown when nothing is selected", () => {
+    renderList();
+    expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
+  });
+
+  it("selecting a card reveals the bulk action bar with a count", async () => {
+    const user = userEvent.setup();
+    renderList();
+    // Each card has a checkbox in both the mobile and desktop layouts
+    await user.click(screen.getAllByLabelText("Select Build login page")[0]);
+    const bar = screen.getByTestId("bulk-action-bar");
+    expect(bar).toHaveTextContent("1 selected");
+  });
+
+  it("select-all checkbox selects every visible card", async () => {
+    const user = userEvent.setup();
+    renderList();
+    await user.click(screen.getByLabelText("Select all"));
+    expect(screen.getByTestId("bulk-action-bar")).toHaveTextContent("3 selected");
+  });
+
+  it("Clear button deselects everything and hides the bar", async () => {
+    const user = userEvent.setup();
+    renderList();
+    await user.click(screen.getByLabelText("Select all"));
+    await user.click(screen.getByRole("button", { name: /clear/i }));
+    expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
+  });
+
+  it("bulk Archive calls the batch endpoint and refreshes", async () => {
+    const user = userEvent.setup();
+    const onUpdate = vi.fn();
+    renderList(onUpdate);
+    await user.click(screen.getAllByLabelText("Select Build login page")[0]);
+    await user.click(screen.getByRole("button", { name: /archive/i }));
+    expect(onUpdate).toHaveBeenCalled();
+    // Selection is cleared after the action completes
+    expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
+  });
+
+  it("bulk Delete confirms, calls the batch endpoint and refreshes", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+    const user = userEvent.setup();
+    const onUpdate = vi.fn();
+    renderList(onUpdate);
+    await user.click(screen.getByLabelText("Select all"));
+    const bar = screen.getByTestId("bulk-action-bar");
+    await user.click(within(bar).getByRole("button", { name: /delete/i }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(onUpdate).toHaveBeenCalled();
+    expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
+
+  it("cancelling the bulk Delete confirm keeps the selection and does not refresh", async () => {
+    const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+    const user = userEvent.setup();
+    const onUpdate = vi.fn();
+    renderList(onUpdate);
+    await user.click(screen.getByLabelText("Select all"));
+    const bar = screen.getByTestId("bulk-action-bar");
+    await user.click(within(bar).getByRole("button", { name: /delete/i }));
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(screen.getByTestId("bulk-action-bar")).toBeInTheDocument();
+    confirmSpy.mockRestore();
+  });
 });
