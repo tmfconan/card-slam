@@ -8,6 +8,7 @@ import CategoryManager from "./CategoryManager";
 import UserManagement from "./UserManagement";
 import Reports from "./Reports";
 import AutoCodeView from "./AutoCodeView";
+import OnboardingGuide from "./OnboardingGuide";
 import PromptBar from "./PromptBar";
 import { Category, Card } from "../types";
 import api from "../api/client";
@@ -19,6 +20,7 @@ import {
   ReportsIcon,
   UsersIcon,
   FeatureRequestsIcon,
+  GettingStartedIcon,
 } from "./NavIcons";
 
 export default function Layout() {
@@ -56,7 +58,7 @@ export default function Layout() {
   }, [location.pathname]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests", "/getting-started"].includes(location.pathname);
 
   const navLink = (to: string, label: string, icon: ReactNode) => {
     const active = location.pathname === to;
@@ -109,6 +111,7 @@ export default function Layout() {
             {navLink("/calendar", "Calendar", <CalendarIcon />)}
             {navLink("/categories", "Categories", <CategoriesIcon />)}
             {navLink("/reports", "Reports", <ReportsIcon />)}
+            {navLink("/getting-started", "Getting Started", <GettingStartedIcon />)}
             {isAdmin && navLink("/users", "Users", <UsersIcon />)}
             {isAdmin &&
               navLink("/feature-requests", "Feature Requests", <FeatureRequestsIcon />)}
@@ -151,6 +154,8 @@ export default function Layout() {
                   ? "Reports"
                   : location.pathname === "/feature-requests"
                   ? "Feature Requests"
+                  : location.pathname === "/getting-started"
+                  ? "Getting Started"
                   : "Categories"}
               </span>
             </div>
@@ -206,6 +211,7 @@ export default function Layout() {
                 }
               />
               <Route path="/reports" element={<Reports />} />
+              <Route path="/getting-started" element={<OnboardingGuide />} />
               {isAdmin && (
                 <Route path="/users" element={<UserManagement />} />
               )}

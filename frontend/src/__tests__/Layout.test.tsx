@@ -99,8 +99,17 @@ describe("Layout sidebar", () => {
     expect(screen.getByTestId("nav-icon-calendar")).toBeInTheDocument();
     expect(screen.getByTestId("nav-icon-categories")).toBeInTheDocument();
     expect(screen.getByTestId("nav-icon-reports")).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-getting-started")).toBeInTheDocument();
     expect(screen.getByTestId("nav-icon-users")).toBeInTheDocument();
     expect(screen.getByTestId("nav-icon-feature-requests")).toBeInTheDocument();
+  });
+
+  it("shows the Getting Started link pointing at /getting-started for any user", async () => {
+    renderLayout();
+    await waitForLoad();
+    const link = screen.getByRole("link", { name: "Getting Started" });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "/getting-started");
   });
 
   it("icons do not interfere with the accessible link names", async () => {
@@ -112,6 +121,9 @@ describe("Layout sidebar", () => {
     expect(screen.getByRole("link", { name: "Calendar" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Categories" })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Reports" })).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: "Getting Started" })
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Users" })).toBeInTheDocument();
     expect(
       screen.getByRole("link", { name: "Feature Requests" })
