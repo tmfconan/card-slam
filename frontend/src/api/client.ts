@@ -11,7 +11,11 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (r) => r,
   (error) => {
-    if (error.response?.status === 401) {
+    // A 401 from the login flow itself means "bad credentials" — let the
+    // login page render the error (and any captcha) instead of redirecting.
+    const url: string = error.config?.url ?? "";
+    const isAuthFlow = url.includes("/auth/login") || url.includes("/auth/captcha");
+    if (error.response?.status === 401 && !isAuthFlow) {
       localStorage.removeItem("token");
       window.location.href = "/login";
     }

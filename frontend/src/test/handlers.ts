@@ -60,6 +60,10 @@ export const handlers = [
     return HttpResponse.json({ access_token: token }, { status: 200 });
   }),
 
+  http.get("/api/auth/captcha", () =>
+    HttpResponse.json({ challenge_id: "captcha-1", question: "What is 3 + 4?" })
+  ),
+
   http.get("/api/auth/me", ({ request }) => {
     const auth = request.headers.get("Authorization") ?? "";
     if (auth.includes("mock-user-token")) {

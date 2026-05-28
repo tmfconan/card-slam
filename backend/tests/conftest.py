@@ -75,6 +75,15 @@ def dynamo_tables():
         db._dynamodb.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def reset_login_security():
+    """Clear the in-memory rate-limiter/CAPTCHA state between tests."""
+    from auth import security
+    security.reset()
+    yield
+    security.reset()
+
+
 @pytest.fixture(scope="function")
 def client(dynamo_tables):
     import config

@@ -6,10 +6,19 @@ export interface CurrentUser {
   role: "admin" | "user";
 }
 
+export interface CaptchaSolution {
+  id: string;
+  answer: string;
+}
+
 interface AuthContextType {
   token: string | null;
   currentUser: CurrentUser | null;
-  login: (username: string, password: string) => Promise<void>;
+  login: (
+    username: string,
+    password: string,
+    captcha?: CaptchaSolution
+  ) => Promise<void>;
   logout: () => void;
 }
 
@@ -28,8 +37,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(loadStoredUser);
 
-  const login = useCallback(async (username: string, password: string) => {
-    const { data: loginData } = await api.post("/auth/login", { username, password });
+  const login = useCallback(
+    async (username: string, password: string, captcha?: CaptchaSolution) => {
+    const payload: Record<string, string> = { username, password };
+    if (captcha) {
+      payload.captcha_id = captcha.id;
+      payload.captcha_answer = captcha.answer;
+    }
+    const { data: loginData } = await api.post("/auth/login", payload);
     localStorage.setItem("token", loginData.access_token);
     setToken(loginData.access_token);
 
@@ -38,7 +53,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const user: CurrentUser = { username: meData.username, role: meData.role };
     localStorage.setItem("currentUser", JSON.stringify(user));
     setCurrentUser(user);
-  }, []);
+    },
+    []
+  );
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
