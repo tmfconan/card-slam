@@ -6,7 +6,7 @@ from boto3.dynamodb.conditions import Attr
 from fastapi import APIRouter, Depends, Query
 
 from auth.router import verify_token
-from db import get_cards_table
+from db import get_cards_table, get_categories_table
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -94,4 +94,54 @@ def get_velocity(
             "completion_rate": round(completion_rate, 3),
         },
         "weekly_cohort": weekly_cohort,
+    }
+
+
+UNCATEGORIZED_COLOR = "#9ca3af"
+
+
+@router.get("/by-category")
+def get_by_category(username: str = Depends(verify_token)):
+    """Card counts grouped by category for three pies: total, complete, incomplete.
+    A card is complete when its status is 'done'; everything else is incomplete."""
+    cards_table = get_cards_table()
+    items = cards_table.scan(FilterExpression=Attr("username").eq(username)).get("Items", [])
+    if username == "admin":
+        legacy = [i for i in cards_table.scan().get("Items", []) if "username" not in i]
+        items = items + legacy
+
+    cats_table = get_categories_table()
+    cats = cats_table.scan(FilterExpression=Attr("username").eq(username)).get("Items", [])
+    if username == "admin":
+        legacy_cats = [c for c in cats_table.scan().get("Items", []) if "username" not in c]
+        cats = cats + legacy_cats
+    cat_map = {c["id"]: c for c in cats}
+
+    total: dict[str, int] = defaultdict(int)
+    complete: dict[str, int] = defaultdict(int)
+    incomplete: dict[str, int] = defaultdict(int)
+    for item in items:
+        cid = item.get("category_id") or ""
+        total[cid] += 1
+        if item.get("status") == "done":
+            complete[cid] += 1
+        else:
+            incomplete[cid] += 1
+
+    def build(counts: dict[str, int]) -> list[dict]:
+        out = []
+        for cid, value in counts.items():
+            cat = cat_map.get(cid)
+            out.append({
+                "category_id": cid,
+                "name": cat["name"] if cat else "Uncategorized",
+                "color": cat["color"] if cat else UNCATEGORIZED_COLOR,
+                "value": value,
+            })
+        return sorted(out, key=lambda x: x["name"])
+
+    return {
+        "total": build(total),
+        "complete": build(complete),
+        "incomplete": build(incomplete),
     }

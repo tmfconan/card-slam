@@ -13,6 +13,20 @@ const MOCK_VELOCITY = {
   ],
 };
 
+const MOCK_BY_CATEGORY = {
+  total: [
+    { category_id: "cat-1", name: "Frontend", color: "#3b82f6", value: 6 },
+    { category_id: "cat-2", name: "Backend", color: "#22c55e", value: 4 },
+  ],
+  complete: [
+    { category_id: "cat-1", name: "Frontend", color: "#3b82f6", value: 3 },
+    { category_id: "cat-2", name: "Backend", color: "#22c55e", value: 4 },
+  ],
+  incomplete: [
+    { category_id: "cat-1", name: "Frontend", color: "#3b82f6", value: 3 },
+  ],
+};
+
 function renderReports() {
   localStorage.setItem("token", "mock-token");
   return render(<Reports />);
@@ -21,7 +35,8 @@ function renderReports() {
 describe("Reports", () => {
   beforeEach(() => {
     server.use(
-      http.get("/api/reports/velocity", () => HttpResponse.json(MOCK_VELOCITY))
+      http.get("/api/reports/velocity", () => HttpResponse.json(MOCK_VELOCITY)),
+      http.get("/api/reports/by-category", () => HttpResponse.json(MOCK_BY_CATEGORY))
     );
   });
 
@@ -113,5 +128,51 @@ describe("Reports", () => {
     await waitFor(() =>
       expect(screen.getByTestId("reports-next-week")).not.toBeDisabled()
     );
+  });
+
+  // ── Category pie charts ────────────────────────────────────────────────────
+
+  it("renders the three category pie charts (total, incomplete, complete)", async () => {
+    renderReports();
+    await waitFor(() =>
+      expect(screen.getByTestId("category-pie-total")).toBeInTheDocument()
+    );
+    expect(screen.getByTestId("category-pie-incomplete")).toBeInTheDocument();
+    expect(screen.getByTestId("category-pie-complete")).toBeInTheDocument();
+    expect(screen.getByText("Cards by Category")).toBeInTheDocument();
+  });
+
+  it("shows the card count for each pie", async () => {
+    renderReports();
+    // total = 10, incomplete = 3, complete = 7
+    await waitFor(() =>
+      expect(screen.getByTestId("category-pie-total")).toHaveTextContent("10 cards")
+    );
+    expect(screen.getByTestId("category-pie-incomplete")).toHaveTextContent("3 cards");
+    expect(screen.getByTestId("category-pie-complete")).toHaveTextContent("7 cards");
+  });
+
+  it("renders an empty state for a pie with no cards", async () => {
+    server.use(
+      http.get("/api/reports/by-category", () =>
+        HttpResponse.json({ total: [], complete: [], incomplete: [] })
+      )
+    );
+    renderReports();
+    await waitFor(() =>
+      expect(screen.getByTestId("category-pie-total")).toBeInTheDocument()
+    );
+    expect(screen.getByTestId("category-pie-total")).toHaveTextContent("No cards");
+  });
+
+  it("still renders velocity stats when the category breakdown fails to load", async () => {
+    server.use(
+      http.get("/api/reports/by-category", () =>
+        HttpResponse.json({ detail: "error" }, { status: 500 })
+      )
+    );
+    renderReports();
+    await waitFor(() => expect(screen.getByText("10")).toBeInTheDocument());
+    expect(screen.queryByText("Cards by Category")).not.toBeInTheDocument();
   });
 });

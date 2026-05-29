@@ -140,3 +140,77 @@ def test_velocity_invalid_ref_date_falls_back_to_today(client, auth_headers):
 def test_velocity_requires_auth(client):
     resp = client.get("/api/reports/velocity")
     assert resp.status_code == 401
+
+
+# ── by-category pie data ────────────────────────────────────────────────────────
+
+def _create_category(client, auth_headers, name: str, color: str = "#3b82f6"):
+    resp = client.post(
+        "/api/categories/",
+        json={"name": name, "color": color},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    return resp.json()
+
+
+def test_by_category_empty(client, auth_headers):
+    resp = client.get("/api/reports/by-category", headers=auth_headers)
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data == {"total": [], "complete": [], "incomplete": []}
+
+
+def test_by_category_requires_auth(client):
+    resp = client.get("/api/reports/by-category")
+    assert resp.status_code == 401
+
+
+def test_by_category_counts_split_by_status(client, auth_headers):
+    cat = _create_category(client, auth_headers, "Frontend", "#3b82f6")
+    cid = cat["id"]
+    # 2 done, 1 in_progress in the same category
+    client.post("/api/cards/", json={**CARD_BASE, "category_id": cid, "status": "done"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_BASE, "category_id": cid, "status": "done"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_BASE, "category_id": cid, "status": "in_progress"}, headers=auth_headers)
+
+    data = client.get("/api/reports/by-category", headers=auth_headers).json()
+
+    assert len(data["total"]) == 1
+    assert data["total"][0]["value"] == 3
+    assert data["total"][0]["name"] == "Frontend"
+    assert data["total"][0]["color"] == "#3b82f6"
+
+    assert data["complete"][0]["value"] == 2
+    assert data["incomplete"][0]["value"] == 1
+
+
+def test_by_category_multiple_categories(client, auth_headers):
+    cat_a = _create_category(client, auth_headers, "Alpha", "#111111")
+    cat_b = _create_category(client, auth_headers, "Beta", "#222222")
+    client.post("/api/cards/", json={**CARD_BASE, "category_id": cat_a["id"], "status": "done"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_BASE, "category_id": cat_b["id"], "status": "brainstorm"}, headers=auth_headers)
+
+    data = client.get("/api/reports/by-category", headers=auth_headers).json()
+
+    # total has both categories, sorted by name
+    names = [s["name"] for s in data["total"]]
+    assert names == ["Alpha", "Beta"]
+    # complete only has Alpha, incomplete only has Beta
+    assert [s["name"] for s in data["complete"]] == ["Alpha"]
+    assert [s["name"] for s in data["incomplete"]] == ["Beta"]
+
+
+def test_by_category_total_equals_complete_plus_incomplete(client, auth_headers):
+    cat = _create_category(client, auth_headers, "Mixed")
+    cid = cat["id"]
+    for status in ("done", "done", "ready_to_do", "brainstorm"):
+        client.post("/api/cards/", json={**CARD_BASE, "category_id": cid, "status": status}, headers=auth_headers)
+
+    data = client.get("/api/reports/by-category", headers=auth_headers).json()
+    total = data["total"][0]["value"]
+    complete = data["complete"][0]["value"]
+    incomplete = data["incomplete"][0]["value"]
+    assert total == complete + incomplete == 4
+    assert complete == 2
+    assert incomplete == 2

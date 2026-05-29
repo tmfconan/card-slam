@@ -214,6 +214,10 @@ export const handlers = [
     })
   ),
 
+  http.get("/api/reports/by-category", () =>
+    HttpResponse.json({ total: [], complete: [], incomplete: [] })
+  ),
+
   http.post("/api/ai/parse", () => {
     return HttpResponse.json({
       items: [
