@@ -3,6 +3,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  Pie,
+  PieChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -30,11 +33,66 @@ interface VelocityData {
   weekly_cohort: WeeklyCohort[];
 }
 
+interface CategorySlice {
+  category_id: string;
+  name: string;
+  color: string;
+  value: number;
+}
+
+interface CategoryBreakdown {
+  total: CategorySlice[];
+  complete: CategorySlice[];
+  incomplete: CategorySlice[];
+}
+
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-1">
       <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
       <span className="text-3xl font-semibold text-gray-900">{value}</span>
+    </div>
+  );
+}
+
+function CategoryPie({ title, data }: { title: string; data: CategorySlice[] }) {
+  const total = data.reduce((sum, s) => sum + s.value, 0);
+  return (
+    <div
+      data-testid={`category-pie-${title.toLowerCase()}`}
+      className="bg-white rounded-xl border border-gray-200 p-5 space-y-3"
+    >
+      <div className="text-center">
+        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        <p className="text-xs text-gray-400">{total} card{total === 1 ? "" : "s"}</p>
+      </div>
+      {total === 0 ? (
+        <div className="h-[180px] flex items-center justify-center text-xs text-gray-400">
+          No cards
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={180}>
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey="value"
+              nameKey="name"
+              cx="50%"
+              cy="50%"
+              outerRadius={70}
+              isAnimationActive={false}
+            >
+              {data.map((slice) => (
+                <Cell key={slice.category_id || "uncategorized"} fill={slice.color} />
+              ))}
+            </Pie>
+            <Tooltip
+              contentStyle={{ fontSize: 12, borderRadius: 8, borderColor: "#e5e7eb" }}
+              formatter={(v, name) => [v ?? 0, name]}
+            />
+          </PieChart>
+        </ResponsiveContainer>
+      )}
     </div>
   );
 }
@@ -65,6 +123,7 @@ function getISOWeek(d: Date): { year: number; week: number } {
 
 export default function Reports() {
   const [data, setData] = useState<VelocityData | null>(null);
+  const [categories, setCategories] = useState<CategoryBreakdown | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [refDate, setRefDate] = useState(todayStr);
@@ -82,6 +141,14 @@ export default function Reports() {
   useEffect(() => {
     fetchData(refDate);
   }, [refDate, fetchData]);
+
+  // Category breakdown is lifetime-wide and independent of the selected week.
+  useEffect(() => {
+    api
+      .get("/reports/by-category")
+      .then((r) => setCategories(r.data))
+      .catch(() => setCategories(null));
+  }, []);
 
   const isCurrentWeek = refDate === todayStr() || shiftWeeks(refDate, 1) > todayStr();
 
@@ -184,6 +251,23 @@ export default function Reports() {
           </span>
         </div>
       </div>
+
+      {/* Category breakdown pies */}
+      {categories && (
+        <div className="space-y-3">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-700">Cards by Category</h3>
+            <p className="text-xs text-gray-400">
+              How your cards split across categories — all, still to do, and done.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <CategoryPie title="Total" data={categories.total} />
+            <CategoryPie title="Incomplete" data={categories.incomplete} />
+            <CategoryPie title="Complete" data={categories.complete} />
+          </div>
+        </div>
+      )}
     </div>
   );
 }
