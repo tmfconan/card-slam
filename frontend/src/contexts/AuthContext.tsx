@@ -14,6 +14,10 @@ export interface CaptchaSolution {
 interface AuthContextType {
   token: string | null;
   currentUser: CurrentUser | null;
+  // True only right after a login where the server reports the user has not
+  // yet seen the onboarding tutorial. Reset once the tutorial is shown.
+  needsOnboarding: boolean;
+  markOnboardingSeen: () => void;
   login: (
     username: string,
     password: string,
@@ -36,6 +40,7 @@ function loadStoredUser(): CurrentUser | null {
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(localStorage.getItem("token"));
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(loadStoredUser);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   const login = useCallback(
     async (username: string, password: string, captcha?: CaptchaSolution) => {
@@ -53,19 +58,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const user: CurrentUser = { username: meData.username, role: meData.role };
     localStorage.setItem("currentUser", JSON.stringify(user));
     setCurrentUser(user);
+    // Surface the tutorial automatically the first time a user signs in.
+    setNeedsOnboarding(!meData.tutorial_seen);
     },
     []
   );
+
+  const markOnboardingSeen = useCallback(() => {
+    setNeedsOnboarding(false);
+    // Persist server-side so it stays dismissed across devices. Fire-and-forget:
+    // the worst case on failure is the tutorial showing again next login.
+    api.put("/auth/me/tutorial-seen").catch(() => {});
+  }, []);
 
   const logout = useCallback(() => {
     localStorage.removeItem("token");
     localStorage.removeItem("currentUser");
     setToken(null);
     setCurrentUser(null);
+    setNeedsOnboarding(false);
   }, []);
 
   return (
-    <AuthContext.Provider value={{ token, currentUser, login, logout }}>
+    <AuthContext.Provider
+      value={{ token, currentUser, needsOnboarding, markOnboardingSeen, login, logout }}
+    >
       {children}
     </AuthContext.Provider>
   );

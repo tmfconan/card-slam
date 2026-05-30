@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router-dom";
-import { AuthProvider } from "../contexts/AuthContext";
+import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import Layout from "../components/Layout";
 import { server } from "../test/server";
@@ -249,5 +249,106 @@ describe("Layout sidebar", () => {
     expect(
       screen.getByRole("link", { name: "Feature Requests" })
     ).toBeInTheDocument();
+  });
+});
+
+// Logs in through the real AuthContext so first-login onboarding state flows
+// the way it does in the app, then renders the Layout once authenticated.
+function LoginThenLayout() {
+  const { token, login } = useAuth();
+  return token ? (
+    <Layout />
+  ) : (
+    <button onClick={() => login("testuser", "pw")}>do-login</button>
+  );
+}
+
+describe("Layout first-login onboarding", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    document.documentElement.classList.remove("dark");
+    server.use(
+      http.get("/api/onboarding/steps", () => HttpResponse.json(MOCK_STEPS))
+    );
+  });
+
+  function renderLoginThenLayout() {
+    return render(
+      <MemoryRouter>
+        <AuthProvider>
+          <ThemeProvider>
+            <LoginThenLayout />
+          </ThemeProvider>
+        </AuthProvider>
+      </MemoryRouter>
+    );
+  }
+
+  it("auto-opens the tutorial when a new user logs in for the first time", async () => {
+    server.use(
+      http.get("/api/auth/me", () =>
+        HttpResponse.json({
+          username: "testuser",
+          role: "user",
+          theme: "light",
+          tutorial_seen: false,
+        })
+      )
+    );
+    const user = userEvent.setup();
+    renderLoginThenLayout();
+
+    await user.click(screen.getByRole("button", { name: "do-login" }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("onboarding-modal")).toBeInTheDocument()
+    );
+  });
+
+  it("marks the tutorial as seen server-side when auto-opened", async () => {
+    let markedSeen = false;
+    server.use(
+      http.get("/api/auth/me", () =>
+        HttpResponse.json({
+          username: "testuser",
+          role: "user",
+          theme: "light",
+          tutorial_seen: false,
+        })
+      ),
+      http.put("/api/auth/me/tutorial-seen", () => {
+        markedSeen = true;
+        return HttpResponse.json({ tutorial_seen: true });
+      })
+    );
+    const user = userEvent.setup();
+    renderLoginThenLayout();
+
+    await user.click(screen.getByRole("button", { name: "do-login" }));
+
+    await waitFor(() => expect(markedSeen).toBe(true));
+  });
+
+  it("does not auto-open the tutorial for a returning user", async () => {
+    server.use(
+      http.get("/api/auth/me", () =>
+        HttpResponse.json({
+          username: "testuser",
+          role: "user",
+          theme: "light",
+          tutorial_seen: true,
+        })
+      )
+    );
+    const user = userEvent.setup();
+    renderLoginThenLayout();
+
+    await user.click(screen.getByRole("button", { name: "do-login" }));
+
+    // Wait for the board to finish loading, then confirm no tutorial appeared.
+    await waitFor(() =>
+      expect(screen.queryByText("Loading…")).not.toBeInTheDocument()
+    );
+    expect(screen.queryByTestId("onboarding-modal")).not.toBeInTheDocument();
   });
 });

@@ -60,6 +60,36 @@ def test_onboarding_steps_document_auto_code(client, auth_headers):
     assert "auto-code" in haystack or "feature request" in haystack
 
 
+def test_onboarding_admin_step_hidden_from_regular_users(client, user_auth_headers):
+    """The auto-code / feature request step is admin-only and must not appear
+    for regular users, who can't reach the Feature Requests page."""
+    resp = client.get("/api/onboarding/steps", headers=user_auth_headers)
+    assert resp.status_code == 200
+    haystack = " ".join(
+        " ".join((s["title"], s["summary"], s["action"], s["location"])).lower()
+        for s in resp.json()["steps"]
+    )
+    assert "auto-code" not in haystack
+    assert "feature request" not in haystack
+
+
+def test_onboarding_admin_step_visible_to_admins(client, auth_headers):
+    """Admins still see the auto-code / feature request step."""
+    resp = client.get("/api/onboarding/steps", headers=auth_headers)
+    haystack = " ".join(
+        " ".join((s["title"], s["summary"], s["action"], s["location"])).lower()
+        for s in resp.json()["steps"]
+    )
+    assert "auto-code" in haystack or "feature request" in haystack
+
+
+def test_onboarding_steps_do_not_leak_admin_only_flag(client, auth_headers):
+    """The internal admin_only marker must not appear in the response."""
+    resp = client.get("/api/onboarding/steps", headers=auth_headers)
+    for step in resp.json()["steps"]:
+        assert "admin_only" not in step
+
+
 def test_onboarding_steps_requires_auth(client):
     resp = client.get("/api/onboarding/steps")
     assert resp.status_code == 401
