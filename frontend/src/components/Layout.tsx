@@ -11,6 +11,7 @@ import UserManagement from "./UserManagement";
 import Reports from "./Reports";
 import AutoCodeView from "./AutoCodeView";
 import OnboardingGuide from "./OnboardingGuide";
+import WhatsGoinOn from "./WhatsGoinOn";
 import PromptBar from "./PromptBar";
 import { Category, Card } from "../types";
 import api from "../api/client";
@@ -24,6 +25,7 @@ import {
   FeatureRequestsIcon,
   ArchiveIcon,
   HelpIcon,
+  WhatsGoinOnIcon,
   SunIcon,
   MoonIcon,
 } from "./NavIcons";
@@ -44,6 +46,7 @@ export default function Layout() {
     () => typeof window !== "undefined" && window.innerWidth >= 640
   );
   const [onboardingOpen, setOnboardingOpen] = useState(false);
+  const [whatsGoinOnOpen, setWhatsGoinOnOpen] = useState(false);
 
   const fetchAll = useCallback(async () => {
     const [catRes, cardsRes] = await Promise.all([
@@ -128,6 +131,17 @@ export default function Layout() {
             {navLink("/", "Kanban", <KanbanIcon />)}
             {navLink("/list", "List", <ListIcon />)}
             {navLink("/calendar", "Calendar", <CalendarIcon />)}
+            <button
+              type="button"
+              onClick={() => setWhatsGoinOnOpen(true)}
+              data-testid="open-whats-goin-on"
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-gray-400 hover:bg-gray-800 hover:text-white"
+            >
+              <span aria-hidden="true" className="flex-shrink-0">
+                <WhatsGoinOnIcon />
+              </span>
+              What&apos;s Goin&apos; On
+            </button>
             {navLink("/archive", "Archive", <ArchiveIcon />)}
             {navLink("/categories", "Categories", <CategoriesIcon />)}
             {navLink("/reports", "Reports", <ReportsIcon />)}
@@ -272,6 +286,11 @@ export default function Layout() {
       <OnboardingGuide
         open={onboardingOpen}
         onClose={() => setOnboardingOpen(false)}
+      />
+
+      <WhatsGoinOn
+        open={whatsGoinOnOpen}
+        onClose={() => setWhatsGoinOnOpen(false)}
       />
     </div>
   );

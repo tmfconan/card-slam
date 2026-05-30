@@ -14,6 +14,16 @@ router = APIRouter(prefix="/ai", tags=["ai"])
 # plan assist to schedule onto specific days and times.
 PLANNABLE_STATUSES = {"intent_to_do", "ready_to_do"}
 
+# Anything that is not yet "done" is still open work the "What's Goin' On"
+# summary should take into account.
+INCOMPLETE_STATUSES = {
+    "brainstorm",
+    "intent_to_do",
+    "ready_to_do",
+    "in_progress",
+    "needs_finishing",
+}
+
 
 class ParseRequest(BaseModel):
     prompt: str
@@ -186,3 +196,101 @@ def suggest_plan(body: PlanRequest, username: str = Depends(verify_token)):
         )
 
     return PlanResponse(items=plan_items)
+
+
+class WhatsGoinOnRequest(BaseModel):
+    today: str  # YYYY-MM-DD — the user's current date
+
+
+class CardRecommendation(BaseModel):
+    title: str
+    description: str
+
+
+class WhatsGoinOnResponse(BaseModel):
+    summary: str
+    recommendations: list[CardRecommendation] = []
+
+
+@router.post("/whats-goin-on", response_model=WhatsGoinOnResponse)
+def whats_goin_on(body: WhatsGoinOnRequest, username: str = Depends(verify_token)):
+    """
+    Summarize the user's day and upcoming week from their incomplete cards, and
+    optionally suggest a few new cards worth adding. Drives the "What's Goin' On"
+    modal in the left nav.
+    """
+    table = get_cards_table()
+    items = table.scan(FilterExpression=Attr("username").eq(username)).get("Items", [])
+    # Include legacy records (no username) for admin, mirroring cards listing.
+    if username == "admin":
+        items += [i for i in table.scan().get("Items", []) if "username" not in i]
+
+    incomplete = [
+        i for i in items
+        if i.get("status") in INCOMPLETE_STATUSES and not bool(i.get("archived", False))
+    ]
+
+    if not incomplete:
+        return WhatsGoinOnResponse(
+            summary=(
+                "You have no incomplete cards right now — your board is clear. "
+                "Add a card to start planning your day."
+            ),
+            recommendations=[],
+        )
+
+    card_summaries = [
+        {
+            "title": c.get("title", ""),
+            "description": c.get("description", ""),
+            "status": c.get("status"),
+            "duration": int(c.get("duration", 30)),
+            "high_priority": bool(c.get("high_priority", False)),
+            "todo_date": c.get("todo_date"),
+            "todo_time": c.get("todo_time"),
+        }
+        for c in incomplete
+    ]
+
+    client = anthropic.Anthropic(api_key=get_anthropic_key())
+    message = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=1024,
+        messages=[
+            {
+                "role": "user",
+                "content": (
+                    "You are a personal work assistant for a task manager called Card Slam. "
+                    f"Today's date is {body.today}. Using the user's incomplete cards below, "
+                    "write a brief, friendly summary of what's going on for their day and the "
+                    "upcoming week. Call out anything scheduled for today, what's coming up, and "
+                    "any high-priority or stalled work. Keep it to one or two short paragraphs. "
+                    "You may also recommend 0-3 new cards that would genuinely help the user, but "
+                    "only suggest cards that add real value.\n\n"
+                    "Return ONLY a JSON object, no markdown fences:\n"
+                    '{"summary": "...", "recommendations": [{"title": "...", "description": "..."}]}\n\n'
+                    f"Incomplete cards: {json.dumps(card_summaries)}"
+                ),
+            }
+        ],
+    )
+
+    raw = message.content[0].text.strip()
+    if raw.startswith("```"):
+        raw = raw.split("\n", 1)[1].rsplit("```", 1)[0].strip()
+
+    try:
+        data = json.loads(raw)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=502, detail="Claude returned invalid JSON")
+
+    recommendations = [
+        CardRecommendation(
+            title=r.get("title", ""), description=r.get("description", "")
+        )
+        for r in data.get("recommendations", [])
+        if r.get("title")
+    ]
+    return WhatsGoinOnResponse(
+        summary=data.get("summary", ""), recommendations=recommendations
+    )

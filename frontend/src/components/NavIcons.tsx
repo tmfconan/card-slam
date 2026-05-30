@@ -123,6 +123,15 @@ export function MoonIcon({ className = defaultClass }: IconProps) {
   );
 }
 
+export function WhatsGoinOnIcon({ className = defaultClass }: IconProps) {
+  return (
+    <svg {...baseProps} className={className} data-testid="nav-icon-whats-goin-on">
+      <path d="M12 3.5l1.7 4.8 4.8 1.7-4.8 1.7L12 16.5l-1.7-4.8L5.5 10l4.8-1.7z" />
+      <path d="M18 15l.8 2.2 2.2.8-2.2.8L18 21l-.8-2.2-2.2-.8 2.2-.8z" />
+    </svg>
+  );
+}
+
 export function FeatureRequestsIcon({ className = defaultClass }: IconProps) {
   return (
     <svg
