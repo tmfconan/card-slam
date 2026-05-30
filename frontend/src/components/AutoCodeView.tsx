@@ -51,7 +51,7 @@ export default function AutoCodeView() {
     const [qRes, hRes, cRes] = await Promise.all([
       api.get("/autocode/queue"),
       api.get("/autocode/history"),
-      api.get("/cards"),
+      api.get("/cards/"),
     ]);
     setQueue(qRes.data);
     setHistory(hRes.data);
