@@ -368,4 +368,70 @@ describe("CardDetail auto-merge", () => {
     expect(captured.auto_merge).toBe(true);
     await waitFor(() => expect(onSave).toHaveBeenCalled());
   });
+
+  // The auto-merge control governs post-build merging, not the requirements,
+  // so it stays usable even while the card is locked.
+  it("auto-merge toggle remains enabled while the request is locked", () => {
+    renderAsAdmin({ is_feature_request: true, feature_request_status: "in_progress" });
+    expect(checkbox()).toBeEnabled();
+  });
+});
+
+describe("CardDetail lock queued", () => {
+  const LOCKED = [
+    "pending_validation",
+    "queued",
+    "waiting_for_merge",
+    "in_progress",
+  ] as const;
+
+  it.each(LOCKED)("shows a lock notice when status is %s", (status) => {
+    renderDetail({ is_feature_request: true, feature_request_status: status });
+    expect(screen.getByText(/can't be edited/i)).toBeInTheDocument();
+  });
+
+  it("does not show the lock notice for an unflagged card", () => {
+    renderDetail();
+    expect(screen.queryByText(/can't be edited/i)).not.toBeInTheDocument();
+  });
+
+  it.each(["completed", "failed", "merged", "validation_failed"] as const)(
+    "does not lock when status is %s",
+    (status) => {
+      renderDetail({ is_feature_request: true, feature_request_status: status });
+      expect(screen.queryByText(/can't be edited/i)).not.toBeInTheDocument();
+      expect(screen.getByDisplayValue("Fix the login bug")).toBeEnabled();
+    }
+  );
+
+  it("disables the editable fields when locked", () => {
+    renderDetail({ is_feature_request: true, feature_request_status: "queued" });
+    expect(screen.getByDisplayValue("Fix the login bug")).toBeDisabled();
+    expect(screen.getByRole("combobox", { name: /status/i })).toBeDisabled();
+    expect(screen.getByLabelText(/high priority/i)).toBeDisabled();
+    expect(screen.getByLabelText(/date/i)).toBeDisabled();
+  });
+
+  it("disables Save, Delete, and Archive when locked", () => {
+    renderDetail({ is_feature_request: true, feature_request_status: "queued" });
+    expect(screen.getByRole("button", { name: /save/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /delete/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /^archive$/i })).toBeDisabled();
+  });
+
+  it("does not PUT when a locked card's save is invoked", async () => {
+    let called = false;
+    server.use(
+      http.put("/api/cards/:id", () => {
+        called = true;
+        return HttpResponse.json({ ok: true });
+      })
+    );
+    const user = userEvent.setup();
+    renderDetail({ is_feature_request: true, feature_request_status: "queued" });
+
+    // The button is disabled; clicking is a no-op and must not issue a request.
+    await user.click(screen.getByRole("button", { name: /save/i }));
+    expect(called).toBe(false);
+  });
 });
