@@ -292,6 +292,46 @@ describe("CalendarView", () => {
     expect(onDayViewActive).toHaveBeenLastCalledWith(null);
   });
 
+  // ── Weekly Plan Assist ─────────────────────────────────────────────────────
+
+  it("clicking Suggest plan opens the plan review modal", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post("/api/ai/suggest-plan", () =>
+        HttpResponse.json({
+          items: [
+            {
+              card_id: "cal-5",
+              title: "Unscheduled card",
+              todo_date: dateStr(1),
+              todo_time: "09:00",
+              reason: "Free morning slot.",
+            },
+          ],
+        })
+      )
+    );
+    renderCalendar();
+
+    await user.click(screen.getByRole("button", { name: /suggest plan/i }));
+
+    expect(await screen.findByText("Suggested Weekly Plan")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /approve plan/i })).toBeInTheDocument();
+  });
+
+  it("shows a notice when there is no plannable work", async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post("/api/ai/suggest-plan", () => HttpResponse.json({ items: [] }))
+    );
+    renderCalendar();
+
+    await user.click(screen.getByRole("button", { name: /suggest plan/i }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(/no .*work to plan/i);
+    expect(screen.queryByText("Suggested Weekly Plan")).not.toBeInTheDocument();
+  });
+
   it("calls onDayViewActive with new date when navigating days inside day view (bug 4)", async () => {
     const user = userEvent.setup();
     const onDayViewActive = vi.fn();

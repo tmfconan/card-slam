@@ -226,4 +226,18 @@ export const handlers = [
       ],
     });
   }),
+
+  http.post("/api/ai/suggest-plan", () => {
+    return HttpResponse.json({
+      items: [
+        {
+          card_id: "card-2",
+          title: "Set up database",
+          todo_date: "2026-05-05",
+          todo_time: "09:00",
+          reason: "Ready to do, scheduled first thing.",
+        },
+      ],
+    });
+  }),
 ];

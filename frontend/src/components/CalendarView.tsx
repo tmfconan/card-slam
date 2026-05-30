@@ -5,10 +5,11 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import { Card, Category, Status, STATUSES, STATUS_LABELS } from "../types";
+import { Card, Category, Status, STATUSES, STATUS_LABELS, PlanItem } from "../types";
 import api from "../api/client";
 import CardItem from "./CardItem";
 import DailyView from "./DailyView";
+import PlanReview from "./PlanReview";
 
 interface Props {
   cards: Card[];
@@ -70,6 +71,32 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
   const [includedStatuses, setIncludedStatuses] = useState<Set<Status>>(
     new Set(STATUSES.filter((s) => !DEFAULT_EXCLUDED.includes(s)))
   );
+
+  // Weekly Plan Assist: ask the LLM to suggest a schedule the user reviews.
+  const [suggesting, setSuggesting] = useState(false);
+  const [planItems, setPlanItems] = useState<PlanItem[] | null>(null);
+  const [planNotice, setPlanNotice] = useState("");
+
+  const suggestPlan = async () => {
+    setSuggesting(true);
+    setPlanNotice("");
+    try {
+      const res = await api.post("/ai/suggest-plan", {
+        week_start: weekStart,
+        days: 7,
+      });
+      const items: PlanItem[] = res.data.items ?? [];
+      if (items.length === 0) {
+        setPlanNotice("No “Intent to do” or “Ready to do” work to plan.");
+      } else {
+        setPlanItems(items);
+      }
+    } catch {
+      setPlanNotice("Couldn't generate a plan. Please try again.");
+    } finally {
+      setSuggesting(false);
+    }
+  };
 
   const toggleStatus = (status: Status) => {
     setIncludedStatuses((prev) => {
@@ -225,7 +252,34 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
             </label>
           ))}
         </div>
+
+        {/* Weekly Plan Assist */}
+        <div className="flex items-center gap-2 ml-auto">
+          {planNotice && (
+            <span className="text-xs text-gray-500" role="status">
+              {planNotice}
+            </span>
+          )}
+          <button
+            onClick={suggestPlan}
+            disabled={suggesting}
+            className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+          >
+            {suggesting ? "Planning…" : "✨ Suggest plan"}
+          </button>
+        </div>
       </div>
+
+      {planItems && (
+        <PlanReview
+          items={planItems}
+          onApprove={() => {
+            setPlanItems(null);
+            onUpdate();
+          }}
+          onReject={() => setPlanItems(null)}
+        />
+      )}
 
       {/* Calendar grid */}
       <DragDropContext onDragEnd={onDragEnd}>
