@@ -308,6 +308,66 @@ def test_clear_card_todo_time(client, auth_headers):
     assert update_resp.json().get("todo_time") is None
 
 
+# ── week-view scheduling tests ──────────────────────────────────────────────────
+# The week schedule grid sets a day AND a time (and may resize the duration) in a
+# single PUT when a card is dropped on a time slot, and clears the time when a card
+# is dropped back into a day's unscheduled tray.
+
+def test_schedule_card_with_date_time_and_duration_in_one_update(client, auth_headers):
+    create_resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"todo_date": "2026-06-01", "todo_time": "09:00", "duration": 60},
+        headers=auth_headers,
+    )
+    assert update_resp.status_code == 200
+    body = update_resp.json()
+    assert body["todo_date"] == "2026-06-01"
+    assert body["todo_time"] == "09:00"
+    assert body["duration"] == 60
+
+
+def test_reschedule_card_to_different_day_and_time(client, auth_headers):
+    create_resp = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "todo_date": "2026-06-01", "todo_time": "09:00"},
+        headers=auth_headers,
+    )
+    card_id = create_resp.json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"todo_date": "2026-06-03", "todo_time": "13:15"},
+        headers=auth_headers,
+    )
+    assert update_resp.status_code == 200
+    body = update_resp.json()
+    assert body["todo_date"] == "2026-06-03"
+    assert body["todo_time"] == "13:15"
+
+
+def test_move_card_to_day_tray_clears_time_keeps_date(client, auth_headers):
+    create_resp = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "todo_date": "2026-06-01", "todo_time": "09:00"},
+        headers=auth_headers,
+    )
+    card_id = create_resp.json()["id"]
+
+    # Dropping into a day's unscheduled tray keeps the date but clears the time.
+    update_resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"todo_date": "2026-06-01", "todo_time": None},
+        headers=auth_headers,
+    )
+    assert update_resp.status_code == 200
+    body = update_resp.json()
+    assert body["todo_date"] == "2026-06-01"
+    assert body.get("todo_time") is None
+
+
 # ── batch status tests ─────────────────────────────────────────────────────────
 
 def test_batch_status_update(client, auth_headers):

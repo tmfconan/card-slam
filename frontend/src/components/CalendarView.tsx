@@ -1,15 +1,9 @@
-import { useState, useCallback } from "react";
-import {
-  DragDropContext,
-  Droppable,
-  Draggable,
-  DropResult,
-} from "@hello-pangea/dnd";
+import { useState } from "react";
 import { Card, Category, Status, STATUSES, STATUS_LABELS, PlanItem } from "../types";
 import api from "../api/client";
-import CardItem from "./CardItem";
 import DailyView from "./DailyView";
 import PlanReview from "./PlanReview";
+import WeekScheduleGrid from "./WeekScheduleGrid";
 
 interface Props {
   cards: Card[];
@@ -128,19 +122,6 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
   }
   Object.values(byDate).forEach((bucket) =>
     bucket.sort((a, b) => a.priority - b.priority)
-  );
-
-  const onDragEnd = useCallback(
-    async (result: DropResult) => {
-      const { destination, source, draggableId } = result;
-      if (!destination) return;
-      if (destination.droppableId === source.droppableId && destination.index === source.index) return;
-
-      const newDate = destination.droppableId === "unscheduled" ? null : destination.droppableId;
-      await api.put(`/cards/${draggableId}`, { todo_date: newDate });
-      onUpdate();
-    },
-    [onUpdate]
   );
 
   // ── Daily view ─────────────────────────────────────────────────────────────
@@ -281,108 +262,18 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
         />
       )}
 
-      {/* Calendar grid */}
-      <DragDropContext onDragEnd={onDragEnd}>
-        <div className="flex gap-3 overflow-x-auto flex-1 pb-4">
-          {/* Unscheduled */}
-          <div className="flex-shrink-0 w-44 flex flex-col">
-            <div className="mb-2 px-1">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                Unscheduled
-              </p>
-              <p className="text-xs text-gray-400">No date</p>
-            </div>
-            <Droppable droppableId="unscheduled">
-              {(provided, snapshot) => (
-                <div
-                  ref={provided.innerRef}
-                  {...provided.droppableProps}
-                  className={`flex-1 min-h-20 rounded-xl p-2 space-y-2 transition-colors ${
-                    snapshot.isDraggingOver ? "bg-blue-50" : "bg-gray-100"
-                  }`}
-                >
-                  {byDate.unscheduled.map((card, i) => (
-                    <Draggable key={card.id} draggableId={card.id} index={i}>
-                      {(prov, snap) => (
-                        <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}>
-                          <CardItem
-                            card={card}
-                            category={categoryMap[card.category_id]}
-                            isDragging={snap.isDragging}
-                            onUpdate={onUpdate}
-                            categories={categories}
-                            showStatusDot
-                            showUpdatedAt
-                          />
-                        </div>
-                      )}
-                    </Draggable>
-                  ))}
-                  {provided.placeholder}
-                </div>
-              )}
-            </Droppable>
-          </div>
-
-          {/* Day columns */}
-          {days.map((day) => {
-            const isToday = day.key === todayStr();
-            return (
-              <div key={day.key} className="flex-shrink-0 w-44 flex flex-col">
-                <div className="mb-2 px-1 flex items-center justify-between">
-                  <div>
-                    <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-blue-600" : "text-gray-500"}`}>
-                      {day.label}
-                    </p>
-                    <p className={`text-xs ${isToday ? "text-blue-500 font-medium" : "text-gray-400"}`}>
-                      {day.sub}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => enterDayView(day.key)}
-                    className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
-                    title="Open day view"
-                  >
-                    ⏱
-                  </button>
-                </div>
-                <Droppable droppableId={day.key}>
-                  {(provided, snapshot) => (
-                    <div
-                      ref={provided.innerRef}
-                      {...provided.droppableProps}
-                      className={`flex-1 min-h-20 rounded-xl p-2 space-y-2 transition-colors ${
-                        snapshot.isDraggingOver ? "bg-blue-50" : isToday ? "bg-blue-50/50" : "bg-gray-100"
-                      }`}
-                    >
-                      {byDate[day.key].map((card, i) => (
-                        <Draggable key={card.id} draggableId={card.id} index={i}>
-                          {(prov, snap) => (
-                            <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}>
-                              <CardItem
-                                card={card}
-                                category={categoryMap[card.category_id]}
-                                isDragging={snap.isDragging}
-                                onUpdate={onUpdate}
-                                categories={categories}
-                                showUpdatedAt
-                              />
-                            </div>
-                          )}
-                        </Draggable>
-                      ))}
-                      {provided.placeholder}
-                      {byDate[day.key].length === 0 && !snapshot.isDraggingOver && (
-                        <p className="text-xs text-gray-300 text-center pt-4">—</p>
-                      )}
-                    </div>
-                  )}
-                </Droppable>
-              </div>
-            );
-          })}
-        </div>
-      </DragDropContext>
+      {/* Calendar grid — a multi-day time schedule with drag-to-schedule and
+          drag-the-edge resizing, mirroring the daily view across the window. */}
+      <WeekScheduleGrid
+        days={days}
+        byDate={byDate}
+        noDate={byDate.unscheduled}
+        categories={categories}
+        categoryMap={categoryMap}
+        todayKey={todayStr()}
+        onUpdate={onUpdate}
+        onEnterDay={enterDayView}
+      />
     </div>
   );
 }
