@@ -58,16 +58,16 @@ export default function QuickAddCard({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="p-5 border-b dark:border-gray-700">
           <h2 className="text-lg font-semibold">Add card directly</h2>
-          <p className="text-sm text-gray-500 mt-0.5">Create a card without AI parsing</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Create a card without AI parsing</p>
         </div>
 
         <form onSubmit={handleSubmit} className="flex-1 overflow-auto p-5 space-y-4">
           {/* Title */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
               Title <span className="text-red-500">*</span>
             </label>
             <input
@@ -76,26 +76,26 @@ export default function QuickAddCard({
               placeholder="Title"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">Description</label>
             <textarea
               placeholder="Description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={2}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500"
             />
           </div>
 
           {/* Category + Status */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label htmlFor="qac-category" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="qac-category" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                 Category
               </label>
               <select
@@ -103,7 +103,7 @@ export default function QuickAddCard({
                 aria-label="Category"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none dark:bg-gray-900 dark:text-gray-100"
               >
                 <option value="">None</option>
                 {categories.map((c) => (
@@ -112,7 +112,7 @@ export default function QuickAddCard({
               </select>
             </div>
             <div>
-              <label htmlFor="qac-status" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="qac-status" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                 Status
               </label>
               <select
@@ -120,7 +120,7 @@ export default function QuickAddCard({
                 aria-label="Status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as Status)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none dark:bg-gray-900 dark:text-gray-100"
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -132,7 +132,7 @@ export default function QuickAddCard({
           {/* Date + Time + Duration */}
           <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-gray-600">Schedule</span>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Schedule</span>
             <button
               type="button"
               onClick={setToNow}
@@ -143,7 +143,7 @@ export default function QuickAddCard({
           </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
-              <label htmlFor="qac-date" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="qac-date" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                 Date
               </label>
               <input
@@ -152,11 +152,11 @@ export default function QuickAddCard({
                 type="date"
                 value={todoDate}
                 onChange={(e) => setTodoDate(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none dark:bg-gray-900 dark:text-gray-100"
               />
             </div>
             <div>
-              <label htmlFor="qac-time" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="qac-time" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                 Time
               </label>
               <input
@@ -165,11 +165,11 @@ export default function QuickAddCard({
                 type="time"
                 value={todoTime}
                 onChange={(e) => setTodoTime(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none dark:bg-gray-900 dark:text-gray-100"
               />
             </div>
             <div>
-              <label htmlFor="qac-duration" className="block text-xs font-medium text-gray-600 mb-1">
+              <label htmlFor="qac-duration" className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
                 Duration (min)
               </label>
               <input
@@ -180,32 +180,32 @@ export default function QuickAddCard({
                 step="15"
                 value={duration}
                 onChange={(e) => setDuration(Math.max(15, parseInt(e.target.value) || 15))}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 rounded-lg px-3 py-2 text-sm focus:outline-none dark:bg-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
           </div>
 
           <div>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               <input
                 id="qac-high-priority"
                 aria-label="High priority"
                 type="checkbox"
                 checked={highPriority}
                 onChange={(e) => setHighPriority(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                className="h-4 w-4 rounded border-gray-300 dark:border-gray-700 text-red-600 focus:ring-red-500"
               />
               <span>High priority</span>
             </label>
           </div>
         </form>
 
-        <div className="p-5 border-t flex justify-end gap-3">
+        <div className="p-5 border-t dark:border-gray-700 flex justify-end gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 transition-colors"
           >
             Cancel
           </button>

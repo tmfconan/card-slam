@@ -67,7 +67,7 @@ export default function AutoCodeView() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-gray-400 text-sm">
+      <div className="flex items-center justify-center h-full text-gray-400 dark:text-gray-400 text-sm">
         Loading…
       </div>
     );
@@ -78,25 +78,25 @@ export default function AutoCodeView() {
       {/* Queue */}
       <section>
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold text-gray-800">Queue</h2>
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Queue</h2>
           <button
             onClick={refresh}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-xs text-gray-400 dark:text-gray-400 hover:text-gray-600 transition-colors"
           >
             Refresh
           </button>
         </div>
         {queue.length === 0 ? (
-          <p className="text-sm text-gray-400">No cards queued. Flag a card as a Feature Request to add it.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400">No cards queued. Flag a card as a Feature Request to add it.</p>
         ) : (
           <div className="space-y-2">
             {queue.map((card, i) => (
               <div
                 key={card.id}
-                className="flex items-center gap-3 bg-white border rounded-lg px-4 py-3 shadow-sm"
+                className="flex items-center gap-3 bg-white dark:bg-gray-900 border dark:border-gray-700 rounded-lg px-4 py-3 shadow-sm"
               >
-                <span className="text-xs text-gray-400 font-mono w-4 text-right">{i + 1}</span>
-                <p className="flex-1 text-sm font-medium text-gray-800">{card.title}</p>
+                <span className="text-xs text-gray-400 dark:text-gray-400 font-mono w-4 text-right">{i + 1}</span>
+                <p className="flex-1 text-sm font-medium text-gray-800 dark:text-gray-100">{card.title}</p>
                 {card.feature_request_status && (
                   <Badge
                     status={
@@ -115,14 +115,14 @@ export default function AutoCodeView() {
 
       {/* History */}
       <section>
-        <h2 className="text-base font-semibold text-gray-800 mb-3">History</h2>
+        <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100 mb-3">History</h2>
         {history.length === 0 ? (
-          <p className="text-sm text-gray-400">No runs yet.</p>
+          <p className="text-sm text-gray-400 dark:text-gray-400">No runs yet.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm border-collapse">
               <thead>
-                <tr className="text-left text-xs text-gray-400 uppercase tracking-wide border-b">
+                <tr className="text-left text-xs text-gray-400 dark:text-gray-400 uppercase tracking-wide border-b dark:border-gray-700">
                   <th className="pb-2 pr-4 font-medium">Feature</th>
                   <th className="pb-2 pr-4 font-medium">Status</th>
                   <th className="pb-2 pr-4 font-medium">Started</th>
@@ -130,13 +130,13 @@ export default function AutoCodeView() {
                   <th className="pb-2 font-medium">Logs</th>
                 </tr>
               </thead>
-              <tbody className="divide-y">
+              <tbody className="divide-y dark:divide-gray-700">
                 {history.map((run) => (
-                  <tr key={run.run_id} className="hover:bg-gray-50">
+                  <tr key={run.run_id} className="hover:bg-gray-50 dark:hover:bg-gray-800">
                     <td className="py-3 pr-4">
-                      <p className="font-medium text-gray-800">{run.card_title}</p>
+                      <p className="font-medium text-gray-800 dark:text-gray-100">{run.card_title}</p>
                       {run.card_description && (
-                        <p className="text-xs text-gray-400 line-clamp-1 mt-0.5">
+                        <p className="text-xs text-gray-400 dark:text-gray-400 line-clamp-1 mt-0.5">
                           {run.card_description}
                         </p>
                       )}
@@ -144,10 +144,10 @@ export default function AutoCodeView() {
                     <td className="py-3 pr-4">
                       <Badge status={run.status} />
                     </td>
-                    <td className="py-3 pr-4 text-gray-500 text-xs whitespace-nowrap">
+                    <td className="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
                       {new Date(run.started_at).toLocaleString()}
                     </td>
-                    <td className="py-3 pr-4 text-gray-500 text-xs whitespace-nowrap">
+                    <td className="py-3 pr-4 text-gray-500 dark:text-gray-400 text-xs whitespace-nowrap">
                       {run.completed_at ? new Date(run.completed_at).toLocaleString() : "—"}
                     </td>
                     <td className="py-3 text-xs">
@@ -161,7 +161,7 @@ export default function AutoCodeView() {
                           CloudWatch ↗
                         </a>
                       ) : (
-                        <span className="text-gray-300">—</span>
+                        <span className="text-gray-300 dark:text-gray-400">—</span>
                       )}
                     </td>
                   </tr>

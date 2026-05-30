@@ -47,6 +47,49 @@ def test_me_for_regular_user(client, user_auth_headers):
     assert data["role"] == "user"
 
 
+def test_me_defaults_to_light_theme(client, auth_headers):
+    """A user who has never chosen a theme defaults to light mode."""
+    response = client.get("/api/auth/me", headers=auth_headers)
+    assert response.status_code == 200
+    assert response.json()["theme"] == "light"
+
+
+def test_update_theme_persists_across_requests(client, auth_headers):
+    update = client.put(
+        "/api/auth/me/theme", json={"theme": "dark"}, headers=auth_headers
+    )
+    assert update.status_code == 200
+    assert update.json()["theme"] == "dark"
+
+    me = client.get("/api/auth/me", headers=auth_headers)
+    assert me.json()["theme"] == "dark"
+
+    # Switching back to light is equally persisted.
+    client.put("/api/auth/me/theme", json={"theme": "light"}, headers=auth_headers)
+    me = client.get("/api/auth/me", headers=auth_headers)
+    assert me.json()["theme"] == "light"
+
+
+def test_update_theme_rejects_invalid_value(client, auth_headers):
+    response = client.put(
+        "/api/auth/me/theme", json={"theme": "neon"}, headers=auth_headers
+    )
+    assert response.status_code == 422
+
+
+def test_update_theme_requires_auth(client):
+    response = client.put("/api/auth/me/theme", json={"theme": "dark"})
+    assert response.status_code in (401, 403)
+
+
+def test_theme_is_per_user(client, auth_headers, user_auth_headers):
+    """One user's theme choice must not leak into another's."""
+    client.put("/api/auth/me/theme", json={"theme": "dark"}, headers=auth_headers)
+
+    other = client.get("/api/auth/me", headers=user_auth_headers)
+    assert other.json()["theme"] == "light"
+
+
 def test_categories_no_auth_header(client):
     response = client.get("/api/categories/")
     assert response.status_code in (401, 403)

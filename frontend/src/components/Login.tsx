@@ -83,15 +83,15 @@ export default function Login() {
     !username || !password || loading || (captcha !== null && !captchaAnswer);
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-      <div className="bg-white rounded-2xl shadow-2xl p-10 w-full max-w-sm">
+    <div className="min-h-screen bg-gray-900 dark:bg-gray-950 flex items-center justify-center">
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-10 w-full max-w-sm">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Card Slam</h1>
-          <p className="text-gray-500 text-sm mt-2">Sign in to your workspace</p>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">Card Slam</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-2">Sign in to your workspace</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Username
             </label>
             <input
@@ -100,12 +100,12 @@ export default function Login() {
               onChange={(e) => setUsername(e.target.value)}
               autoFocus
               autoComplete="username"
-              className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Username"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Password
             </label>
             <input
@@ -113,13 +113,13 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Enter your password"
             />
           </div>
           {captcha && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 {captcha.question}
               </label>
               <input
@@ -128,7 +128,7 @@ export default function Login() {
                 onChange={(e) => setCaptchaAnswer(e.target.value)}
                 autoComplete="off"
                 inputMode="numeric"
-                className="w-full border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Captcha answer"
               />
             </div>

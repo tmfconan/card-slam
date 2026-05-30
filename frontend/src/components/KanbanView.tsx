@@ -114,13 +114,13 @@ export default function KanbanView({
     <div className="p-5 h-full flex flex-col">
       {/* Category filter chips */}
       <div className="mb-4 flex items-center gap-2 flex-wrap">
-        <span className="text-xs text-gray-500 font-medium">Filter:</span>
+        <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Filter:</span>
         <button
           onClick={() => { setFilterCategory(""); setFilterToday(false); setFilterWeek(false); }}
           className={`text-xs px-3 py-1 rounded-full transition-colors ${
             !filterCategory && !filterToday && !filterWeek
-              ? "bg-gray-800 text-white"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              ? "bg-gray-800 dark:bg-gray-700 text-white"
+              : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
           }`}
         >
           All
@@ -130,7 +130,7 @@ export default function KanbanView({
           className={`text-xs px-3 py-1 rounded-full transition-colors font-medium ${
             filterToday
               ? "bg-blue-600 text-white"
-              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+              : "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/60"
           }`}
         >
           Today
@@ -140,7 +140,7 @@ export default function KanbanView({
           className={`text-xs px-3 py-1 rounded-full transition-colors font-medium ${
             filterWeek
               ? "bg-blue-600 text-white"
-              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+              : "bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-950/60"
           }`}
         >
           This Week
@@ -174,10 +174,10 @@ export default function KanbanView({
           {STATUSES.map((status) => (
             <div key={status} className="flex-shrink-0 w-60 flex flex-col">
               <div className="mb-2 flex items-center justify-between px-1">
-                <h3 className="text-xs font-semibold text-gray-600 uppercase tracking-wide">
+                <h3 className="text-xs font-semibold text-gray-600 dark:text-gray-300 uppercase tracking-wide">
                   {STATUS_LABELS[status]}
                 </h3>
-                <span className="text-xs text-gray-400 bg-gray-200 px-1.5 py-0.5 rounded-full">
+                <span className="text-xs text-gray-400 bg-gray-200 dark:bg-gray-800 px-1.5 py-0.5 rounded-full">
                   {byStatus[status].length}
                 </span>
               </div>
@@ -187,7 +187,7 @@ export default function KanbanView({
                     ref={provided.innerRef}
                     {...provided.droppableProps}
                     className={`flex-1 min-h-24 overflow-y-auto rounded-xl p-2 space-y-2 transition-colors ${
-                      snapshot.isDraggingOver ? "bg-blue-50" : "bg-gray-100"
+                      snapshot.isDraggingOver ? "bg-blue-50 dark:bg-blue-950/40" : "bg-gray-100 dark:bg-gray-800"
                     }`}
                   >
                     {byStatus[status].map((card, index) => (

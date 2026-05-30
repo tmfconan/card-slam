@@ -1,5 +1,11 @@
-from typing import Optional
+from typing import Literal, Optional
 from pydantic import BaseModel
+
+
+class ThemeUpdate(BaseModel):
+    # The UI theme the signed-in user prefers. Persisted per-user so the
+    # choice follows them across devices and sessions.
+    theme: Literal["light", "dark"]
 
 
 class LoginRequest(BaseModel):

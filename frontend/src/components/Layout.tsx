@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, ReactNode } from "react";
 import { Routes, Route, Link, useLocation, Navigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
+import { useTheme } from "../contexts/ThemeContext";
 import KanbanView from "./KanbanView";
 import ListView from "./ListView";
 import CalendarView from "./CalendarView";
@@ -23,10 +24,13 @@ import {
   FeatureRequestsIcon,
   ArchiveIcon,
   HelpIcon,
+  SunIcon,
+  MoonIcon,
 } from "./NavIcons";
 
 export default function Layout() {
   const { logout, currentUser } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const isAdmin = currentUser?.role === "admin";
   const location = useLocation();
   const [categories, setCategories] = useState<Category[]>([]);
@@ -83,7 +87,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="flex h-screen bg-gray-50 overflow-hidden" style={{ height: "100svh" }}>
+    <div className="flex h-screen bg-gray-50 dark:bg-gray-950 overflow-hidden" style={{ height: "100svh" }}>
       {/* Mobile overlay — tap outside sidebar to close */}
       {sidebarOpen && (
         <div
@@ -131,12 +135,29 @@ export default function Layout() {
             {isAdmin &&
               navLink("/feature-requests", "Feature Requests", <FeatureRequestsIcon />)}
           </nav>
-          <div className="p-4 border-t border-gray-700">
+          <div className="p-4 border-t border-gray-700 flex items-center justify-between gap-2">
             <button
               onClick={logout}
               className="text-gray-500 hover:text-white text-xs transition-colors"
             >
               Sign out
+            </button>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              role="switch"
+              aria-checked={theme === "dark"}
+              aria-label="Toggle dark mode"
+              title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+              data-testid="theme-toggle"
+              className="flex items-center gap-1.5 text-gray-500 hover:text-white text-xs transition-colors"
+            >
+              {theme === "dark" ? (
+                <SunIcon className="w-4 h-4" />
+              ) : (
+                <MoonIcon className="w-4 h-4" />
+              )}
+              <span>{theme === "dark" ? "Light mode" : "Dark mode"}</span>
             </button>
           </div>
         </div>
@@ -163,8 +184,8 @@ export default function Layout() {
               />
             </div>
           ) : (
-            <div className="flex-1 bg-white border-b px-4 py-3 flex items-center">
-              <span className="text-sm font-medium text-gray-600">
+            <div className="flex-1 bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-4 py-3 flex items-center">
+              <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
                 {location.pathname === "/reports"
                   ? "Reports"
                   : location.pathname === "/feature-requests"

@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { http, HttpResponse } from "msw";
 import { MemoryRouter } from "react-router-dom";
 import { AuthProvider } from "../contexts/AuthContext";
+import { ThemeProvider } from "../contexts/ThemeContext";
 import Layout from "../components/Layout";
 import { server } from "../test/server";
 
@@ -31,7 +32,9 @@ function renderLayout({ admin = false }: { admin?: boolean } = {}) {
   return render(
     <MemoryRouter>
       <AuthProvider>
-        <Layout />
+        <ThemeProvider>
+          <Layout />
+        </ThemeProvider>
       </AuthProvider>
     </MemoryRouter>
   );
@@ -46,10 +49,32 @@ async function waitForLoad() {
 describe("Layout sidebar", () => {
   beforeEach(() => {
     localStorage.clear();
+    document.documentElement.classList.remove("dark");
     localStorage.setItem("token", "mock-token");
     server.use(
       http.get("/api/onboarding/steps", () => HttpResponse.json(MOCK_STEPS))
     );
+  });
+
+  it("renders a dark mode toggle next to Sign out", async () => {
+    renderLayout();
+    await waitForLoad();
+    expect(screen.getByTestId("theme-toggle")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Sign out" })).toBeInTheDocument();
+  });
+
+  it("clicking the dark mode toggle switches the document into dark mode", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await waitForLoad();
+
+    const toggle = screen.getByTestId("theme-toggle");
+    expect(document.documentElement.classList.contains("dark")).toBe(false);
+
+    await user.click(toggle);
+
+    expect(document.documentElement.classList.contains("dark")).toBe(true);
+    expect(toggle).toHaveAttribute("aria-checked", "true");
   });
 
   it("renders a sidebar toggle button", async () => {

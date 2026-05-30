@@ -52,10 +52,10 @@ export default function PlanReview({ items, onApprove, onReject }: Props) {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="p-6 border-b">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="p-6 border-b dark:border-gray-700">
           <h2 className="text-lg font-semibold">Suggested Weekly Plan</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Card Slam suggests a day and time for {items.length} piece
             {items.length !== 1 ? "s" : ""} of work. Uncheck anything you don't
             want, then approve to apply.
@@ -66,7 +66,7 @@ export default function PlanReview({ items, onApprove, onReject }: Props) {
           {items.map((item) => (
             <label
               key={item.card_id}
-              className="flex items-start gap-3 border rounded-lg p-4 cursor-pointer select-none"
+              className="flex items-start gap-3 border dark:border-gray-700 rounded-lg p-4 cursor-pointer select-none"
             >
               <input
                 type="checkbox"
@@ -82,18 +82,18 @@ export default function PlanReview({ items, onApprove, onReject }: Props) {
                   {item.todo_time ? ` at ${item.todo_time}` : ""}
                 </p>
                 {item.reason && (
-                  <p className="text-xs text-gray-500 mt-1">{item.reason}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.reason}</p>
                 )}
               </div>
             </label>
           ))}
         </div>
 
-        <div className="p-6 border-t flex items-center justify-end gap-3">
+        <div className="p-6 border-t dark:border-gray-700 flex items-center justify-end gap-3">
           <button
             onClick={onReject}
             disabled={submitting}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 disabled:opacity-50"
+            className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 disabled:opacity-50"
           >
             Reject
           </button>

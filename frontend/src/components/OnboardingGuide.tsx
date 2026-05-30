@@ -60,19 +60,19 @@ export default function OnboardingGuide({ open, onClose }: Props) {
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] flex flex-col"
+        className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-3xl max-h-[95vh] sm:max-h-[90vh] flex flex-col"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b flex items-start justify-between gap-3">
+        <div className="p-4 sm:p-5 border-b dark:border-gray-700 flex items-start justify-between gap-3">
           <div>
             <h2
               id="onboarding-title"
-              className="text-lg sm:text-xl font-semibold text-gray-800"
+              className="text-lg sm:text-xl font-semibold text-gray-800 dark:text-gray-100"
             >
               Getting Started
             </h2>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">
               A step-by-step walkthrough for setting up your first board.
             </p>
           </div>
@@ -81,7 +81,7 @@ export default function OnboardingGuide({ open, onClose }: Props) {
             onClick={onClose}
             aria-label="Close tutorial"
             data-testid="onboarding-close"
-            className="text-gray-400 hover:text-gray-700 text-xl leading-none p-1 -m-1 flex-shrink-0"
+            className="text-gray-400 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-xl leading-none p-1 -m-1 flex-shrink-0"
           >
             ✕
           </button>
@@ -90,7 +90,7 @@ export default function OnboardingGuide({ open, onClose }: Props) {
         {/* Body */}
         <div className="flex-1 overflow-auto p-4 sm:p-6 space-y-4 sm:space-y-6">
           {loading ? (
-            <div className="flex items-center justify-center py-12 text-gray-400 text-sm">
+            <div className="flex items-center justify-center py-12 text-gray-400 dark:text-gray-400 text-sm">
               Loading…
             </div>
           ) : error ? (
@@ -98,7 +98,7 @@ export default function OnboardingGuide({ open, onClose }: Props) {
               {error}
             </div>
           ) : steps.length === 0 ? (
-            <div className="flex items-center justify-center py-12 text-gray-400 text-sm">
+            <div className="flex items-center justify-center py-12 text-gray-400 dark:text-gray-400 text-sm">
               No walkthrough steps available yet.
             </div>
           ) : (
@@ -127,36 +127,36 @@ export default function OnboardingGuide({ open, onClose }: Props) {
               </div>
 
               {/* Step card */}
-              <div className="bg-white rounded-xl border p-4 sm:p-6 space-y-3 sm:space-y-4">
+              <div className="bg-white dark:bg-gray-900 rounded-xl border dark:border-gray-700 p-4 sm:p-6 space-y-3 sm:space-y-4">
                 <div className="flex items-baseline justify-between gap-3 flex-wrap">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                     <span className="text-blue-600 mr-2">{index + 1}.</span>
                     {step.title}
                   </h3>
-                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                  <span className="text-xs text-gray-400 dark:text-gray-400 whitespace-nowrap">
                     Step {index + 1} of {steps.length}
                   </span>
                 </div>
-                <p className="text-sm text-gray-600">{step.summary}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{step.summary}</p>
 
                 <dl className="space-y-3 text-sm">
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-gray-400">
+                    <dt className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-400">
                       Where to look
                     </dt>
-                    <dd className="text-gray-700 mt-0.5">{step.location}</dd>
+                    <dd className="text-gray-700 dark:text-gray-300 mt-0.5">{step.location}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-gray-400">
+                    <dt className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-400">
                       What to click
                     </dt>
-                    <dd className="text-gray-700 mt-0.5">{step.action}</dd>
+                    <dd className="text-gray-700 dark:text-gray-300 mt-0.5">{step.action}</dd>
                   </div>
                   <div>
-                    <dt className="text-xs uppercase tracking-wide text-gray-400">
+                    <dt className="text-xs uppercase tracking-wide text-gray-400 dark:text-gray-400">
                       What to expect
                     </dt>
-                    <dd className="text-gray-700 mt-0.5">{step.expect}</dd>
+                    <dd className="text-gray-700 dark:text-gray-300 mt-0.5">{step.expect}</dd>
                   </div>
                 </dl>
               </div>
@@ -166,12 +166,12 @@ export default function OnboardingGuide({ open, onClose }: Props) {
 
         {/* Footer navigation */}
         {!loading && !error && steps.length > 0 && (
-          <div className="p-4 sm:p-5 border-t flex items-center justify-between gap-3">
+          <div className="p-4 sm:p-5 border-t dark:border-gray-700 flex items-center justify-between gap-3">
             <button
               data-testid="onboarding-prev"
               onClick={() => setIndex((i) => Math.max(0, i - 1))}
               disabled={isFirst}
-              className="px-3 sm:px-4 py-2 text-sm border rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-3 sm:px-4 py-2 text-sm border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               ← Previous
             </button>

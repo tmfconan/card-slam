@@ -69,7 +69,7 @@ function DragHandle({
   return (
     <div
       data-testid={testId}
-      className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab touch-none text-gray-300 hover:text-gray-400 select-none"
+      className="flex-shrink-0 flex items-center justify-center w-5 cursor-grab touch-none text-gray-300 hover:text-gray-400 dark:text-gray-600 dark:hover:text-gray-400 select-none"
       // Mouse drag — handled by the parent wrapper's onMouseDown
       // Touch drag — dedicated handler here so we can preventDefault and avoid scroll conflict
       onTouchStart={(e) => {
@@ -379,25 +379,25 @@ export default function DailyView({
   return (
     <div className="flex flex-col h-full select-none">
       {/* Navigation */}
-      <div className="bg-white border-b px-4 py-2 flex items-center justify-between flex-shrink-0">
+      <div className="bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-4 py-2 flex items-center justify-between flex-shrink-0">
         <div className="flex items-center gap-1.5">
           <button aria-label="Prev day"
             onClick={() => onDateChange(shiftDate(selectedDate, -1))}
-            className="px-2 py-1.5 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
+            className="px-2 py-1.5 text-sm border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             ←
           </button>
           <button aria-label="Today"
             onClick={() => onDateChange(new Date().toISOString().split("T")[0])}
-            className="px-2 py-1.5 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
+            className="px-2 py-1.5 text-sm border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             Today
           </button>
           <button aria-label="Next day"
             onClick={() => onDateChange(shiftDate(selectedDate, 1))}
-            className="px-2 py-1.5 text-sm border rounded-lg hover:bg-gray-50 transition-colors">
+            className="px-2 py-1.5 text-sm border dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             →
           </button>
         </div>
-        <p data-testid="daily-date-header" className="text-xs sm:text-sm font-medium text-gray-700 text-right">
+        <p data-testid="daily-date-header" className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 text-right">
           {formatHeader(selectedDate)}
         </p>
       </div>
@@ -405,10 +405,10 @@ export default function DailyView({
       {/* Batch bar */}
       {selectedIds.size > 0 && (
         <div data-testid="batch-status-bar"
-          className="bg-blue-50 border-b border-blue-200 px-4 py-2 flex items-center gap-3 flex-shrink-0 flex-wrap">
+          className="bg-blue-50 dark:bg-blue-950/40 border-b border-blue-200 dark:border-gray-700 px-4 py-2 flex items-center gap-3 flex-shrink-0 flex-wrap">
           <span className="text-sm text-blue-700 font-medium">{selectedIds.size} selected</span>
           <select value={batchStatus} onChange={(e) => setBatchStatus(e.target.value as Status)}
-            className="text-sm border border-blue-300 rounded px-2 py-1 bg-white focus:outline-none">
+            className="text-sm border border-blue-300 dark:border-gray-700 rounded px-2 py-1 bg-white dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 focus:outline-none">
             {STATUSES.map((s) => <option key={s} value={s}>{STATUS_LABELS[s]}</option>)}
           </select>
           <button aria-label="Apply status" onClick={applyBatch}
@@ -433,8 +433,8 @@ export default function DailyView({
               <div
                 key={slot}
                 data-testid={`slot-${slot}`}
-                className={`absolute flex border-b border-gray-100 pointer-events-none ${
-                  hoverSlot === slot && dragState ? "bg-blue-50" : ""
+                className={`absolute flex border-b border-gray-100 dark:border-gray-700 pointer-events-none ${
+                  hoverSlot === slot && dragState ? "bg-blue-50 dark:bg-blue-950/40" : ""
                 }`}
                 style={{ top: i * SLOT_H, left: 0, right: 0, height: SLOT_H }}
               >
@@ -557,9 +557,9 @@ export default function DailyView({
         </div>
 
         {/* Desktop sidebar — hidden on mobile, always in DOM for tests */}
-        <div className="hidden sm:flex w-56 border-l flex-col flex-shrink-0">
-          <div className="px-3 py-2 border-b bg-gray-50">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Unscheduled</p>
+        <div className="hidden sm:flex w-56 border-l dark:border-gray-700 flex-col flex-shrink-0">
+          <div className="px-3 py-2 border-b dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Unscheduled</p>
             <p className="text-xs text-gray-400">{selectedDate}</p>
           </div>
           <div data-testid="daily-unscheduled" className="flex-1 overflow-y-auto p-2 space-y-2">
@@ -576,7 +576,7 @@ export default function DailyView({
       <button
         data-testid="unscheduled-sheet-trigger"
         onClick={() => setSheetOpen(true)}
-        className="sm:hidden flex-shrink-0 border-t bg-white px-4 text-sm text-gray-700 font-medium flex items-center justify-between shadow-[0_-2px_8px_rgba(0,0,0,0.08)]"
+        className="sm:hidden flex-shrink-0 border-t dark:border-gray-700 bg-white dark:bg-gray-900 px-4 text-sm text-gray-700 dark:text-gray-300 font-medium flex items-center justify-between shadow-[0_-2px_8px_rgba(0,0,0,0.08)]"
         style={{
           paddingTop: "12px",
           // Keep content above the home indicator (safe area)
@@ -584,7 +584,7 @@ export default function DailyView({
         }}
       >
         <span>Unscheduled</span>
-        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">
+        <span className="text-xs bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded-full">
           {unscheduled.length}
         </span>
       </button>
@@ -600,17 +600,17 @@ export default function DailyView({
           />
           {/* Sheet — paddingBottom keeps content above home indicator */}
           <div
-            className="relative bg-white rounded-t-2xl max-h-[65vh] flex flex-col shadow-2xl"
+            className="relative bg-white dark:bg-gray-900 rounded-t-2xl max-h-[65vh] flex flex-col shadow-2xl"
             style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
           >
-            <div className="px-4 py-3 border-b flex items-center justify-between">
-              <h3 className="text-sm font-semibold text-gray-700">
+            <div className="px-4 py-3 border-b dark:border-gray-700 flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">
                 Unscheduled · {selectedDate}
               </h3>
               <button
                 aria-label="Close sheet"
                 onClick={() => setSheetOpen(false)}
-                className="text-gray-400 hover:text-gray-700 text-lg leading-none"
+                className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 text-lg leading-none"
               >
                 ✕
               </button>
