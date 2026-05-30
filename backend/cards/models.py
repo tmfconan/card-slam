@@ -16,6 +16,7 @@ class FeatureRequestStatus(str, Enum):
     pending_validation = "pending_validation"
     validation_failed = "validation_failed"
     queued = "queued"
+    waiting_for_merge = "waiting_for_merge"
     in_progress = "in_progress"
     completed = "completed"
     failed = "failed"
