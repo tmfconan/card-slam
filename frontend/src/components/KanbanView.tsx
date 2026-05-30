@@ -20,6 +20,22 @@ function todayStr() {
   return new Date().toISOString().split("T")[0];
 }
 
+// Returns [sunday, saturday] (inclusive) of the week containing today,
+// each as a YYYY-MM-DD string. Derived from todayStr() to stay consistent
+// with the "Today" filter's date handling.
+function weekRange(): [string, string] {
+  const d = new Date(todayStr() + "T00:00:00Z");
+  const day = d.getUTCDay(); // 0 = Sunday
+  const sunday = new Date(d);
+  sunday.setUTCDate(d.getUTCDate() - day);
+  const saturday = new Date(d);
+  saturday.setUTCDate(d.getUTCDate() + (6 - day));
+  return [
+    sunday.toISOString().split("T")[0],
+    saturday.toISOString().split("T")[0],
+  ];
+}
+
 export default function KanbanView({
   cards,
   categories,
@@ -28,10 +44,18 @@ export default function KanbanView({
 }: Props) {
   const [filterCategory, setFilterCategory] = useState("");
   const [filterToday, setFilterToday] = useState(false);
+  const [filterWeek, setFilterWeek] = useState(false);
+
+  const [weekStart, weekEnd] = weekRange();
 
   const filtered = cards.filter((c) => {
     if (filterCategory && c.category_id !== filterCategory) return false;
     if (filterToday && c.todo_date !== todayStr()) return false;
+    if (
+      filterWeek &&
+      (!c.todo_date || c.todo_date < weekStart || c.todo_date > weekEnd)
+    )
+      return false;
     return true;
   });
 
@@ -92,9 +116,9 @@ export default function KanbanView({
       <div className="mb-4 flex items-center gap-2 flex-wrap">
         <span className="text-xs text-gray-500 font-medium">Filter:</span>
         <button
-          onClick={() => { setFilterCategory(""); setFilterToday(false); }}
+          onClick={() => { setFilterCategory(""); setFilterToday(false); setFilterWeek(false); }}
           className={`text-xs px-3 py-1 rounded-full transition-colors ${
-            !filterCategory && !filterToday
+            !filterCategory && !filterToday && !filterWeek
               ? "bg-gray-800 text-white"
               : "bg-gray-100 text-gray-600 hover:bg-gray-200"
           }`}
@@ -102,7 +126,7 @@ export default function KanbanView({
           All
         </button>
         <button
-          onClick={() => setFilterToday((t) => !t)}
+          onClick={() => { setFilterToday((t) => !t); setFilterWeek(false); }}
           className={`text-xs px-3 py-1 rounded-full transition-colors font-medium ${
             filterToday
               ? "bg-blue-600 text-white"
@@ -110,6 +134,16 @@ export default function KanbanView({
           }`}
         >
           Today
+        </button>
+        <button
+          onClick={() => { setFilterWeek((w) => !w); setFilterToday(false); }}
+          className={`text-xs px-3 py-1 rounded-full transition-colors font-medium ${
+            filterWeek
+              ? "bg-blue-600 text-white"
+              : "bg-blue-50 text-blue-600 hover:bg-blue-100"
+          }`}
+        >
+          This Week
         </button>
         {categories.map((cat) => (
           <button
