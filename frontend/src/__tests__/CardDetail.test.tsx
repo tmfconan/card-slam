@@ -299,3 +299,73 @@ describe("CardDetail", () => {
     expect(document.body.querySelector('.fixed.inset-0')).not.toBeNull();
   });
 });
+
+describe("CardDetail auto-merge", () => {
+  function renderAsAdmin(overrides: Partial<Card> = {}) {
+    localStorage.setItem("token", "mock-token");
+    localStorage.setItem(
+      "currentUser",
+      JSON.stringify({ username: "admin", role: "admin" })
+    );
+    const onSave = vi.fn();
+    render(
+      <AuthProvider>
+        <CardDetail
+          card={{ ...mockCard, ...overrides }}
+          categories={mockCategories}
+          onSave={onSave}
+          onClose={vi.fn()}
+        />
+      </AuthProvider>
+    );
+    return { onSave };
+  }
+
+  const checkbox = () =>
+    screen.queryByRole("checkbox", { name: /auto-merge when build succeeds/i });
+
+  it("shows the auto-merge toggle for a flagged feature request", () => {
+    renderAsAdmin({ is_feature_request: true, feature_request_status: "queued" });
+    expect(checkbox()).toBeInTheDocument();
+  });
+
+  it("reflects the card's current auto_merge value", () => {
+    renderAsAdmin({
+      is_feature_request: true,
+      feature_request_status: "queued",
+      auto_merge: true,
+    });
+    expect(checkbox()).toBeChecked();
+  });
+
+  it("does not show the toggle for an unflagged card", () => {
+    renderAsAdmin({ is_feature_request: false });
+    expect(checkbox()).not.toBeInTheDocument();
+  });
+
+  it("does not show the toggle once the request is merged", () => {
+    renderAsAdmin({ is_feature_request: true, feature_request_status: "merged" });
+    expect(checkbox()).not.toBeInTheDocument();
+  });
+
+  it("PUTs auto_merge=true when enabled", async () => {
+    let captured: any = null;
+    server.use(
+      http.put("/api/cards/:id", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ ok: true });
+      })
+    );
+    const user = userEvent.setup();
+    const { onSave } = renderAsAdmin({
+      is_feature_request: true,
+      feature_request_status: "queued",
+    });
+
+    await user.click(checkbox()!);
+
+    await waitFor(() => expect(captured).not.toBeNull());
+    expect(captured.auto_merge).toBe(true);
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+  });
+});

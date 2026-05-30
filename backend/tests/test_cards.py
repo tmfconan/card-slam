@@ -567,6 +567,66 @@ def test_high_priority_persists_across_get(client, auth_headers):
     assert get_resp.json()["high_priority"] is True
 
 
+# ── auto_merge tests ───────────────────────────────────────────────────────
+
+def test_create_card_default_auto_merge_is_false(client, auth_headers):
+    resp = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers)
+    assert resp.status_code == 201
+    assert resp.json()["auto_merge"] is False
+
+
+def test_create_card_with_auto_merge_true(client, auth_headers):
+    resp = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "auto_merge": True},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["auto_merge"] is True
+
+
+def test_update_card_set_auto_merge(client, auth_headers):
+    card_id = client.post(
+        "/api/cards/", json=CARD_PAYLOAD, headers=auth_headers
+    ).json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"auto_merge": True},
+        headers=auth_headers,
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["auto_merge"] is True
+
+
+def test_update_card_clear_auto_merge(client, auth_headers):
+    card_id = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "auto_merge": True},
+        headers=auth_headers,
+    ).json()["id"]
+
+    update_resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"auto_merge": False},
+        headers=auth_headers,
+    )
+    assert update_resp.status_code == 200
+    assert update_resp.json()["auto_merge"] is False
+
+
+def test_auto_merge_persists_across_get(client, auth_headers):
+    card_id = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "auto_merge": True},
+        headers=auth_headers,
+    ).json()["id"]
+
+    get_resp = client.get(f"/api/cards/{card_id}", headers=auth_headers)
+    assert get_resp.status_code == 200
+    assert get_resp.json()["auto_merge"] is True
+
+
 # ── Archived cards ──────────────────────────────────────────────────────────
 
 
