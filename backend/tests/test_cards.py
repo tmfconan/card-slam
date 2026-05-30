@@ -661,3 +661,68 @@ def test_archived_status_filter_combine(client, auth_headers):
         "/api/cards/?archived=true&status=brainstorm", headers=auth_headers
     )
     assert brainstorm.json() == []
+
+
+# --- Wait for merge -------------------------------------------------------
+
+def _set_fr_status(dynamo_tables, card_id, status):
+    """Set a card's feature-request status directly (not exposed via the API)."""
+    table = dynamo_tables.Table("card-slam-cards")
+    table.update_item(
+        Key={"id": card_id},
+        UpdateExpression="SET is_feature_request = :t, feature_request_status = :s",
+        ExpressionAttributeValues={":t": True, ":s": status},
+    )
+
+
+def _make_fr(client, auth_headers, dynamo_tables, title, status):
+    card = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": title}, headers=auth_headers
+    ).json()
+    _set_fr_status(dynamo_tables, card["id"], status)
+    return card["id"]
+
+
+def _listed(client, auth_headers):
+    return {c["id"]: c for c in client.get("/api/cards/", headers=auth_headers).json()}
+
+
+def test_queued_fr_waits_for_merge_when_deploy_unmerged(client, auth_headers, dynamo_tables):
+    """A queued feature request is shown as waiting_for_merge while another
+    request is build-deployed (completed) but not yet merged."""
+    queued = _make_fr(client, auth_headers, dynamo_tables, "Queued FR", "queued")
+    deployed = _make_fr(client, auth_headers, dynamo_tables, "Deployed FR", "completed")
+
+    cards = _listed(client, auth_headers)
+    assert cards[queued]["feature_request_status"] == "waiting_for_merge"
+    # The deployed card itself is unaffected
+    assert cards[deployed]["feature_request_status"] == "completed"
+
+
+def test_queued_fr_stays_queued_without_unmerged_deploy(client, auth_headers, dynamo_tables):
+    """With no deployed-but-unmerged request, queued stays queued."""
+    queued = _make_fr(client, auth_headers, dynamo_tables, "Queued FR", "queued")
+
+    cards = _listed(client, auth_headers)
+    assert cards[queued]["feature_request_status"] == "queued"
+
+
+def test_merged_deploy_does_not_block_queue(client, auth_headers, dynamo_tables):
+    """A request that is already merged does not hold up the queue."""
+    queued = _make_fr(client, auth_headers, dynamo_tables, "Queued FR", "queued")
+    _make_fr(client, auth_headers, dynamo_tables, "Merged FR", "merged")
+
+    cards = _listed(client, auth_headers)
+    assert cards[queued]["feature_request_status"] == "queued"
+
+
+def test_wait_for_merge_is_presentational_only(client, auth_headers, dynamo_tables):
+    """The derivation does not mutate the stored status — it remains queued."""
+    queued = _make_fr(client, auth_headers, dynamo_tables, "Queued FR", "queued")
+    _make_fr(client, auth_headers, dynamo_tables, "Deployed FR", "completed")
+
+    # Listing shows waiting_for_merge...
+    assert _listed(client, auth_headers)[queued]["feature_request_status"] == "waiting_for_merge"
+    # ...but the persisted record is still queued
+    stored = dynamo_tables.Table("card-slam-cards").get_item(Key={"id": queued}).get("Item")
+    assert stored["feature_request_status"] == "queued"

@@ -13,6 +13,7 @@ from .models import (
     BatchArchive,
     Card,
     Status,
+    FeatureRequestStatus,
 )
 from auth.router import verify_token
 from db import get_cards_table
@@ -29,6 +30,20 @@ def _normalize(item: dict) -> dict:
     item.setdefault("is_feature_request", False)
     item.setdefault("feature_request_status", None)
     return item
+
+
+def _apply_wait_for_merge(items: list[dict]) -> None:
+    """Mark queued feature requests as "waiting_for_merge" (in place) when an
+    earlier feature request has been build-deployed but not yet merged."""
+    has_unmerged_deploy = any(
+        i.get("feature_request_status") == FeatureRequestStatus.completed.value
+        for i in items
+    )
+    if not has_unmerged_deploy:
+        return
+    for i in items:
+        if i.get("feature_request_status") == FeatureRequestStatus.queued.value:
+            i["feature_request_status"] = FeatureRequestStatus.waiting_for_merge.value
 
 
 def _owned(item: dict, username: str) -> bool:
@@ -56,6 +71,12 @@ def list_cards(
     if username == "admin":
         legacy = [_normalize(i) for i in table.scan().get("Items", []) if "username" not in i]
         items = items + legacy
+    # "Wait for merge": if any feature request has been build-deployed but not yet
+    # merged (status "completed"), queued feature requests must not start building
+    # — they need to build on the latest code. Surface them as "waiting_for_merge".
+    # This is presentational: the stored status stays "queued" and is determined
+    # over the full owned set, before the view filters below narrow it.
+    _apply_wait_for_merge(items)
     # Archived cards are surfaced separately from active content; the default
     # listing (archived=False) returns only active cards.
     items = [i for i in items if i["archived"] == archived]

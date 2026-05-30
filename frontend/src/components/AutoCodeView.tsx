@@ -1,5 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
-import { FeatureRun, Card, FeatureRequestStatus } from "../types";
+import {
+  FeatureRun,
+  Card,
+  FeatureRequestStatus,
+  hasUnmergedDeploy,
+  deriveFeatureRequestStatus,
+} from "../types";
 import api from "../api/client";
 
 const STATUS_BADGE: Record<
@@ -9,6 +15,7 @@ const STATUS_BADGE: Record<
   pending_validation: { label: "Validating",   classes: "bg-yellow-100 text-yellow-700" },
   validation_failed:  { label: "Invalid",       classes: "bg-red-100 text-red-600" },
   queued:             { label: "Queued",         classes: "bg-blue-100 text-blue-700" },
+  waiting_for_merge:  { label: "Waiting for merge", classes: "bg-amber-100 text-amber-700" },
   in_progress:        { label: "Building",       classes: "bg-purple-100 text-purple-700 animate-pulse" },
   completed:          { label: "Deployed",       classes: "bg-green-100 text-green-700" },
   failed:             { label: "Failed",         classes: "bg-red-100 text-red-600" },
@@ -35,15 +42,20 @@ function buildLogUrl(_buildId: string, region = "us-east-2") {
 export default function AutoCodeView() {
   const [queue, setQueue] = useState<Card[]>([]);
   const [history, setHistory] = useState<FeatureRun[]>([]);
+  const [unmergedDeploy, setUnmergedDeploy] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const [qRes, hRes] = await Promise.all([
+    // Cards are fetched alongside the queue so we can tell whether a feature
+    // request has been build-deployed but not yet merged ("wait for merge").
+    const [qRes, hRes, cRes] = await Promise.all([
       api.get("/autocode/queue"),
       api.get("/autocode/history"),
+      api.get("/cards"),
     ]);
     setQueue(qRes.data);
     setHistory(hRes.data);
+    setUnmergedDeploy(hasUnmergedDeploy(cRes.data));
     setLoading(false);
   }, []);
 
@@ -86,7 +98,14 @@ export default function AutoCodeView() {
                 <span className="text-xs text-gray-400 font-mono w-4 text-right">{i + 1}</span>
                 <p className="flex-1 text-sm font-medium text-gray-800">{card.title}</p>
                 {card.feature_request_status && (
-                  <Badge status={card.feature_request_status} />
+                  <Badge
+                    status={
+                      deriveFeatureRequestStatus(
+                        card.feature_request_status,
+                        unmergedDeploy
+                      ) as string
+                    }
+                  />
                 )}
               </div>
             ))}

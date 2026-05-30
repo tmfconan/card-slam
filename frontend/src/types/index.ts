@@ -35,10 +35,30 @@ export type FeatureRequestStatus =
   | "pending_validation"
   | "validation_failed"
   | "queued"
+  | "waiting_for_merge"
   | "in_progress"
   | "completed"
   | "failed"
   | "merged";
+
+// "Wait for merge": a queued feature request must not start building while an
+// earlier request has been build-deployed but not yet merged, so the new work
+// builds on the latest code.
+export function hasUnmergedDeploy(
+  cards: { feature_request_status?: FeatureRequestStatus }[]
+): boolean {
+  return cards.some((c) => c.feature_request_status === "completed");
+}
+
+// Returns the status to display for a queued card given whether a deployed-but-
+// unmerged request exists. Non-queued statuses are returned unchanged.
+export function deriveFeatureRequestStatus(
+  status: FeatureRequestStatus | undefined,
+  unmergedDeploy: boolean
+): FeatureRequestStatus | undefined {
+  if (unmergedDeploy && status === "queued") return "waiting_for_merge";
+  return status;
+}
 
 export interface Card {
   id: string;
