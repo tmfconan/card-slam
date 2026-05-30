@@ -82,6 +82,35 @@ def test_update_theme_requires_auth(client):
     assert response.status_code in (401, 403)
 
 
+def test_me_reports_tutorial_not_seen_for_new_user(client, user_auth_headers):
+    """A freshly created user has not seen the onboarding tutorial yet."""
+    response = client.get("/api/auth/me", headers=user_auth_headers)
+    assert response.status_code == 200
+    assert response.json()["tutorial_seen"] is False
+
+
+def test_mark_tutorial_seen_persists_across_requests(client, user_auth_headers):
+    update = client.put("/api/auth/me/tutorial-seen", headers=user_auth_headers)
+    assert update.status_code == 200
+    assert update.json()["tutorial_seen"] is True
+
+    me = client.get("/api/auth/me", headers=user_auth_headers)
+    assert me.json()["tutorial_seen"] is True
+
+
+def test_mark_tutorial_seen_requires_auth(client):
+    response = client.put("/api/auth/me/tutorial-seen")
+    assert response.status_code in (401, 403)
+
+
+def test_tutorial_seen_is_per_user(client, auth_headers, user_auth_headers):
+    """Marking one user's tutorial as seen must not affect another's."""
+    client.put("/api/auth/me/tutorial-seen", headers=auth_headers)
+
+    other = client.get("/api/auth/me", headers=user_auth_headers)
+    assert other.json()["tutorial_seen"] is False
+
+
 def test_theme_is_per_user(client, auth_headers, user_auth_headers):
     """One user's theme choice must not leak into another's."""
     client.put("/api/auth/me/theme", json={"theme": "dark"}, headers=auth_headers)

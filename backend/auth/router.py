@@ -118,6 +118,9 @@ def me(credentials: HTTPAuthorizationCredentials = Depends(security)):
         "username": username,
         "role": payload.get("role", "user"),
         "theme": user.get("theme", _DEFAULT_THEME),
+        # Absent on accounts that predate the tutorial; treat them as not yet
+        # shown so the walkthrough surfaces once on their next sign-in.
+        "tutorial_seen": bool(user.get("tutorial_seen", False)),
     }
 
 
@@ -137,3 +140,24 @@ def update_theme(
         ExpressionAttributeValues={":theme": body.theme},
     )
     return {"theme": body.theme}
+
+
+@router.put("/me/tutorial-seen")
+def mark_tutorial_seen(
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Record that the signed-in user has been shown the onboarding tutorial.
+
+    Called when the walkthrough is auto-opened on first login so it doesn't
+    reappear on subsequent sign-ins.
+    """
+    username = _decode(credentials)["sub"]
+    table = get_users_table()
+    if not table.get_item(Key={"username": username}).get("Item"):
+        raise HTTPException(status_code=404, detail="User not found")
+    table.update_item(
+        Key={"username": username},
+        UpdateExpression="SET tutorial_seen = :seen",
+        ExpressionAttributeValues={":seen": True},
+    )
+    return {"tutorial_seen": True}

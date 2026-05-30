@@ -31,7 +31,7 @@ import {
 } from "./NavIcons";
 
 export default function Layout() {
-  const { logout, currentUser } = useAuth();
+  const { logout, currentUser, needsOnboarding, markOnboardingSeen } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const isAdmin = currentUser?.role === "admin";
   const location = useLocation();
@@ -66,6 +66,15 @@ export default function Layout() {
   useEffect(() => {
     if (window.innerWidth < 640) setSidebarOpen(false);
   }, [location.pathname]);
+
+  // First-time users get the walkthrough automatically on their initial login.
+  // markOnboardingSeen() records it server-side so it won't reappear later.
+  useEffect(() => {
+    if (needsOnboarding) {
+      setOnboardingOpen(true);
+      markOnboardingSeen();
+    }
+  }, [needsOnboarding, markOnboardingSeen]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
   const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests", "/archive"].includes(location.pathname);
@@ -127,27 +136,30 @@ export default function Layout() {
               ✕
             </button>
           </div>
-          <nav className="flex-1 p-3 space-y-1">
+          <nav className="flex-1 p-3 flex flex-col gap-1">
             {navLink("/", "Kanban", <KanbanIcon />)}
             {navLink("/list", "List", <ListIcon />)}
             {navLink("/calendar", "Calendar", <CalendarIcon />)}
-            <button
-              type="button"
-              onClick={() => setWhatsGoinOnOpen(true)}
-              data-testid="open-whats-goin-on"
-              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-gray-400 hover:bg-gray-800 hover:text-white"
-            >
-              <span aria-hidden="true" className="flex-shrink-0">
-                <WhatsGoinOnIcon />
-              </span>
-              What&apos;s Goin&apos; On
-            </button>
             {navLink("/archive", "Archive", <ArchiveIcon />)}
             {navLink("/categories", "Categories", <CategoriesIcon />)}
             {navLink("/reports", "Reports", <ReportsIcon />)}
             {isAdmin && navLink("/users", "Users", <UsersIcon />)}
             {isAdmin &&
               navLink("/feature-requests", "Feature Requests", <FeatureRequestsIcon />)}
+            {/* Pinned to the bottom of the nav, set apart by a divider. */}
+            <div className="mt-auto pt-2 border-t border-gray-700">
+              <button
+                type="button"
+                onClick={() => setWhatsGoinOnOpen(true)}
+                data-testid="open-whats-goin-on"
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-colors text-gray-400 hover:bg-gray-800 hover:text-white"
+              >
+                <span aria-hidden="true" className="flex-shrink-0">
+                  <WhatsGoinOnIcon />
+                </span>
+                What&apos;s Goin&apos; On
+              </button>
+            </div>
           </nav>
           <div className="p-4 border-t border-gray-700 flex items-center justify-between gap-2">
             <button

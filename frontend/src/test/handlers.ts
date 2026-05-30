@@ -67,15 +67,29 @@ export const handlers = [
   http.get("/api/auth/me", ({ request }) => {
     const auth = request.headers.get("Authorization") ?? "";
     if (auth.includes("mock-user-token")) {
-      return HttpResponse.json({ username: "testuser", role: "user", theme: "light" });
+      return HttpResponse.json({
+        username: "testuser",
+        role: "user",
+        theme: "light",
+        tutorial_seen: true,
+      });
     }
-    return HttpResponse.json({ username: "admin", role: "admin", theme: "light" });
+    return HttpResponse.json({
+      username: "admin",
+      role: "admin",
+      theme: "light",
+      tutorial_seen: true,
+    });
   }),
 
   http.put("/api/auth/me/theme", async ({ request }) => {
     const body = (await request.json()) as { theme?: string };
     return HttpResponse.json({ theme: body.theme });
   }),
+
+  http.put("/api/auth/me/tutorial-seen", () =>
+    HttpResponse.json({ tutorial_seen: true })
+  ),
 
   // Admin user management
   http.get("/api/admin/users", () =>

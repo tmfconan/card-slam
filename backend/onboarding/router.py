@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
+from fastapi.security import HTTPAuthorizationCredentials
 
-from auth.router import verify_token
+from auth.router import security, _decode
 
 router = APIRouter(prefix="/onboarding", tags=["onboarding"])
 
@@ -76,6 +77,7 @@ STEPS = [
     },
     {
         "id": 9,
+        "admin_only": True,
         "title": "Request a feature with auto-code",
         "summary": "Card Slam can build its own new features from your feature request cards.",
         "location": "Feature Requests page (sidebar → Feature Requests, admin only)",
@@ -94,6 +96,17 @@ STEPS = [
 
 
 @router.get("/steps")
-def list_steps(_: str = Depends(verify_token)):
-    """Return the ordered onboarding walkthrough steps."""
-    return {"steps": STEPS}
+def list_steps(credentials: HTTPAuthorizationCredentials = Depends(security)):
+    """Return the ordered onboarding walkthrough steps.
+
+    Steps flagged ``admin_only`` (e.g. the auto-code feature request workflow)
+    are hidden from regular users, who can't reach the pages they describe.
+    The flag itself is internal, so it's stripped from the response.
+    """
+    is_admin = _decode(credentials).get("role") == "admin"
+    steps = [
+        {k: v for k, v in step.items() if k != "admin_only"}
+        for step in STEPS
+        if is_admin or not step.get("admin_only")
+    ]
+    return {"steps": steps}
