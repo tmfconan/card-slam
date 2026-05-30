@@ -20,6 +20,31 @@ from db import get_cards_table
 
 router = APIRouter(prefix="/cards", tags=["cards"])
 
+# A card whose feature request is queued or building feeds its content to the
+# auto-code build, so it is locked against modification until removed from the
+# queue. waiting_for_merge is presentational (stored status stays "queued") but
+# is included for completeness.
+_LOCKED_FEATURE_REQUEST_STATUSES = frozenset(
+    {
+        FeatureRequestStatus.pending_validation.value,
+        FeatureRequestStatus.queued.value,
+        FeatureRequestStatus.waiting_for_merge.value,
+        FeatureRequestStatus.in_progress.value,
+    }
+)
+
+_QUEUE_LOCKED_DETAIL = (
+    "Card is queued or in progress for a feature request and can't be modified. "
+    "Remove it from the queue first."
+)
+
+
+def _is_queue_locked(item: dict) -> bool:
+    """A flagged feature request that is queued or building is locked."""
+    return bool(item.get("is_feature_request")) and (
+        item.get("feature_request_status") in _LOCKED_FEATURE_REQUEST_STATUSES
+    )
+
 
 def _normalize(item: dict) -> dict:
     item["priority"] = int(item.get("priority", 0))
@@ -152,7 +177,7 @@ def batch_status_update(
     updated = 0
     for card_id in body.ids:
         card = table.get_item(Key={"id": card_id}).get("Item")
-        if card and _owned(card, username):
+        if card and _owned(card, username) and not _is_queue_locked(card):
             card["status"] = body.status
             card["updated_at"] = now
             table.put_item(Item=card)
@@ -167,7 +192,7 @@ def batch_archive(body: BatchArchive, username: str = Depends(verify_token)):
     updated = 0
     for card_id in body.ids:
         card = table.get_item(Key={"id": card_id}).get("Item")
-        if card and _owned(card, username):
+        if card and _owned(card, username) and not _is_queue_locked(card):
             card["archived"] = body.archived
             card["updated_at"] = now
             table.put_item(Item=card)
@@ -181,7 +206,7 @@ def batch_delete(body: BatchDelete, username: str = Depends(verify_token)):
     deleted = 0
     for card_id in body.ids:
         card = table.get_item(Key={"id": card_id}).get("Item")
-        if card and _owned(card, username):
+        if card and _owned(card, username) and not _is_queue_locked(card):
             table.delete_item(Key={"id": card_id})
             deleted += 1
     return {"deleted": deleted}
@@ -196,7 +221,7 @@ def reorder_cards(
     now = datetime.now(timezone.utc).isoformat()
     for item in items:
         card = table.get_item(Key={"id": item.id}).get("Item")
-        if card and _owned(card, username):
+        if card and _owned(card, username) and not _is_queue_locked(card):
             card["status"] = item.status
             card["priority"] = item.priority
             card["updated_at"] = now
@@ -213,7 +238,13 @@ def get_card(card_id: str, username: str = Depends(verify_token)):
 def update_card(card_id: str, body: CardUpdate, username: str = Depends(verify_token)):
     table = get_cards_table()
     item = _get_owned(table, card_id, username)
-    for k, v in body.model_dump(exclude_unset=True).items():
+    updates = body.model_dump(exclude_unset=True)
+    # A locked feature request can't have its content changed. The auto_merge
+    # toggle governs post-build merging (not the build requirements), so it stays
+    # editable while queued or building.
+    if _is_queue_locked(item) and set(updates) - {"auto_merge"}:
+        raise HTTPException(status_code=409, detail=_QUEUE_LOCKED_DETAIL)
+    for k, v in updates.items():
         if v is None:
             item.pop(k, None)
         else:
@@ -226,5 +257,7 @@ def update_card(card_id: str, body: CardUpdate, username: str = Depends(verify_t
 @router.delete("/{card_id}", status_code=204)
 def delete_card(card_id: str, username: str = Depends(verify_token)):
     table = get_cards_table()
-    _get_owned(table, card_id, username)  # raises 404 if not owned
+    item = _get_owned(table, card_id, username)  # raises 404 if not owned
+    if _is_queue_locked(item):
+        raise HTTPException(status_code=409, detail=_QUEUE_LOCKED_DETAIL)
     table.delete_item(Key={"id": card_id})

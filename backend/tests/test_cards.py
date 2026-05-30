@@ -786,3 +786,147 @@ def test_wait_for_merge_is_presentational_only(client, auth_headers, dynamo_tabl
     # ...but the persisted record is still queued
     stored = dynamo_tables.Table("card-slam-cards").get_item(Key={"id": queued}).get("Item")
     assert stored["feature_request_status"] == "queued"
+
+
+# --- Lock queued: locked feature requests can't be modified -----------------
+
+# Statuses that lock the card against modification.
+LOCKED_FR_STATUSES = ["pending_validation", "queued", "in_progress"]
+# Statuses where the card is editable again.
+UNLOCKED_FR_STATUSES = ["validation_failed", "completed", "failed", "merged"]
+
+
+@pytest.mark.parametrize("status", LOCKED_FR_STATUSES)
+def test_update_blocked_when_feature_request_locked(
+    client, auth_headers, dynamo_tables, status
+):
+    card_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", status)
+    resp = client.put(
+        f"/api/cards/{card_id}", json={"title": "Changed"}, headers=auth_headers
+    )
+    assert resp.status_code == 409
+    # The stored title is unchanged
+    stored = dynamo_tables.Table("card-slam-cards").get_item(Key={"id": card_id})["Item"]
+    assert stored["title"] == "Locked FR"
+
+
+@pytest.mark.parametrize("status", LOCKED_FR_STATUSES)
+def test_delete_blocked_when_feature_request_locked(
+    client, auth_headers, dynamo_tables, status
+):
+    card_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", status)
+    resp = client.delete(f"/api/cards/{card_id}", headers=auth_headers)
+    assert resp.status_code == 409
+    assert client.get(f"/api/cards/{card_id}", headers=auth_headers).status_code == 200
+
+
+@pytest.mark.parametrize("status", UNLOCKED_FR_STATUSES)
+def test_update_allowed_when_feature_request_not_locked(
+    client, auth_headers, dynamo_tables, status
+):
+    card_id = _make_fr(client, auth_headers, dynamo_tables, "Open FR", status)
+    resp = client.put(
+        f"/api/cards/{card_id}", json={"title": "Changed"}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["title"] == "Changed"
+
+
+def test_waiting_for_merge_card_is_locked(client, auth_headers, dynamo_tables):
+    """A queued card surfaced as waiting_for_merge is locked (stored status is queued)."""
+    queued = _make_fr(client, auth_headers, dynamo_tables, "Queued FR", "queued")
+    _make_fr(client, auth_headers, dynamo_tables, "Deployed FR", "completed")
+    assert _listed(client, auth_headers)[queued]["feature_request_status"] == "waiting_for_merge"
+
+    resp = client.put(
+        f"/api/cards/{queued}", json={"title": "Changed"}, headers=auth_headers
+    )
+    assert resp.status_code == 409
+
+
+def test_auto_merge_toggle_allowed_while_locked(client, auth_headers, dynamo_tables):
+    """auto_merge governs post-build merging, not requirements, so it stays editable."""
+    card_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", "queued")
+    resp = client.put(
+        f"/api/cards/{card_id}", json={"auto_merge": True}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["auto_merge"] is True
+
+
+def test_update_with_auto_merge_and_content_blocked_while_locked(
+    client, auth_headers, dynamo_tables
+):
+    """auto_merge is only exempt on its own — bundling content edits is still blocked."""
+    card_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", "queued")
+    resp = client.put(
+        f"/api/cards/{card_id}",
+        json={"auto_merge": True, "title": "Changed"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 409
+
+
+def test_unflagged_card_is_editable(client, auth_headers):
+    """A normal (non-feature-request) card is unaffected by the lock."""
+    card_id = client.post("/api/cards/", json=CARD_PAYLOAD, headers=auth_headers).json()["id"]
+    resp = client.put(
+        f"/api/cards/{card_id}", json={"title": "Changed"}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["title"] == "Changed"
+
+
+def test_batch_status_skips_locked_cards(client, auth_headers, dynamo_tables):
+    open_id = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "title": "Open"}, headers=auth_headers
+    ).json()["id"]
+    locked_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", "in_progress")
+
+    resp = client.post(
+        "/api/cards/batch-status",
+        json={"ids": [open_id, locked_id], "status": "done"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 1
+    cards = _listed(client, auth_headers)
+    assert cards[open_id]["status"] == "done"
+    assert cards[locked_id]["status"] != "done"
+
+
+def test_batch_archive_skips_locked_cards(client, auth_headers, dynamo_tables):
+    locked_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", "queued")
+    resp = client.post(
+        "/api/cards/batch-archive", json={"ids": [locked_id]}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["updated"] == 0
+
+
+def test_batch_delete_skips_locked_cards(client, auth_headers, dynamo_tables):
+    locked_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", "queued")
+    resp = client.post(
+        "/api/cards/batch-delete", json={"ids": [locked_id]}, headers=auth_headers
+    )
+    assert resp.status_code == 200
+    assert resp.json()["deleted"] == 0
+    assert client.get(f"/api/cards/{locked_id}", headers=auth_headers).status_code == 200
+
+
+def test_reorder_skips_locked_cards(client, auth_headers, dynamo_tables):
+    locked_id = _make_fr(client, auth_headers, dynamo_tables, "Locked FR", "queued")
+    stored_before = dynamo_tables.Table("card-slam-cards").get_item(
+        Key={"id": locked_id}
+    )["Item"]
+    resp = client.post(
+        "/api/cards/reorder",
+        json=[{"id": locked_id, "status": "done", "priority": 99}],
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    stored_after = dynamo_tables.Table("card-slam-cards").get_item(
+        Key={"id": locked_id}
+    )["Item"]
+    assert stored_after["status"] == stored_before["status"]
+    assert int(stored_after["priority"]) == int(stored_before["priority"])

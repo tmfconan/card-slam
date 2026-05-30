@@ -42,6 +42,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
+    if (isLocked) return;
     setSaving(true);
     setError("");
     try {
@@ -65,6 +66,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   };
 
   const handleDelete = async () => {
+    if (isLocked) return;
     if (!confirm(`Delete "${title}"?`)) return;
     await api.delete(`/cards/${card.id}`);
     onSave();
@@ -72,6 +74,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   };
 
   const handleArchiveToggle = async () => {
+    if (isLocked) return;
     await api.put(`/cards/${card.id}`, { archived: !card.archived });
     onSave();
     onClose();
@@ -129,6 +132,13 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   const canMerge = card.feature_request_status === "completed";
   // Auto-merge is an opt-in for flagged requests that haven't merged yet.
   const canAutoMerge = isFlagged && card.feature_request_status !== "merged";
+  // A queued or building feature request feeds its content to the auto-code
+  // build, so the card is locked against edits until removed from the queue.
+  const isLocked =
+    isFlagged &&
+    ["pending_validation", "queued", "waiting_for_merge", "in_progress"].includes(
+      card.feature_request_status ?? ""
+    );
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -141,6 +151,15 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
         </div>
 
         <form onSubmit={handleSave} className="flex-1 overflow-auto p-5 space-y-4">
+          {isLocked && (
+            <p
+              role="status"
+              className="text-xs bg-amber-50 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800 rounded-lg px-3 py-2"
+            >
+              🔒 This card is queued or in progress for a feature request and
+              can't be edited. Remove it from the queue to make changes.
+            </p>
+          )}
           <div>
             <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
               Title
@@ -149,7 +168,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={isLocked}
+              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -161,7 +181,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              disabled={isLocked}
+              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-60 disabled:cursor-not-allowed"
             />
           </div>
 
@@ -178,7 +199,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 aria-label="Category"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                disabled={isLocked}
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 <option value="">None</option>
                 {categories.map((c) => (
@@ -201,7 +223,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 aria-label="Status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as Status)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                disabled={isLocked}
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -218,7 +241,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             <button
               type="button"
               onClick={setToNow}
-              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+              disabled={isLocked}
+              className="text-xs text-blue-600 hover:text-blue-800 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
             >
               Set to now
             </button>
@@ -238,7 +262,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 type="date"
                 value={todoDate}
                 onChange={(e) => setTodoDate(e.target.value)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                disabled={isLocked}
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -255,7 +280,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 type="time"
                 value={todoTime}
                 onChange={(e) => setTodoTime(e.target.value)}
-                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                disabled={isLocked}
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
 
@@ -276,7 +302,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 onChange={(e) =>
                   setDuration(Math.max(15, parseInt(e.target.value) || 15))
                 }
-                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
+                disabled={isLocked}
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none disabled:opacity-60 disabled:cursor-not-allowed"
               />
             </div>
           </div>
@@ -290,7 +317,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 type="checkbox"
                 checked={highPriority}
                 onChange={(e) => setHighPriority(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                disabled={isLocked}
+                className="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 disabled:opacity-60 disabled:cursor-not-allowed"
               />
               <span>High priority</span>
             </label>
@@ -374,14 +402,16 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             <button
               type="button"
               onClick={handleDelete}
-              className="text-sm text-red-500 hover:text-red-700 transition-colors"
+              disabled={isLocked}
+              className="text-sm text-red-500 hover:text-red-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:text-red-500"
             >
               Delete
             </button>
             <button
               type="button"
               onClick={handleArchiveToggle}
-              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 transition-colors"
+              disabled={isLocked}
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {card.archived ? "Unarchive" : "Archive"}
             </button>
@@ -396,8 +426,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             </button>
             <button
               onClick={handleSave}
-              disabled={!title.trim() || saving}
-              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              disabled={!title.trim() || saving || isLocked}
+              className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {saving ? "Saving…" : "Save"}
             </button>
