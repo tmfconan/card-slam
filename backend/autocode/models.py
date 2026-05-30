@@ -7,6 +7,7 @@ class FeatureRunStatus(str, Enum):
     in_progress = "in_progress"
     completed = "completed"
     failed = "failed"
+    merged = "merged"
 
 
 class FeatureRun(BaseModel):

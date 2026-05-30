@@ -3,7 +3,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
 import AutoCodeView from "../components/AutoCodeView";
-import { Card } from "../types";
+import { Card, FeatureRun } from "../types";
 
 function frCard(id: string, title: string, status: Card["feature_request_status"]): Card {
   return {
@@ -21,10 +21,26 @@ function frCard(id: string, title: string, status: Card["feature_request_status"
   };
 }
 
-function mockAutoCode(queue: Card[], cards: Card[]) {
+function run(
+  runId: string,
+  title: string,
+  status: FeatureRun["status"]
+): FeatureRun {
+  return {
+    run_id: runId,
+    card_id: runId,
+    card_title: title,
+    card_description: "",
+    status,
+    started_at: "2024-01-01T00:00:00Z",
+    completed_at: "2024-01-01T01:00:00Z",
+  };
+}
+
+function mockAutoCode(queue: Card[], cards: Card[], history: FeatureRun[] = []) {
   server.use(
     http.get("/api/autocode/queue", () => HttpResponse.json(queue)),
-    http.get("/api/autocode/history", () => HttpResponse.json([])),
+    http.get("/api/autocode/history", () => HttpResponse.json(history)),
     http.get("/api/cards", () => HttpResponse.json(cards)),
     http.get("/api/cards/", () => HttpResponse.json(cards))
   );
@@ -68,5 +84,25 @@ describe("AutoCodeView", () => {
     expect(await screen.findByText("Queued feature")).toBeInTheDocument();
     await waitFor(() => expect(screen.getByText("Queued")).toBeInTheDocument());
     expect(screen.queryByText("Waiting for merge")).not.toBeInTheDocument();
+  });
+
+  it("lists a merged run as 'Merged' rather than 'Deployed' in history", async () => {
+    mockAutoCode([], [], [run("m1", "Merged feature", "merged")]);
+
+    render(<AutoCodeView />);
+
+    expect(await screen.findByText("Merged feature")).toBeInTheDocument();
+    expect(screen.getByText("Merged")).toBeInTheDocument();
+    expect(screen.queryByText("Deployed")).not.toBeInTheDocument();
+  });
+
+  it("lists a completed-but-unmerged run as 'Deployed' in history", async () => {
+    mockAutoCode([], [], [run("d1", "Deployed feature", "completed")]);
+
+    render(<AutoCodeView />);
+
+    expect(await screen.findByText("Deployed feature")).toBeInTheDocument();
+    expect(screen.getByText("Deployed")).toBeInTheDocument();
+    expect(screen.queryByText("Merged")).not.toBeInTheDocument();
   });
 });
