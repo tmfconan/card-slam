@@ -253,6 +253,31 @@ describe("CalendarView", () => {
     expect(unscheduled).not.toHaveTextContent("Far future card");
   });
 
+  // ── Dark mode readability (date nav contrast) ──────────────────────────────
+
+  it("gives week-nav buttons explicit text/background colors so they stay readable in dark mode", () => {
+    renderCalendar();
+    // These buttons set no color before the fix, so they inherited the UA
+    // default text color, which flips light under OS dark mode and became
+    // unreadable on the forced-light background.
+    for (const name of [/prev/i, /^today$/i, /next/i]) {
+      const btn = screen.getByRole("button", { name });
+      expect(btn).toHaveClass("bg-white");
+      expect(btn).toHaveClass("text-gray-700");
+    }
+  });
+
+  it("gives the inactive Day toggle and category filter explicit readable colors", () => {
+    renderCalendar();
+    const dayToggle = screen.getByRole("button", { name: /^day$/i });
+    expect(dayToggle).toHaveClass("bg-white");
+    expect(dayToggle).toHaveClass("text-gray-700");
+
+    const catFilter = screen.getByRole("combobox", { name: /category/i });
+    expect(catFilter).toHaveClass("bg-white");
+    expect(catFilter).toHaveClass("text-gray-700");
+  });
+
   // ── Day view active callback ───────────────────────────────────────────────
 
   it("calls onDayViewActive with selected date when Day button is clicked", async () => {
