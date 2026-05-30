@@ -84,7 +84,7 @@ export interface FeatureRun {
   card_id: string;
   card_title: string;
   card_description: string;
-  status: "in_progress" | "completed" | "failed";
+  status: "in_progress" | "completed" | "failed" | "merged";
   codebuild_build_id?: string;
   started_at: string;
   completed_at?: string;

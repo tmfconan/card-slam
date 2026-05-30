@@ -10,6 +10,7 @@ from boto3.dynamodb.conditions import Attr
 
 from config import get_anthropic_key, get_github_pat
 from db import get_cards_table, get_feature_runs_table
+from .models import FeatureRunStatus
 
 _GITHUB_REPO = os.environ.get("GITHUB_REPO", "tmfconan/card-slam")
 
@@ -172,7 +173,29 @@ def merge_to_main(card_id: str) -> dict:
         }
 
 
+def _apply_merged_status(items: list[dict]) -> None:
+    """Present a completed run as "merged" (in place) when its card's feature
+    request has been merged into main. Merge state lives on the card, so the
+    history reflects it presentationally — the stored run status is unchanged."""
+    cards_table = get_cards_table()
+    merged_by_card: dict[str, bool] = {}
+    for run in items:
+        if run.get("status") != FeatureRunStatus.completed.value:
+            continue
+        card_id = run.get("card_id")
+        if not card_id:
+            continue
+        if card_id not in merged_by_card:
+            card = cards_table.get_item(Key={"id": card_id}).get("Item")
+            merged_by_card[card_id] = bool(
+                card and card.get("feature_request_status") == "merged"
+            )
+        if merged_by_card[card_id]:
+            run["status"] = FeatureRunStatus.merged.value
+
+
 def get_history() -> list:
     table = get_feature_runs_table()
     items = table.scan().get("Items", [])
+    _apply_merged_status(items)
     return sorted(items, key=lambda r: r.get("started_at", ""), reverse=True)
