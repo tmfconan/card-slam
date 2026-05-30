@@ -29,6 +29,7 @@ def _normalize(item: dict) -> dict:
     item.setdefault("username", "admin")  # migrate legacy records
     item.setdefault("is_feature_request", False)
     item.setdefault("feature_request_status", None)
+    item["auto_merge"] = bool(item.get("auto_merge", False))
     return item
 
 
@@ -101,6 +102,7 @@ def create_card(body: CardCreate, username: str = Depends(verify_token)):
         "priority": body.priority,
         "high_priority": body.high_priority,
         "duration": body.duration,
+        "auto_merge": body.auto_merge,
         "created_at": now,
         "updated_at": now,
     }
@@ -128,6 +130,7 @@ def create_cards_batch(bodies: list[CardCreate], username: str = Depends(verify_
             "priority": i,
             "high_priority": body.high_priority,
             "duration": body.duration,
+            "auto_merge": body.auto_merge,
             "created_at": now,
             "updated_at": now,
         }

@@ -28,6 +28,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   const [flagResult, setFlagResult] = useState<{ valid: boolean; reason: string } | null>(null);
   const [merging, setMerging] = useState(false);
   const [mergeResult, setMergeResult] = useState<{ merged?: boolean; conflict?: boolean; message?: string } | null>(null);
+  const [autoMerge, setAutoMerge] = useState(card.auto_merge ?? false);
+  const [savingAutoMerge, setSavingAutoMerge] = useState(false);
 
   const setToNow = () => {
     const now = new Date();
@@ -109,9 +111,24 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
     }
   };
 
+  const handleAutoMergeToggle = async (checked: boolean) => {
+    setAutoMerge(checked);
+    setSavingAutoMerge(true);
+    try {
+      await api.put(`/cards/${card.id}`, { auto_merge: checked });
+      onSave();
+    } catch {
+      setAutoMerge(!checked); // revert on failure
+    } finally {
+      setSavingAutoMerge(false);
+    }
+  };
+
   const isFlagged = card.is_feature_request;
   const canUnflag = isFlagged && card.feature_request_status !== "in_progress";
   const canMerge = card.feature_request_status === "completed";
+  // Auto-merge is an opt-in for flagged requests that haven't merged yet.
+  const canAutoMerge = isFlagged && card.feature_request_status !== "merged";
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -299,6 +316,19 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                   ? `⚠ ${mergeResult.message}`
                   : `✗ ${mergeResult.message}`}
               </p>
+            )}
+            {canAutoMerge && (
+              <label className="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  aria-label="Auto-merge when build succeeds"
+                  checked={autoMerge}
+                  disabled={savingAutoMerge}
+                  onChange={(e) => handleAutoMergeToggle(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                />
+                <span>Auto-merge when build succeeds</span>
+              </label>
             )}
             <div className="flex gap-2 flex-wrap">
               {!isFlagged && (

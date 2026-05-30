@@ -33,6 +33,7 @@ class CardCreate(BaseModel):
     todo_date: Optional[str] = None   # YYYY-MM-DD
     todo_time: Optional[str] = None   # HH:MM
     duration: int = 30                # minutes; minimum 30
+    auto_merge: bool = False          # feature requests: auto-merge after build
 
 
 class CardUpdate(BaseModel):
@@ -46,6 +47,7 @@ class CardUpdate(BaseModel):
     todo_time: Optional[str] = None   # set to null to clear
     duration: Optional[int] = None
     archived: Optional[bool] = None   # True to archive, False to restore
+    auto_merge: Optional[bool] = None   # auto-merge feature request after build
 
 
 class CardReorderItem(BaseModel):
@@ -84,3 +86,4 @@ class Card(BaseModel):
     updated_at: str
     is_feature_request: bool = False
     feature_request_status: Optional[FeatureRequestStatus] = None
+    auto_merge: bool = False
