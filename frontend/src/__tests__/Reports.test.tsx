@@ -40,6 +40,14 @@ describe("Reports", () => {
     );
   });
 
+  it("renders the 'Work Report' title", async () => {
+    renderReports();
+    await waitFor(() =>
+      expect(screen.getByRole("heading", { name: "Work Report" })).toBeInTheDocument()
+    );
+    expect(screen.queryByText("Velocity Report")).not.toBeInTheDocument();
+  });
+
   it("renders lifetime stats after loading", async () => {
     renderReports();
     await waitFor(() => expect(screen.getByText("10")).toBeInTheDocument());

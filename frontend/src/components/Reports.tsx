@@ -173,12 +173,12 @@ export default function Reports() {
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Velocity Report</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Work Report</h2>
         <div className="flex items-center gap-2">
           <button
             data-testid="reports-prev-week"
             onClick={() => setRefDate((d) => shiftWeeks(d, -1))}
-            className="px-2 py-1 text-sm border dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
+            className="px-2 py-1 text-sm text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             ← Prev
           </button>
@@ -189,7 +189,7 @@ export default function Reports() {
             data-testid="reports-next-week"
             onClick={() => setRefDate((d) => shiftWeeks(d, 1))}
             disabled={isCurrentWeek}
-            className="px-2 py-1 text-sm border dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-2 py-1 text-sm text-gray-700 dark:text-gray-200 border border-gray-300 dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next →
           </button>
