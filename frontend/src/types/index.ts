@@ -74,3 +74,11 @@ export interface WorkItem {
   title: string;
   description: string;
 }
+
+export interface PlanItem {
+  card_id: string;
+  title: string;
+  todo_date: string; // YYYY-MM-DD
+  todo_time: string; // HH:MM
+  reason: string;
+}
