@@ -190,6 +190,15 @@ describe("DailyView", () => {
     expect(screen.getByRole("button", { name: /next/i })).toBeInTheDocument();
   });
 
+  it("gives nav buttons explicit text/background colors so they stay readable in dark mode", () => {
+    renderDailyView();
+    for (const name of [/prev/i, /today/i, /next/i]) {
+      const btn = screen.getByRole("button", { name });
+      expect(btn).toHaveClass("bg-white");
+      expect(btn).toHaveClass("text-gray-700");
+    }
+  });
+
   it("calls onDateChange with the previous day when Prev is clicked", async () => {
     const user = userEvent.setup();
     const onDateChange = vi.fn();

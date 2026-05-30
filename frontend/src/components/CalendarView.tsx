@@ -189,7 +189,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
           </button>
           <button
             onClick={() => enterDayView(selectedDay)}
-            className="px-3 py-1.5 transition-colors hover:bg-gray-50"
+            className="px-3 py-1.5 transition-colors bg-white text-gray-700 hover:bg-gray-50"
           >
             Day
           </button>
@@ -199,19 +199,19 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
         <div className="flex items-center gap-1">
           <button
             onClick={() => setWeekStart(shiftDate(weekStart, -14))}
-            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+            className="px-2 py-1 text-sm border rounded bg-white text-gray-700 hover:bg-gray-50"
           >
             ← Prev
           </button>
           <button
             onClick={() => setWeekStart(todayStr())}
-            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+            className="px-2 py-1 text-sm border rounded bg-white text-gray-700 hover:bg-gray-50"
           >
             Today
           </button>
           <button
             onClick={() => setWeekStart(shiftDate(weekStart, 14))}
-            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+            className="px-2 py-1 text-sm border rounded bg-white text-gray-700 hover:bg-gray-50"
           >
             Next →
           </button>
@@ -227,7 +227,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
             aria-label="Category"
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="text-sm border rounded-lg px-2 py-1 focus:outline-none"
+            className="text-sm border rounded-lg px-2 py-1 bg-white text-gray-700 focus:outline-none"
           >
             <option value="">All</option>
             {categories.map((c) => (
