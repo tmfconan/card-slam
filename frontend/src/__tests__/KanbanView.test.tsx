@@ -62,6 +62,18 @@ const mockCategoryMap: Record<string, Category> = {
 
 const TODAY = new Date().toISOString().split("T")[0];
 
+// A day that is within the current Sun–Sat week but is NOT today, computed the
+// same (UTC) way the component does so the test is robust on any weekday.
+function otherDayThisWeek(): string {
+  const d = new Date(TODAY + "T00:00:00Z");
+  const day = d.getUTCDay(); // 0 = Sunday
+  const target = new Date(d);
+  // Sunday of this week, unless today is Sunday — then use Saturday.
+  target.setUTCDate(d.getUTCDate() + (day === 0 ? 6 : -day));
+  return target.toISOString().split("T")[0];
+}
+const THIS_WEEK_NOT_TODAY = otherDayThisWeek();
+
 const mockCards: Card[] = [
   {
     id: "card-1",
@@ -258,6 +270,67 @@ describe("KanbanView", () => {
     render(<KanbanView cards={mockCards} categories={mockCategories}
       categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: /today/i }));
+    await user.click(screen.getByRole("button", { name: "Frontend" }));
+    expect(screen.getByText("Build login page")).toBeInTheDocument();
+    expect(screen.queryByText("Set up database")).not.toBeInTheDocument();
+  });
+
+  // ── This Week filter ──────────────────────────────────────────────────────
+
+  // Cards spanning today, another day this week, an old date, and no date.
+  const weekCards: Card[] = [
+    { ...mockCards[0], todo_date: TODAY }, // Build login page — today (this week)
+    { ...mockCards[1], todo_date: THIS_WEEK_NOT_TODAY }, // Set up database — this week, not today
+    { ...mockCards[2], todo_date: "2020-01-01" }, // Write API tests — long ago
+    { ...mockCards[3] }, // No date card — no todo_date
+  ];
+
+  it("renders a This Week filter button", () => {
+    render(<KanbanView cards={weekCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    expect(screen.getByRole("button", { name: /this week/i })).toBeInTheDocument();
+  });
+
+  it("clicking This Week shows only cards scheduled within the Sun–Sat week", async () => {
+    const user = userEvent.setup();
+    render(<KanbanView cards={weekCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /this week/i }));
+    expect(screen.getByText("Build login page")).toBeInTheDocument();
+    expect(screen.getByText("Set up database")).toBeInTheDocument();
+    expect(screen.queryByText("Write API tests")).not.toBeInTheDocument();
+    expect(screen.queryByText("No date card")).not.toBeInTheDocument();
+  });
+
+  it("clicking This Week again deactivates the filter", async () => {
+    const user = userEvent.setup();
+    render(<KanbanView cards={weekCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    const btn = screen.getByRole("button", { name: /this week/i });
+    await user.click(btn);
+    await user.click(btn);
+    expect(screen.getByText("Write API tests")).toBeInTheDocument();
+    expect(screen.getByText("No date card")).toBeInTheDocument();
+  });
+
+  it("This Week and Today filters are mutually exclusive", async () => {
+    const user = userEvent.setup();
+    render(<KanbanView cards={weekCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    // Activate This Week — the not-today card is visible.
+    await user.click(screen.getByRole("button", { name: /this week/i }));
+    expect(screen.getByText("Set up database")).toBeInTheDocument();
+    // Switching to Today turns off This Week, hiding the not-today card.
+    await user.click(screen.getByRole("button", { name: /today/i }));
+    expect(screen.getByText("Build login page")).toBeInTheDocument();
+    expect(screen.queryByText("Set up database")).not.toBeInTheDocument();
+  });
+
+  it("This Week filter and category filter combine (AND logic)", async () => {
+    const user = userEvent.setup();
+    render(<KanbanView cards={weekCards} categories={mockCategories}
+      categoryMap={mockCategoryMap} onUpdate={vi.fn()} />);
+    await user.click(screen.getByRole("button", { name: /this week/i }));
     await user.click(screen.getByRole("button", { name: "Frontend" }));
     expect(screen.getByText("Build login page")).toBeInTheDocument();
     expect(screen.queryByText("Set up database")).not.toBeInTheDocument();
