@@ -111,12 +111,12 @@ export default function PromptBar({ categories, onCardsCreated, defaultDate, def
 
   return (
     <>
-      <div className="bg-white border-b px-3 sm:px-6 py-3 flex-shrink-0">
+      <div className="bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-3 sm:px-6 py-3 flex-shrink-0">
         <div className="flex items-center gap-2 sm:gap-3">
           <select
             value={categoryId}
             onChange={(e) => setCategoryId(e.target.value)}
-            className="border rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] sm:min-w-[150px]"
+            className="border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-2 sm:px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[110px] sm:min-w-[150px]"
             style={
               selectedCategory
                 ? { borderColor: selectedCategory.color, color: selectedCategory.color }
@@ -131,7 +131,7 @@ export default function PromptBar({ categories, onCardsCreated, defaultDate, def
             ))}
           </select>
 
-          <div className="flex-1 flex items-center gap-1.5 border rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
+          <div className="flex-1 flex items-center gap-1.5 border dark:border-gray-700 rounded-lg overflow-hidden focus-within:ring-2 focus-within:ring-blue-500">
             <input
               type="text"
               placeholder="Describe work to do — Claude will break it into cards"
@@ -139,7 +139,7 @@ export default function PromptBar({ categories, onCardsCreated, defaultDate, def
               onChange={(e) => setPrompt(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSubmit()}
               disabled={loading}
-              className="flex-1 px-3 sm:px-4 py-2 text-sm focus:outline-none disabled:opacity-50 min-w-0"
+              className="flex-1 px-3 sm:px-4 py-2 text-sm dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 focus:outline-none disabled:opacity-50 min-w-0"
             />
             {/* Mic button — inline with the text field */}
             <button
@@ -183,7 +183,7 @@ export default function PromptBar({ categories, onCardsCreated, defaultDate, def
 
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="px-3 sm:px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 whitespace-nowrap transition-colors text-gray-700"
+            className="px-3 sm:px-4 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap transition-colors text-gray-700 dark:text-gray-300"
           >
             <span className="sm:hidden">+</span>
             <span className="hidden sm:inline">+ Direct add</span>

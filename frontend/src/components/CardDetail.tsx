@@ -132,36 +132,36 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
 
   return createPortal(
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
-        <div className="p-5 border-b flex items-center justify-between">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
+        <div className="p-5 border-b dark:border-gray-700 flex items-center justify-between">
           <h2 className="text-base font-semibold">Edit card</h2>
-          <p className="text-xs text-gray-400">
+          <p className="text-xs text-gray-400 dark:text-gray-400">
             Updated {new Date(card.updated_at).toLocaleDateString()}
           </p>
         </div>
 
         <form onSubmit={handleSave} className="flex-1 overflow-auto p-5 space-y-4">
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
               Title
             </label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">
+            <label className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
             />
           </div>
 
@@ -169,7 +169,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             <div>
               <label
                 htmlFor="cd-category"
-                className="block text-xs font-medium text-gray-600 mb-1"
+                className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1"
               >
                 Category
               </label>
@@ -178,7 +178,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 aria-label="Category"
                 value={categoryId}
                 onChange={(e) => setCategoryId(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
               >
                 <option value="">None</option>
                 {categories.map((c) => (
@@ -192,7 +192,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             <div>
               <label
                 htmlFor="cd-status"
-                className="block text-xs font-medium text-gray-600 mb-1"
+                className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1"
               >
                 Status
               </label>
@@ -201,7 +201,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 aria-label="Status"
                 value={status}
                 onChange={(e) => setStatus(e.target.value as Status)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
               >
                 {STATUSES.map((s) => (
                   <option key={s} value={s}>
@@ -214,7 +214,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
 
           <div>
           <div className="flex items-center justify-between mb-1">
-            <span className="text-xs font-medium text-gray-600">Schedule</span>
+            <span className="text-xs font-medium text-gray-600 dark:text-gray-300">Schedule</span>
             <button
               type="button"
               onClick={setToNow}
@@ -228,7 +228,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             <div>
               <label
                 htmlFor="cd-date"
-                className="block text-xs font-medium text-gray-600 mb-1"
+                className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1"
               >
                 Date
               </label>
@@ -238,14 +238,14 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 type="date"
                 value={todoDate}
                 onChange={(e) => setTodoDate(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
 
             <div>
               <label
                 htmlFor="cd-time"
-                className="block text-xs font-medium text-gray-600 mb-1"
+                className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1"
               >
                 Time
               </label>
@@ -255,14 +255,14 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 type="time"
                 value={todoTime}
                 onChange={(e) => setTodoTime(e.target.value)}
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
 
             <div>
               <label
                 htmlFor="cd-duration"
-                className="block text-xs font-medium text-gray-600 mb-1"
+                className="block text-xs font-medium text-gray-600 dark:text-gray-300 mb-1"
               >
                 Duration (min)
               </label>
@@ -276,14 +276,14 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 onChange={(e) =>
                   setDuration(Math.max(15, parseInt(e.target.value) || 15))
                 }
-                className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
+                className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
           </div>
           </div>
 
           <div>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700 cursor-pointer">
+            <label className="inline-flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
               <input
                 id="cd-high-priority"
                 aria-label="High priority"
@@ -301,8 +301,8 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
 
         {/* Feature-request section (admin only) */}
         {isAdmin && (
-          <div className="px-5 py-3 border-t bg-gray-50 rounded-b-none space-y-2">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wide">Auto-Code</p>
+          <div className="px-5 py-3 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-b-none space-y-2">
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Auto-Code</p>
             {flagResult && (
               <p className={`text-xs ${flagResult.valid ? "text-green-700" : "text-red-600"}`}>
                 {flagResult.valid ? "✓ Queued:" : "✗ Invalid:"} {flagResult.reason}
@@ -355,7 +355,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 <button
                   type="button"
                   onClick={handleUnflag}
-                  className="px-3 py-1.5 text-xs text-gray-500 hover:text-red-600 transition-colors"
+                  className="px-3 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:text-red-600 transition-colors"
                 >
                   Remove from queue
                 </button>
@@ -369,7 +369,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
           </div>
         )}
 
-        <div className="p-5 border-t flex items-center justify-between">
+        <div className="p-5 border-t dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <button
               type="button"
@@ -381,7 +381,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             <button
               type="button"
               onClick={handleArchiveToggle}
-              className="text-sm text-gray-500 hover:text-gray-800 transition-colors"
+              className="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-800 transition-colors"
             >
               {card.archived ? "Unarchive" : "Archive"}
             </button>
@@ -390,7 +390,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
+              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 transition-colors"
             >
               Cancel
             </button>

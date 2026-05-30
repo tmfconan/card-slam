@@ -103,7 +103,7 @@ export default function CardItem({
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onClick={handleClick}
-        className={`relative group bg-white rounded-lg shadow-sm border-l-4 p-3 select-none ${
+        className={`relative group bg-white dark:bg-gray-900 rounded-lg shadow-sm border-l-4 p-3 select-none ${
           isDragging ? "shadow-lg rotate-1 opacity-90" : ""
         } ${isDone ? "opacity-50" : ""} ${
           categories ? "cursor-pointer hover:shadow-md transition-shadow" : ""
@@ -130,7 +130,7 @@ export default function CardItem({
 
         <div className="flex items-start justify-between gap-1">
           <p
-            className={`text-sm font-medium text-gray-800 leading-snug flex-1 ${
+            className={`text-sm font-medium text-gray-800 dark:text-gray-100 leading-snug flex-1 ${
               isDone ? "line-through" : ""
             }`}
           >
@@ -150,7 +150,7 @@ export default function CardItem({
             {onUnarchive && (
               <button
                 onClick={handleUnarchive}
-                className="text-gray-400 hover:text-blue-600 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                className="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity"
                 title="Restore"
                 aria-label="Restore"
               >
@@ -159,7 +159,7 @@ export default function CardItem({
             )}
             <button
               onClick={handleDelete}
-              className="text-gray-400 hover:text-red-500 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity"
+              className="text-gray-400 hover:text-red-500 dark:hover:text-red-400 text-xs px-1 opacity-0 group-hover:opacity-100 transition-opacity"
               title="Delete"
             >
               ✕
@@ -168,7 +168,7 @@ export default function CardItem({
         </div>
 
         {card.description && (
-          <p className="text-xs text-gray-500 mt-1 leading-relaxed line-clamp-3">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed line-clamp-3">
             {card.description}
           </p>
         )}
@@ -187,7 +187,7 @@ export default function CardItem({
               value={card.status}
               onChange={(e) => handleStatusChange(e.target.value as Status)}
               onClick={(e) => e.stopPropagation()}
-              className="text-xs border-0 text-gray-500 focus:outline-none bg-transparent ml-auto"
+              className="text-xs border-0 text-gray-500 dark:text-gray-400 focus:outline-none bg-transparent ml-auto"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>{STATUS_LABELS[s]}</option>
@@ -196,7 +196,7 @@ export default function CardItem({
           )}
         </div>
         {showUpdatedAt && (
-          <p className="text-xs text-gray-300 mt-1.5">
+          <p className="text-xs text-gray-300 dark:text-gray-500 mt-1.5">
             Updated {new Date(card.updated_at).toLocaleDateString()}
           </p>
         )}

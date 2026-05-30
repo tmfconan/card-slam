@@ -47,10 +47,10 @@ export default function WorkItemConfirm({
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
-        <div className="p-6 border-b">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
+        <div className="p-6 border-b dark:border-gray-700">
           <h2 className="text-lg font-semibold">Review Work Items</h2>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {editableItems.length} items for{" "}
             <span className="font-medium" style={{ color: category?.color }}>
               {category?.name}
@@ -61,10 +61,10 @@ export default function WorkItemConfirm({
 
         <div className="flex-1 overflow-auto p-6 space-y-3">
           {editableItems.map((item, i) => (
-            <div key={i} className="border rounded-lg p-4">
+            <div key={i} className="border dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-start gap-2">
                 <input
-                  className="flex-1 font-medium text-sm focus:outline-none border-b border-transparent focus:border-blue-400"
+                  className="flex-1 font-medium text-sm focus:outline-none border-b border-transparent focus:border-blue-400 dark:text-gray-100 dark:placeholder-gray-500"
                   value={item.title}
                   onChange={(e) => update(i, "title", e.target.value)}
                 />
@@ -76,7 +76,7 @@ export default function WorkItemConfirm({
                 </button>
               </div>
               <textarea
-                className="mt-2 w-full text-sm text-gray-600 focus:outline-none border-b border-transparent focus:border-blue-400 resize-none"
+                className="mt-2 w-full text-sm text-gray-600 dark:text-gray-300 focus:outline-none border-b border-transparent focus:border-blue-400 resize-none dark:placeholder-gray-500"
                 value={item.description}
                 onChange={(e) => update(i, "description", e.target.value)}
                 rows={2}
@@ -85,13 +85,13 @@ export default function WorkItemConfirm({
           ))}
         </div>
 
-        <div className="p-6 border-t flex items-center justify-between">
+        <div className="p-6 border-t dark:border-gray-700 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <label className="text-sm text-gray-600">Initial status:</label>
+            <label className="text-sm text-gray-600 dark:text-gray-300">Initial status:</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as Status)}
-              className="text-sm border rounded-lg px-2 py-1 focus:outline-none"
+              className="text-sm border dark:border-gray-700 rounded-lg px-2 py-1 focus:outline-none dark:bg-gray-900 dark:text-gray-100"
             >
               {STATUSES.map((s) => (
                 <option key={s} value={s}>
@@ -103,7 +103,7 @@ export default function WorkItemConfirm({
           <div className="flex gap-3">
             <button
               onClick={onCancel}
-              className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-sm text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100"
             >
               Cancel
             </button>

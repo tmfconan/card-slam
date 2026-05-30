@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 from jose import jwt, JWTError
 
-from .models import LoginRequest, TokenResponse, CaptchaResponse
+from .models import LoginRequest, TokenResponse, CaptchaResponse, ThemeUpdate
 from . import security as login_security
 from config import get_jwt_secret
 from db import get_users_table
@@ -14,6 +14,9 @@ security = HTTPBearer()
 
 _ALGORITHM = "HS256"
 _TOKEN_EXPIRE_HOURS = 24
+# Theme used when a user has never picked one (older accounts predate the
+# preference, and the field is simply absent on their record).
+_DEFAULT_THEME = "light"
 
 
 def create_token(username: str, role: str) -> str:
@@ -109,4 +112,28 @@ def login(body: LoginRequest, request: Request):
 @router.get("/me")
 def me(credentials: HTTPAuthorizationCredentials = Depends(security)):
     payload = _decode(credentials)
-    return {"username": payload["sub"], "role": payload.get("role", "user")}
+    username = payload["sub"]
+    user = get_users_table().get_item(Key={"username": username}).get("Item") or {}
+    return {
+        "username": username,
+        "role": payload.get("role", "user"),
+        "theme": user.get("theme", _DEFAULT_THEME),
+    }
+
+
+@router.put("/me/theme")
+def update_theme(
+    body: ThemeUpdate,
+    credentials: HTTPAuthorizationCredentials = Depends(security),
+):
+    """Persist the signed-in user's preferred UI theme."""
+    username = _decode(credentials)["sub"]
+    table = get_users_table()
+    if not table.get_item(Key={"username": username}).get("Item"):
+        raise HTTPException(status_code=404, detail="User not found")
+    table.update_item(
+        Key={"username": username},
+        UpdateExpression="SET theme = :theme",
+        ExpressionAttributeValues={":theme": body.theme},
+    )
+    return {"theme": body.theme}

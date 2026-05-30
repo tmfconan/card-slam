@@ -147,15 +147,15 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
   if (viewMode === "day") {
     return (
       <div className="flex flex-col h-full">
-        <div className="bg-white border-b px-5 py-2 flex items-center gap-3 flex-shrink-0">
+        <div className="bg-white dark:bg-gray-900 border-b dark:border-gray-700 px-5 py-2 flex items-center gap-3 flex-shrink-0">
           <button
             onClick={leaveDayView}
             className="text-sm text-blue-600 hover:underline"
           >
             ← Week view
           </button>
-          <span className="text-gray-300">|</span>
-          <span className="text-sm text-gray-500">Day view</span>
+          <span className="text-gray-300 dark:text-gray-600">|</span>
+          <span className="text-sm text-gray-500 dark:text-gray-400">Day view</span>
         </div>
         <div className="flex-1 overflow-hidden">
           <DailyView
@@ -180,7 +180,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
       {/* Controls */}
       <div className="mb-4 flex flex-wrap items-center gap-4">
         {/* View mode toggle */}
-        <div className="flex rounded-lg border overflow-hidden text-sm">
+        <div className="flex rounded-lg border dark:border-gray-700 overflow-hidden text-sm">
           <button
             onClick={leaveDayView}
             className="px-3 py-1.5 transition-colors bg-gray-800 text-white"
@@ -219,7 +219,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
 
         {/* Category filter */}
         <div className="flex items-center gap-2">
-          <label htmlFor="cal-category" className="text-xs font-medium text-gray-500">
+          <label htmlFor="cal-category" className="text-xs font-medium text-gray-500 dark:text-gray-400">
             Category
           </label>
           <select
@@ -238,9 +238,9 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
 
         {/* Status toggles */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500">Show:</span>
+          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Show:</span>
           {DEFAULT_EXCLUDED.map((s) => (
-            <label key={s} className="flex items-center gap-1 text-xs text-gray-600 cursor-pointer select-none">
+            <label key={s} className="flex items-center gap-1 text-xs text-gray-600 dark:text-gray-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 aria-label={STATUS_LABELS[s]}
@@ -256,7 +256,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
         {/* Weekly Plan Assist */}
         <div className="flex items-center gap-2 ml-auto">
           {planNotice && (
-            <span className="text-xs text-gray-500" role="status">
+            <span className="text-xs text-gray-500 dark:text-gray-400" role="status">
               {planNotice}
             </span>
           )}
@@ -287,7 +287,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
           {/* Unscheduled */}
           <div className="flex-shrink-0 w-44 flex flex-col">
             <div className="mb-2 px-1">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+              <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                 Unscheduled
               </p>
               <p className="text-xs text-gray-400">No date</p>
@@ -298,7 +298,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                   ref={provided.innerRef}
                   {...provided.droppableProps}
                   className={`flex-1 min-h-20 rounded-xl p-2 space-y-2 transition-colors ${
-                    snapshot.isDraggingOver ? "bg-blue-50" : "bg-gray-100"
+                    snapshot.isDraggingOver ? "bg-blue-50 dark:bg-blue-950/40" : "bg-gray-100 dark:bg-gray-800"
                   }`}
                 >
                   {byDate.unscheduled.map((card, i) => (
@@ -331,7 +331,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
               <div key={day.key} className="flex-shrink-0 w-44 flex flex-col">
                 <div className="mb-2 px-1 flex items-center justify-between">
                   <div>
-                    <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-blue-600" : "text-gray-500"}`}>
+                    <p className={`text-xs font-semibold uppercase tracking-wide ${isToday ? "text-blue-600" : "text-gray-500 dark:text-gray-400"}`}>
                       {day.label}
                     </p>
                     <p className={`text-xs ${isToday ? "text-blue-500 font-medium" : "text-gray-400"}`}>
@@ -340,7 +340,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                   </div>
                   <button
                     onClick={() => enterDayView(day.key)}
-                    className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+                    className="text-xs text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
                     title="Open day view"
                   >
                     ⏱
@@ -352,7 +352,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                       ref={provided.innerRef}
                       {...provided.droppableProps}
                       className={`flex-1 min-h-20 rounded-xl p-2 space-y-2 transition-colors ${
-                        snapshot.isDraggingOver ? "bg-blue-50" : isToday ? "bg-blue-50/50" : "bg-gray-100"
+                        snapshot.isDraggingOver ? "bg-blue-50 dark:bg-blue-950/40" : isToday ? "bg-blue-50/50 dark:bg-blue-950/30" : "bg-gray-100 dark:bg-gray-800"
                       }`}
                     >
                       {byDate[day.key].map((card, i) => (
@@ -373,7 +373,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                       ))}
                       {provided.placeholder}
                       {byDate[day.key].length === 0 && !snapshot.isDraggingOver && (
-                        <p className="text-xs text-gray-300 text-center pt-4">—</p>
+                        <p className="text-xs text-gray-300 dark:text-gray-600 text-center pt-4">—</p>
                       )}
                     </div>
                   )}

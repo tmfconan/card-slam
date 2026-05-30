@@ -39,10 +39,10 @@ export default function ArchiveView({ categories, categoryMap, onUpdate }: Props
   return (
     <div className="p-3 sm:p-6">
       <div className="mb-4 flex items-baseline gap-3">
-        <h2 className="text-lg font-semibold text-gray-800">Archive</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Archive</h2>
         <span className="text-sm text-gray-400">{cards.length} archived</span>
       </div>
-      <p className="text-sm text-gray-500 mb-4">
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
         Archived cards are hidden from the Kanban, List, and Calendar views.
         Restore a card to bring it back to your active work.
       </p>

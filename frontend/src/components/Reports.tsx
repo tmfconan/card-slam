@@ -48,9 +48,9 @@ interface CategoryBreakdown {
 
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-200 p-5 flex flex-col gap-1">
-      <span className="text-xs text-gray-500 uppercase tracking-wide">{label}</span>
-      <span className="text-3xl font-semibold text-gray-900">{value}</span>
+    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 flex flex-col gap-1">
+      <span className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{label}</span>
+      <span className="text-3xl font-semibold text-gray-900 dark:text-gray-100">{value}</span>
     </div>
   );
 }
@@ -60,10 +60,10 @@ function CategoryPie({ title, data }: { title: string; data: CategorySlice[] }) 
   return (
     <div
       data-testid={`category-pie-${title.toLowerCase()}`}
-      className="bg-white rounded-xl border border-gray-200 p-5 space-y-3"
+      className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-3"
     >
       <div className="text-center">
-        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
+        <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">{title}</h3>
         <p className="text-xs text-gray-400">{total} card{total === 1 ? "" : "s"}</p>
       </div>
       {total === 0 ? (
@@ -161,7 +161,7 @@ export default function Reports() {
   }
   if (error || !data) {
     return (
-      <div className="flex items-center justify-center h-full text-red-500 text-sm">
+      <div className="flex items-center justify-center h-full text-red-500 dark:text-red-400 text-sm">
         {error ?? "No data."}
       </div>
     );
@@ -173,23 +173,23 @@ export default function Reports() {
   return (
     <div className="p-6 space-y-8 max-w-4xl mx-auto">
       <div className="flex items-center justify-between flex-wrap gap-3">
-        <h2 className="text-lg font-semibold text-gray-800">Velocity Report</h2>
+        <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Velocity Report</h2>
         <div className="flex items-center gap-2">
           <button
             data-testid="reports-prev-week"
             onClick={() => setRefDate((d) => shiftWeeks(d, -1))}
-            className="px-2 py-1 text-sm border rounded hover:bg-gray-50"
+            className="px-2 py-1 text-sm border dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800"
           >
             ← Prev
           </button>
-          <span data-testid="reports-week-label" className="text-sm text-gray-600 min-w-[120px] text-center">
+          <span data-testid="reports-week-label" className="text-sm text-gray-600 dark:text-gray-300 min-w-[120px] text-center">
             {weekLabel(refDate)}
           </span>
           <button
             data-testid="reports-next-week"
             onClick={() => setRefDate((d) => shiftWeeks(d, 1))}
             disabled={isCurrentWeek}
-            className="px-2 py-1 text-sm border rounded hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-2 py-1 text-sm border dark:border-gray-700 rounded hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Next →
           </button>
@@ -204,9 +204,9 @@ export default function Reports() {
       </div>
 
       {/* Cohort chart */}
-      <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
+      <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-700">Intended vs. Done by Creation Week</h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Intended vs. Done by Creation Week</h3>
           <p className="text-xs text-gray-400">
             Of cards created each week that left Brainstorm, how many are Done?
           </p>
@@ -240,7 +240,7 @@ export default function Reports() {
             <Bar dataKey="not_done" stackId="a" fill="#d1d5db" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
-        <div className="flex items-center gap-4 text-xs text-gray-500">
+        <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
           <span className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded-sm bg-green-600 inline-block" />
             Done
@@ -256,7 +256,7 @@ export default function Reports() {
       {categories && (
         <div className="space-y-3">
           <div>
-            <h3 className="text-sm font-semibold text-gray-700">Cards by Category</h3>
+            <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Cards by Category</h3>
             <p className="text-xs text-gray-400">
               How your cards split across categories — all, still to do, and done.
             </p>

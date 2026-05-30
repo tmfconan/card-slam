@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Root background follows the theme so areas outside React-rendered
+   surfaces (e.g. overscroll) don't flash white in dark mode. */
+@layer base {
+  html {
+    @apply bg-gray-50 dark:bg-gray-950;
+  }
+}

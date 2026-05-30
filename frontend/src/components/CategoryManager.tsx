@@ -72,7 +72,7 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
         type="color"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-7 h-7 rounded cursor-pointer border border-gray-300"
+        className="w-7 h-7 rounded cursor-pointer border border-gray-300 dark:border-gray-700"
         title="Custom color"
       />
     </div>
@@ -83,8 +83,8 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
       <h2 className="text-xl font-semibold mb-6">Categories</h2>
 
       {/* Create */}
-      <div className="bg-white rounded-xl shadow-sm border p-5 mb-6">
-        <h3 className="text-sm font-medium text-gray-700 mb-4">
+      <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border dark:border-gray-700 p-5 mb-6">
+        <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">
           New Category
         </h3>
         <div className="space-y-3">
@@ -94,7 +94,7 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
             value={name}
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleCreate()}
-            className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
           <ColorPicker value={color} onChange={setColor} />
           <button
@@ -112,7 +112,7 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
         {categories.map((cat) => (
           <div
             key={cat.id}
-            className="bg-white rounded-xl shadow-sm border p-4 flex items-center gap-4"
+            className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border dark:border-gray-700 p-4 flex items-center gap-4"
           >
             <div
               className="w-5 h-5 rounded-full flex-shrink-0"
@@ -122,7 +122,7 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
               <>
                 <input
                   autoFocus
-                  className="flex-1 text-sm border-b border-gray-300 focus:outline-none focus:border-blue-500"
+                  className="flex-1 text-sm border-b border-gray-300 dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500"
                   value={editName}
                   onChange={(e) => setEditName(e.target.value)}
                 />
@@ -135,7 +135,7 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
                 </button>
                 <button
                   onClick={() => setEditingId(null)}
-                  className="text-sm text-gray-500 hover:underline"
+                  className="text-sm text-gray-500 dark:text-gray-400 hover:underline"
                 >
                   Cancel
                 </button>
@@ -145,13 +145,13 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
                 <span className="flex-1 text-sm font-medium">{cat.name}</span>
                 <button
                   onClick={() => startEdit(cat)}
-                  className="text-xs text-gray-400 hover:text-blue-500 transition-colors"
+                  className="text-xs text-gray-400 dark:text-gray-400 hover:text-blue-500 transition-colors"
                 >
                   Edit
                 </button>
                 <button
                   onClick={() => handleDelete(cat.id, cat.name)}
-                  className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                  className="text-xs text-gray-400 dark:text-gray-400 hover:text-red-500 transition-colors"
                 >
                   Delete
                 </button>
@@ -160,7 +160,7 @@ export default function CategoryManager({ categories, onUpdate }: Props) {
           </div>
         ))}
         {categories.length === 0 && (
-          <p className="text-sm text-gray-400 text-center py-10">
+          <p className="text-sm text-gray-400 dark:text-gray-400 text-center py-10">
             No categories yet. Create one above.
           </p>
         )}
