@@ -100,6 +100,48 @@ describe("CardDetail", () => {
     expect(input.value).toBe("2026-05-05");
   });
 
+  it("renders a 'Set to now' button in the schedule area", () => {
+    renderDetail();
+    expect(screen.getByRole("button", { name: /set to now/i })).toBeInTheDocument();
+  });
+
+  it("'Set to now' sets date and time to the current local date/time", async () => {
+    const user = userEvent.setup();
+    renderDetail({ todo_date: "", todo_time: "" });
+
+    await user.click(screen.getByRole("button", { name: /set to now/i }));
+
+    const dateInput = screen.getByLabelText(/date/i) as HTMLInputElement;
+    const timeInput = screen.getByLabelText(/time/i) as HTMLInputElement;
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const expectedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    expect(dateInput.value).toBe(expectedDate);
+    expect(timeInput.value).toMatch(/^\d{2}:\d{2}$/);
+  });
+
+  it("'Set to now' values are sent in the PUT body on save", async () => {
+    let captured: any = null;
+    server.use(
+      http.put("/api/cards/:id", async ({ request }) => {
+        captured = await request.json();
+        return HttpResponse.json({ ok: true });
+      })
+    );
+    const user = userEvent.setup();
+    renderDetail();
+
+    await user.click(screen.getByRole("button", { name: /set to now/i }));
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => expect(captured).not.toBeNull());
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const expectedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    expect(captured.todo_date).toBe(expectedDate);
+    expect(captured.todo_time).toMatch(/^\d{2}:\d{2}$/);
+  });
+
   it("shows last-updated date (read-only)", () => {
     renderDetail();
     expect(screen.getByText(/updated/i)).toBeInTheDocument();

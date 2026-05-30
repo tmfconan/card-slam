@@ -27,6 +27,15 @@ export default function QuickAddCard({
   const [highPriority, setHighPriority] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  const setToNow = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setTodoDate(
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+    );
+    setTodoTime(`${pad(now.getHours())}:${pad(now.getMinutes())}`);
+  };
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
     if (!title.trim()) return;
@@ -121,6 +130,17 @@ export default function QuickAddCard({
           </div>
 
           {/* Date + Time + Duration */}
+          <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-600">Schedule</span>
+            <button
+              type="button"
+              onClick={setToNow}
+              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Set to now
+            </button>
+          </div>
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label htmlFor="qac-date" className="block text-xs font-medium text-gray-600 mb-1">
@@ -163,6 +183,7 @@ export default function QuickAddCard({
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
+          </div>
           </div>
 
           <div>
