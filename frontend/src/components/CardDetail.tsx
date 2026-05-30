@@ -29,6 +29,15 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   const [merging, setMerging] = useState(false);
   const [mergeResult, setMergeResult] = useState<{ merged?: boolean; conflict?: boolean; message?: string } | null>(null);
 
+  const setToNow = () => {
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    setTodoDate(
+      `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`
+    );
+    setTodoTime(`${pad(now.getHours())}:${pad(now.getMinutes())}`);
+  };
+
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -186,6 +195,18 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
             </div>
           </div>
 
+          <div>
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-xs font-medium text-gray-600">Schedule</span>
+            <button
+              type="button"
+              onClick={setToNow}
+              className="text-xs text-blue-600 hover:text-blue-800 transition-colors"
+            >
+              Set to now
+            </button>
+          </div>
+
           <div className="grid grid-cols-3 gap-3">
             <div>
               <label
@@ -241,6 +262,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
                 className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none"
               />
             </div>
+          </div>
           </div>
 
           <div>

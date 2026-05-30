@@ -131,6 +131,29 @@ describe("QuickAddCard", () => {
     expect(timeInput.value).toBe("08:00");
   });
 
+  it("renders a 'Set to now' button in the schedule area", () => {
+    renderQuickAdd();
+    expect(screen.getByRole("button", { name: /set to now/i })).toBeInTheDocument();
+  });
+
+  it("'Set to now' fills date and time with the current local date/time", async () => {
+    const user = userEvent.setup();
+    renderQuickAdd();
+
+    const dateInput = screen.getByLabelText(/date/i) as HTMLInputElement;
+    const timeInput = screen.getByLabelText(/time/i) as HTMLInputElement;
+    expect(dateInput.value).toBe("");
+    expect(timeInput.value).toBe("");
+
+    await user.click(screen.getByRole("button", { name: /set to now/i }));
+
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const expectedDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    expect(dateInput.value).toBe(expectedDate);
+    expect(timeInput.value).toMatch(/^\d{2}:\d{2}$/);
+  });
+
   it("renders a high priority checkbox that defaults to unchecked", () => {
     renderQuickAdd();
     const checkbox = screen.getByLabelText(/high priority/i) as HTMLInputElement;
