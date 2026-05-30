@@ -103,3 +103,13 @@ export interface PlanItem {
   todo_time: string; // HH:MM
   reason: string;
 }
+
+export interface CardRecommendation {
+  title: string;
+  description: string;
+}
+
+export interface WhatsGoinOnSummary {
+  summary: string;
+  recommendations: CardRecommendation[];
+}

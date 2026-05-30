@@ -198,3 +198,131 @@ def test_suggest_plan_does_not_use_other_users_cards(client, auth_headers, user_
     assert response.status_code == 200
     assert "Admin intent card" in captured["content"]
     assert "User-only intent card" not in captured["content"]
+
+
+# ── What's Goin' On ────────────────────────────────────────────────────────
+
+WGO_PAYLOAD = {"today": "2026-06-01"}
+
+WGO_RESULT = {
+    "summary": "You have two cards in progress and a busy week ahead.",
+    "recommendations": [
+        {"title": "Plan the week", "description": "Block time to triage your backlog."},
+    ],
+}
+
+
+def test_whats_goin_on_returns_summary_and_recommendations(client, auth_headers):
+    _make_card(client, auth_headers, "In progress card", "in_progress")
+    mock_cls = _make_mock_client(json.dumps(WGO_RESULT))
+
+    with patch("anthropic.Anthropic", mock_cls):
+        response = client.post(
+            "/api/ai/whats-goin-on", json=WGO_PAYLOAD, headers=auth_headers
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["summary"] == WGO_RESULT["summary"]
+    assert len(data["recommendations"]) == 1
+    assert data["recommendations"][0]["title"] == "Plan the week"
+
+
+def test_whats_goin_on_strips_markdown_code_fences(client, auth_headers):
+    _make_card(client, auth_headers, "In progress card", "in_progress")
+    fenced = "```json\n" + json.dumps(WGO_RESULT) + "\n```"
+    mock_cls = _make_mock_client(fenced)
+
+    with patch("anthropic.Anthropic", mock_cls):
+        response = client.post(
+            "/api/ai/whats-goin-on", json=WGO_PAYLOAD, headers=auth_headers
+        )
+
+    assert response.status_code == 200
+    assert response.json()["summary"] == WGO_RESULT["summary"]
+
+
+def test_whats_goin_on_empty_when_no_incomplete_cards(client, auth_headers):
+    _make_card(client, auth_headers, "Done card", "done")
+
+    # No incomplete cards → no LLM call; an exploding mock proves it.
+    mock_cls = MagicMock(side_effect=AssertionError("LLM should not be called"))
+    with patch("anthropic.Anthropic", mock_cls):
+        response = client.post(
+            "/api/ai/whats-goin-on", json=WGO_PAYLOAD, headers=auth_headers
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["recommendations"] == []
+    assert "no incomplete cards" in data["summary"].lower()
+
+
+def test_whats_goin_on_excludes_done_and_archived(client, auth_headers):
+    _make_card(client, auth_headers, "Brainstorm card", "brainstorm")
+    _make_card(client, auth_headers, "Done card", "done")
+
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured["content"] = kwargs["messages"][0]["content"]
+        mock_message = MagicMock()
+        mock_message.content = [
+            MagicMock(text=json.dumps({"summary": "ok", "recommendations": []}))
+        ]
+        return mock_message
+
+    mock_instance = MagicMock()
+    mock_instance.messages.create.side_effect = fake_create
+    mock_cls = MagicMock(return_value=mock_instance)
+
+    with patch("anthropic.Anthropic", mock_cls):
+        response = client.post(
+            "/api/ai/whats-goin-on", json=WGO_PAYLOAD, headers=auth_headers
+        )
+
+    assert response.status_code == 200
+    assert "Brainstorm card" in captured["content"]
+    assert "Done card" not in captured["content"]
+
+
+def test_whats_goin_on_returns_502_for_invalid_json(client, auth_headers):
+    _make_card(client, auth_headers, "In progress card", "in_progress")
+    mock_cls = _make_mock_client("not valid json")
+
+    with patch("anthropic.Anthropic", mock_cls):
+        response = client.post(
+            "/api/ai/whats-goin-on", json=WGO_PAYLOAD, headers=auth_headers
+        )
+
+    assert response.status_code == 502
+
+
+def test_whats_goin_on_does_not_use_other_users_cards(
+    client, auth_headers, user_auth_headers
+):
+    _make_card(client, user_auth_headers, "User-only card", "in_progress")
+    _make_card(client, auth_headers, "Admin card", "in_progress")
+
+    captured = {}
+
+    def fake_create(**kwargs):
+        captured["content"] = kwargs["messages"][0]["content"]
+        mock_message = MagicMock()
+        mock_message.content = [
+            MagicMock(text=json.dumps({"summary": "ok", "recommendations": []}))
+        ]
+        return mock_message
+
+    mock_instance = MagicMock()
+    mock_instance.messages.create.side_effect = fake_create
+    mock_cls = MagicMock(return_value=mock_instance)
+
+    with patch("anthropic.Anthropic", mock_cls):
+        response = client.post(
+            "/api/ai/whats-goin-on", json=WGO_PAYLOAD, headers=auth_headers
+        )
+
+    assert response.status_code == 200
+    assert "Admin card" in captured["content"]
+    assert "User-only card" not in captured["content"]

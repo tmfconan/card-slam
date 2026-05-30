@@ -155,6 +155,45 @@ describe("Layout sidebar", () => {
     expect(screen.getByTestId("nav-icon-feature-requests")).toBeInTheDocument();
   });
 
+  it("shows a What's Goin' On nav button with an icon", async () => {
+    renderLayout();
+    await waitForLoad();
+    expect(
+      screen.getByRole("button", { name: /what's goin' on/i })
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("nav-icon-whats-goin-on")).toBeInTheDocument();
+  });
+
+  it("clicking What's Goin' On opens the summary modal", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await waitForLoad();
+
+    expect(screen.queryByTestId("whats-goin-on-modal")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /what's goin' on/i }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("whats-goin-on-modal")).toBeInTheDocument()
+    );
+  });
+
+  it("What's Goin' On modal can be dismissed via the close button", async () => {
+    const user = userEvent.setup();
+    renderLayout();
+    await waitForLoad();
+
+    await user.click(screen.getByRole("button", { name: /what's goin' on/i }));
+    await waitFor(() =>
+      expect(screen.getByTestId("whats-goin-on-modal")).toBeInTheDocument()
+    );
+
+    await user.click(screen.getByTestId("whats-goin-on-close"));
+    expect(
+      screen.queryByTestId("whats-goin-on-modal")
+    ).not.toBeInTheDocument();
+  });
+
   it("does not render a Getting Started nav link", async () => {
     renderLayout();
     await waitForLoad();

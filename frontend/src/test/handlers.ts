@@ -245,4 +245,17 @@ export const handlers = [
       ],
     });
   }),
+
+  http.post("/api/ai/whats-goin-on", () => {
+    return HttpResponse.json({
+      summary:
+        "You have a couple of cards in progress today and a few more lined up this week.",
+      recommendations: [
+        {
+          title: "Review the backlog",
+          description: "Spend 30 minutes triaging stale cards.",
+        },
+      ],
+    });
+  }),
 ];
