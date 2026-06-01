@@ -9,6 +9,7 @@ os.environ.setdefault("AWS_SESSION_TOKEN", "testing")
 os.environ.setdefault("CATEGORIES_TABLE", "card-slam-categories")
 os.environ.setdefault("CARDS_TABLE", "card-slam-cards")
 os.environ.setdefault("USERS_TABLE", "card-slam-users")
+os.environ.setdefault("INTEGRATIONS_TABLE", "card-slam-integrations")
 
 _backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, _backend_dir)
@@ -58,6 +59,12 @@ def dynamo_tables():
             TableName="card-slam-users",
             KeySchema=[{"AttributeName": "username", "KeyType": "HASH"}],
             AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
+            BillingMode="PAY_PER_REQUEST",
+        )
+        dynamodb.create_table(
+            TableName="card-slam-integrations",
+            KeySchema=[{"AttributeName": "provider", "KeyType": "HASH"}],
+            AttributeDefinitions=[{"AttributeName": "provider", "AttributeType": "S"}],
             BillingMode="PAY_PER_REQUEST",
         )
 

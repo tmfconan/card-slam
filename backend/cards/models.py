@@ -87,3 +87,4 @@ class Card(BaseModel):
     is_feature_request: bool = False
     feature_request_status: Optional[FeatureRequestStatus] = None
     auto_merge: bool = False
+    zoho_event_uid: Optional[str] = None   # set on cards imported from Zoho Calendar

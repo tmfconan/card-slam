@@ -77,6 +77,7 @@ export interface Card {
   is_feature_request?: boolean;
   feature_request_status?: FeatureRequestStatus;
   auto_merge?: boolean;   // auto-merge the feature branch once the build succeeds
+  zoho_event_uid?: string;   // set on cards imported from a Zoho calendar
 }
 
 export interface FeatureRun {
