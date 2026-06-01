@@ -8,6 +8,7 @@ import CalendarView from "./CalendarView";
 import ArchiveView from "./ArchiveView";
 import CategoryManager from "./CategoryManager";
 import UserManagement from "./UserManagement";
+import IntegrationsSettings from "./IntegrationsSettings";
 import Reports from "./Reports";
 import AutoCodeView from "./AutoCodeView";
 import OnboardingGuide from "./OnboardingGuide";
@@ -23,6 +24,7 @@ import {
   ReportsIcon,
   UsersIcon,
   FeatureRequestsIcon,
+  IntegrationsIcon,
   ArchiveIcon,
   HelpIcon,
   WhatsGoinOnIcon,
@@ -77,7 +79,7 @@ export default function Layout() {
   }, [needsOnboarding, markOnboardingSeen]);
 
   const categoryMap = Object.fromEntries(categories.map((c) => [c.id, c]));
-  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests", "/archive"].includes(location.pathname);
+  const showPromptBar = !["/categories", "/users", "/reports", "/feature-requests", "/archive", "/integrations"].includes(location.pathname);
 
   const navLink = (to: string, label: string, icon: ReactNode) => {
     const active = location.pathname === to;
@@ -146,6 +148,7 @@ export default function Layout() {
             {isAdmin && navLink("/users", "Users", <UsersIcon />)}
             {isAdmin &&
               navLink("/feature-requests", "Feature Requests", <FeatureRequestsIcon />)}
+            {isAdmin && navLink("/integrations", "Integrations", <IntegrationsIcon />)}
             {/* Pinned to the bottom of the nav, set apart by a divider. */}
             <div className="mt-auto pt-2 border-t border-gray-700">
               <button
@@ -288,6 +291,9 @@ export default function Layout() {
               )}
               {isAdmin && (
                 <Route path="/feature-requests" element={<AutoCodeView />} />
+              )}
+              {isAdmin && (
+                <Route path="/integrations" element={<IntegrationsSettings />} />
               )}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

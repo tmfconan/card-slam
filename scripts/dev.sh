@@ -108,6 +108,12 @@ tables = [
         AttributeDefinitions=[{"AttributeName": "username", "AttributeType": "S"}],
         BillingMode="PAY_PER_REQUEST",
     ),
+    dict(
+        TableName="card-slam-integrations",
+        KeySchema=[{"AttributeName": "provider", "KeyType": "HASH"}],
+        AttributeDefinitions=[{"AttributeName": "provider", "AttributeType": "S"}],
+        BillingMode="PAY_PER_REQUEST",
+    ),
 ]
 
 for t in tables:

@@ -30,3 +30,9 @@ def get_feature_runs_table():
     return _dynamodb().Table(
         os.environ.get("FEATURE_RUNS_TABLE", "card-slam-feature-runs")
     )
+
+
+def get_integrations_table():
+    return _dynamodb().Table(
+        os.environ.get("INTEGRATIONS_TABLE", "card-slam-integrations")
+    )

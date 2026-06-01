@@ -145,3 +145,14 @@ export function FeatureRequestsIcon({ className = defaultClass }: IconProps) {
     </svg>
   );
 }
+
+export function IntegrationsIcon({ className = defaultClass }: IconProps) {
+  return (
+    <svg {...baseProps} className={className} data-testid="nav-icon-integrations">
+      <path d="M10 3v5" />
+      <path d="M14 3v5" />
+      <path d="M7 8h10v3a5 5 0 0 1-10 0V8Z" />
+      <path d="M12 16v5" />
+    </svg>
+  );
+}

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import {
   DragDropContext,
   Droppable,
@@ -10,6 +10,7 @@ import api from "../api/client";
 import CardItem from "./CardItem";
 import DailyView from "./DailyView";
 import PlanReview from "./PlanReview";
+import ZohoSyncModal from "./ZohoSyncModal";
 
 interface Props {
   cards: Card[];
@@ -97,6 +98,28 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
       setSuggesting(false);
     }
   };
+
+  // Zoho Calendar sync modal. On returning from the OAuth consent flow the
+  // backend redirects to /calendar?zoho=connected (or =error) — detect that,
+  // open the modal in the right state, and strip the param from the URL.
+  const [showZoho, setShowZoho] = useState(false);
+  const [zohoReturn, setZohoReturn] = useState<"connected" | "error" | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const zoho = params.get("zoho");
+    if (zoho === "connected" || zoho === "error") {
+      setZohoReturn(zoho);
+      setShowZoho(true);
+      params.delete("zoho");
+      const qs = params.toString();
+      window.history.replaceState(
+        {},
+        "",
+        window.location.pathname + (qs ? `?${qs}` : "")
+      );
+    }
+  }, []);
 
   const toggleStatus = (status: Status) => {
     setIncludedStatuses((prev) => {
@@ -267,8 +290,26 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
           >
             {suggesting ? "Planning…" : "✨ Suggest plan"}
           </button>
+          <button
+            onClick={() => {
+              setZohoReturn(null);
+              setShowZoho(true);
+            }}
+            className="px-3 py-1.5 text-sm border rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            📅 Sync Zoho
+          </button>
         </div>
       </div>
+
+      {showZoho && (
+        <ZohoSyncModal
+          categories={categories}
+          onUpdate={onUpdate}
+          onClose={() => setShowZoho(false)}
+          oauthReturn={zohoReturn}
+        />
+      )}
 
       {planItems && (
         <PlanReview

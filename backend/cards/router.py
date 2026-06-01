@@ -55,6 +55,7 @@ def _normalize(item: dict) -> dict:
     item.setdefault("is_feature_request", False)
     item.setdefault("feature_request_status", None)
     item["auto_merge"] = bool(item.get("auto_merge", False))
+    item.setdefault("zoho_event_uid", None)
     return item
 
 
