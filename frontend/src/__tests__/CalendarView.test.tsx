@@ -157,6 +157,15 @@ describe("CalendarView", () => {
     expect(within(day5Col).getByText("In progress card day 5")).toBeInTheDocument();
   });
 
+  it("gives the week-navigation controls dark-mode styling so they aren't white in dark mode", () => {
+    renderCalendar();
+    for (const name of [/prev/i, /today/i, /next/i]) {
+      const btn = screen.getByRole("button", { name });
+      expect(btn.className).toMatch(/dark:bg-gray-900/);
+      expect(btn.className).toMatch(/dark:text-gray-200/);
+    }
+  });
+
   it("shows cards without todo_date in the Unscheduled column", () => {
     renderCalendar();
     const unscheduled = screen.getByTestId("droppable-unscheduled");

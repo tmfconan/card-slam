@@ -49,7 +49,7 @@ export default function UserManagement() {
 
   return (
     <div className="p-6 max-w-2xl">
-      <h2 className="text-xl font-semibold mb-6">User Accounts</h2>
+      <h2 className="text-xl font-semibold mb-6 text-gray-800 dark:text-gray-100">User Accounts</h2>
 
       {/* Create form */}
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border dark:border-gray-700 p-5 mb-6">

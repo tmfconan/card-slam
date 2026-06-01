@@ -144,7 +144,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] flex flex-col">
         <div className="p-5 border-b dark:border-gray-700 flex items-center justify-between">
-          <h2 className="text-base font-semibold">Edit card</h2>
+          <h2 className="text-base font-semibold text-gray-800 dark:text-gray-100">Edit card</h2>
           <p className="text-xs text-gray-400 dark:text-gray-400">
             Updated {new Date(card.updated_at).toLocaleDateString()}
           </p>
@@ -346,7 +346,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
               </p>
             )}
             {canAutoMerge && (
-              <label className="inline-flex items-center gap-2 text-xs text-gray-700 cursor-pointer">
+              <label className="inline-flex items-center gap-2 text-xs text-gray-700 dark:text-gray-300 cursor-pointer">
                 <input
                   type="checkbox"
                   aria-label="Auto-merge when build succeeds"

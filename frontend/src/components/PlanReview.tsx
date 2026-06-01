@@ -54,7 +54,7 @@ export default function PlanReview({ items, onApprove, onReject }: Props) {
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-2xl max-h-[85vh] flex flex-col">
         <div className="p-6 border-b dark:border-gray-700">
-          <h2 className="text-lg font-semibold">Suggested Weekly Plan</h2>
+          <h2 className="text-lg font-semibold text-gray-800 dark:text-gray-100">Suggested Weekly Plan</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             Card Slam suggests a day and time for {items.length} piece
             {items.length !== 1 ? "s" : ""} of work. Uncheck anything you don't

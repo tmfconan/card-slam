@@ -383,17 +383,17 @@ export default function DailyView({
         <div className="flex items-center gap-1.5">
           <button aria-label="Prev day"
             onClick={() => onDateChange(shiftDate(selectedDate, -1))}
-            className="px-2 py-1.5 text-sm border rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+            className="px-2 py-1.5 text-sm border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             ←
           </button>
           <button aria-label="Today"
             onClick={() => onDateChange(new Date().toISOString().split("T")[0])}
-            className="px-2 py-1.5 text-sm border rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+            className="px-2 py-1.5 text-sm border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             Today
           </button>
           <button aria-label="Next day"
             onClick={() => onDateChange(shiftDate(selectedDate, 1))}
-            className="px-2 py-1.5 text-sm border rounded-lg bg-white text-gray-700 hover:bg-gray-50 transition-colors">
+            className="px-2 py-1.5 text-sm border dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
             →
           </button>
         </div>
