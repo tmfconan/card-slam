@@ -4,10 +4,16 @@ Work organizer powered by AI. Kanban-style task management with Claude-assisted 
 
 ## Recent Features
 
-- **Auto-Code Integration** — Submit feature requests directly from cards, automatically branch, code, test, and merge via AWS CodeBuild
-- **High Priority Cards** — Mark cards as high priority for better task organization
-- **Enhanced Daily View** — Adjust card duration in 15-minute increments for precise time blocking
-- **2-Week Calendar** — Extended calendar view now includes yesterday for better context
+- **Dark Mode** — Light/dark theme toggle, persisted per-user (`PUT /api/auth/me/theme`) so your preference follows you across sessions
+- **What's Goin' On** — AI-generated summary of your current workload plus suggested next cards (`POST /api/ai/whats-goin-on`)
+- **Weekly Plan Assist** — Let Claude propose a week's schedule from the calendar view, then review and apply it
+- **Onboarding Walkthrough** — Guided first-run steps for new users
+- **Login Security** — Captcha and anti-brute-force lockout on the login flow
+- **Bulk Actions** — Multi-select cards on the List view to delete or archive in one go
+- **Archived Cards** — Archive cards and view/restore them from a dedicated Archive view
+- **This Week Filter** — Filter the Kanban board to cards due this week
+- **Reports** — Pie chart breakdown of work
+- **Auto-Code** — Submit feature requests from cards; auto-merge and a "Merged" status close the loop after CodeBuild finishes
 
 ## Stack
 
@@ -17,7 +23,7 @@ Work organizer powered by AI. Kanban-style task management with Claude-assisted 
 | Backend | FastAPI (Python 3.12) + Uvicorn |
 | Storage | DynamoDB |
 | AI | Claude Sonnet 4.6 via Anthropic API |
-| Auth | Single-user, bcrypt hash in Secrets Manager, JWT |
+| Auth | Single-user, bcrypt hash in Secrets Manager, JWT, captcha + brute-force lockout |
 | Infra | AWS CDK — single Fargate container, ALB, ECR |
 
 The container serves both the API (`/api/*`) and the React static build from the same origin.
@@ -78,7 +84,7 @@ Card Slam includes an automated feature implementation pipeline powered by Claud
 2. **Build** — AWS CodeBuild spins up, creates a branch, and invokes Claude Code CLI to implement the feature
 3. **Test** — All tests run automatically (backend + frontend)
 4. **Deploy** — On success, the feature is built into a Docker image and deployed to ECS
-5. **Merge** — Review the auto-code branch and merge from the card detail view
+5. **Merge** — Review the auto-code branch and merge from the card detail view, or enable auto-merge to merge automatically once the build passes; the card shows a **Merged** status when complete
 
 The pipeline is defined in `buildspec.yml` and requires these environment variables (configured in CDK):
 - `ANTHROPIC_API_KEY` — For Claude Code
