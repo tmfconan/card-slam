@@ -183,6 +183,14 @@ describe("QuickAddCard", () => {
     await waitFor(() => expect(capturedBody?.high_priority).toBe(true));
   });
 
+  // ── Dark mode readability ──────────────────────────────────────────────────
+
+  it("gives the modal title an explicit dark-mode text color so it stays legible", () => {
+    renderQuickAdd();
+    const heading = screen.getByRole("heading", { name: /add card directly/i });
+    expect(heading.className).toMatch(/dark:text-gray-100/);
+  });
+
   it("submission includes todo_date, todo_time, and duration in the payload", async () => {
     const user = userEvent.setup();
     let capturedBody: unknown;

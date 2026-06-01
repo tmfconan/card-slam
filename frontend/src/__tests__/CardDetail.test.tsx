@@ -49,6 +49,12 @@ describe("CardDetail", () => {
     expect(screen.getByDisplayValue("Fix the login bug")).toBeInTheDocument();
   });
 
+  it("gives the modal title an explicit dark-mode text color so it stays legible", () => {
+    renderDetail();
+    const heading = screen.getByRole("heading", { name: /edit card/i });
+    expect(heading.className).toMatch(/dark:text-gray-100/);
+  });
+
   it("renders description in an editable textarea", () => {
     renderDetail();
     expect(
