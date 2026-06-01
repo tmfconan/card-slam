@@ -4,11 +4,21 @@
 #
 # Set your SSO profile before running:
 #   export AWS_PROFILE=AdministratorAccess-366258938689
+#
+# IMPORTANT: this script only ships application code (new image + ECS rollout).
+# It does NOT apply infrastructure changes. If your change touches AWS resources
+# — new/changed DynamoDB tables, IAM grants (grant_*_data), env vars, secrets,
+# or anything in cdk/ — you must deploy the CDK stack FIRST, then run this:
+#   (cd cdk && cdk deploy --require-approval never)
+# Skipping it causes runtime errors like AccessDeniedException (the task role
+# lacks permission on a resource the new code uses).
 set -euo pipefail
 
 REGION="us-east-2"
 
-echo "=== Card Slam Deploy ==="
+echo "=== Card Slam Deploy (application code only) ==="
+echo "Note: infra changes (DynamoDB tables, IAM grants, env vars, anything in cdk/)"
+echo "      require 'cd cdk && cdk deploy' FIRST — this script does not apply them."
 
 # Verify AWS credentials before doing anything else
 if ! ACCOUNT=$(aws sts get-caller-identity --query "Account" --output text 2>/dev/null); then

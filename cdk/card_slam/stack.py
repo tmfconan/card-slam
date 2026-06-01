@@ -151,6 +151,12 @@ class CardSlamStack(Stack):
                 "INTEGRATIONS_TABLE": integrations_table.table_name,
                 "SECRET_NAME": app_secret.secret_name,
                 "AWS_DEFAULT_REGION": self.region,
+                # Public base URL of the app — used to build the Zoho OAuth
+                # redirect_uri and the post-consent redirect back to the SPA.
+                # No trailing slash (the app appends /api/... and /calendar).
+                # NOTE: must exactly match the Authorized Redirect URI registered
+                # in the Zoho console: <APP_BASE_URL>/api/integrations/zoho/callback
+                "APP_BASE_URL": "http://cardsl-servi-fijlyflhxjai-1460095254.us-east-2.elb.amazonaws.com",
             },
             port_mappings=[ecs.PortMapping(container_port=8000)],
         )
