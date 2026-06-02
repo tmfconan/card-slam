@@ -13,6 +13,7 @@ from reports.router import router as reports_router
 from autocode.router import router as autocode_router
 from onboarding.router import router as onboarding_router
 from integrations.router import router as integrations_router
+from dayclose.router import router as dayclose_router
 
 app = FastAPI(title="Card Slam", docs_url="/api/docs", redoc_url=None)
 
@@ -33,6 +34,7 @@ app.include_router(reports_router, prefix="/api")
 app.include_router(autocode_router, prefix="/api")
 app.include_router(onboarding_router, prefix="/api")
 app.include_router(integrations_router, prefix="/api")
+app.include_router(dayclose_router, prefix="/api")
 
 
 @app.get("/health")
