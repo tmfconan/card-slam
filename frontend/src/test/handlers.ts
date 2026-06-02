@@ -260,6 +260,38 @@ export const handlers = [
     });
   }),
 
+  // Close the Day: no closure exists by default (404), summary + save succeed.
+  http.get("/api/dayclose/:date", () =>
+    HttpResponse.json({ detail: "Day not closed yet" }, { status: 404 })
+  ),
+
+  http.post("/api/dayclose/summary", () =>
+    HttpResponse.json({
+      summary: "You wrapped up most of today's work; one card is still open.",
+      completed: ["Write API tests"],
+      incomplete: ["Set up database"],
+    })
+  ),
+
+  http.post("/api/dayclose", async ({ request }) => {
+    const body = (await request.json()) as {
+      date: string;
+      learning: string;
+      ai_summary?: string;
+    };
+    const now = new Date().toISOString();
+    return HttpResponse.json(
+      {
+        date: body.date,
+        learning: body.learning,
+        ai_summary: body.ai_summary ?? "",
+        created_at: now,
+        updated_at: now,
+      },
+      { status: 201 }
+    );
+  }),
+
   http.post("/api/ai/whats-goin-on", () => {
     return HttpResponse.json({
       summary:
