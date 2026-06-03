@@ -12,6 +12,7 @@ export default function UserManagement() {
   const [loading, setLoading] = useState(true);
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  const [newRole, setNewRole] = useState<"admin" | "user">("user");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
@@ -29,9 +30,14 @@ export default function UserManagement() {
     setCreating(true);
     setError("");
     try {
-      await api.post("/admin/users/", { username: newUsername.trim(), password: newPassword });
+      await api.post("/admin/users/", {
+        username: newUsername.trim(),
+        password: newPassword,
+        role: newRole,
+      });
       setNewUsername("");
       setNewPassword("");
+      setNewRole("user");
       await fetchUsers();
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
@@ -39,6 +45,11 @@ export default function UserManagement() {
     } finally {
       setCreating(false);
     }
+  };
+
+  const handleRoleChange = async (username: string, role: "admin" | "user") => {
+    await api.put(`/admin/users/${username}/role`, { role });
+    await fetchUsers();
   };
 
   const handleDelete = async (username: string) => {
@@ -71,6 +82,15 @@ export default function UserManagement() {
             autoComplete="new-password"
             className="flex-1 border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 dark:placeholder-gray-500 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          <select
+            aria-label="Role"
+            value={newRole}
+            onChange={(e) => setNewRole(e.target.value as "admin" | "user")}
+            className="border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+          </select>
           <button
             type="submit"
             disabled={!newUsername.trim() || !newPassword || creating}
@@ -123,13 +143,26 @@ export default function UserManagement() {
                     {new Date(user.created_at).toLocaleDateString()}
                   </td>
                   <td className="py-3 px-4">
-                    {user.role !== "admin" && (
-                      <button
-                        onClick={() => handleDelete(user.username)}
-                        className="text-xs text-gray-400 dark:text-gray-400 hover:text-red-500 transition-colors"
-                      >
-                        Delete
-                      </button>
+                    {user.username !== "admin" && (
+                      <div className="flex items-center gap-4">
+                        <button
+                          onClick={() =>
+                            handleRoleChange(
+                              user.username,
+                              user.role === "admin" ? "user" : "admin"
+                            )
+                          }
+                          className="text-xs text-gray-400 dark:text-gray-400 hover:text-blue-500 transition-colors"
+                        >
+                          {user.role === "admin" ? "Remove admin" : "Make admin"}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(user.username)}
+                          className="text-xs text-gray-400 dark:text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          Delete
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

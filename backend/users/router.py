@@ -2,7 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from datetime import datetime, timezone
 import bcrypt
 
-from .models import UserCreate, User
+from .models import UserCreate, User, RoleUpdate
 from auth.router import require_admin
 from db import get_users_table, get_cards_table, get_categories_table
 
@@ -27,11 +27,31 @@ def create_user(body: UserCreate, admin: str = Depends(require_admin)):
     item = {
         "username": body.username,
         "password_hash": password_hash,
-        "role": "user",
+        "role": body.role,
         "created_at": datetime.now(timezone.utc).isoformat(),
     }
     table.put_item(Item=item)
     return {"username": item["username"], "role": item["role"], "created_at": item["created_at"]}
+
+
+@router.put("/{username}/role", response_model=User)
+def update_user_role(username: str, body: RoleUpdate, admin: str = Depends(require_admin)):
+    if username == "admin":
+        raise HTTPException(status_code=400, detail="Cannot change the role of the admin account")
+
+    table = get_users_table()
+    user = table.get_item(Key={"username": username}).get("Item")
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # "role" is a DynamoDB reserved word, so reference it via an expression name.
+    table.update_item(
+        Key={"username": username},
+        UpdateExpression="SET #role = :role",
+        ExpressionAttributeNames={"#role": "role"},
+        ExpressionAttributeValues={":role": body.role},
+    )
+    return {"username": username, "role": body.role, "created_at": user["created_at"]}
 
 
 @router.delete("/{username}", status_code=204)
