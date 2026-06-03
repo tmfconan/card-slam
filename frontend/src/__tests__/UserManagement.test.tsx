@@ -8,6 +8,7 @@ import UserManagement from "../components/UserManagement";
 const mockUsers = [
   { username: "admin", role: "admin", created_at: "2024-01-01T00:00:00Z" },
   { username: "alice", role: "user", created_at: "2024-02-01T00:00:00Z" },
+  { username: "bob", role: "admin", created_at: "2024-03-01T00:00:00Z" },
 ];
 
 function renderUserManagement() {
@@ -112,6 +113,103 @@ describe("UserManagement", () => {
     await user.click(within(aliceRow!).getByRole("button", { name: /delete/i }));
 
     await waitFor(() => expect(deletedUsername).toBe("alice"));
+  });
+
+  it("create form has a role selector defaulting to user", () => {
+    renderUserManagement();
+    const roleSelect = screen.getByLabelText("Role") as HTMLSelectElement;
+    expect(roleSelect).toBeInTheDocument();
+    expect(roleSelect.value).toBe("user");
+  });
+
+  it("creating with the admin role sends role: admin", async () => {
+    let capturedBody: unknown;
+    server.use(
+      http.post("/api/admin/users", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json(
+          { username: "newadmin", role: "admin", created_at: new Date().toISOString() },
+          { status: 201 }
+        );
+      })
+    );
+
+    const user = userEvent.setup();
+    renderUserManagement();
+
+    await user.type(screen.getByPlaceholderText(/username/i), "newadmin");
+    await user.type(screen.getByPlaceholderText(/password/i), "pass123");
+    await user.selectOptions(screen.getByLabelText("Role"), "admin");
+    await user.click(screen.getByRole("button", { name: /create user/i }));
+
+    await waitFor(() =>
+      expect(capturedBody).toMatchObject({
+        username: "newadmin",
+        password: "pass123",
+        role: "admin",
+      })
+    );
+  });
+
+  it("promotes a user via PUT /api/admin/users/:username/role", async () => {
+    let capturedUsername = "";
+    let capturedBody: unknown;
+    server.use(
+      http.put("/api/admin/users/:username/role", async ({ params, request }) => {
+        capturedUsername = params.username as string;
+        capturedBody = await request.json();
+        return HttpResponse.json({
+          username: capturedUsername,
+          role: "admin",
+          created_at: "2024-02-01T00:00:00Z",
+        });
+      })
+    );
+
+    const user = userEvent.setup();
+    renderUserManagement();
+
+    await waitFor(() => expect(screen.getByText("alice")).toBeInTheDocument());
+    const aliceRow = screen.getByText("alice").closest("tr");
+    await user.click(within(aliceRow!).getByRole("button", { name: /make admin/i }));
+
+    await waitFor(() => {
+      expect(capturedUsername).toBe("alice");
+      expect(capturedBody).toMatchObject({ role: "admin" });
+    });
+  });
+
+  it("demotes a non-primary admin via the Remove admin button", async () => {
+    let capturedBody: unknown;
+    server.use(
+      http.put("/api/admin/users/:username/role", async ({ request }) => {
+        capturedBody = await request.json();
+        return HttpResponse.json({
+          username: "bob",
+          role: "user",
+          created_at: "2024-03-01T00:00:00Z",
+        });
+      })
+    );
+
+    const user = userEvent.setup();
+    renderUserManagement();
+
+    await waitFor(() => expect(screen.getByText("bob")).toBeInTheDocument());
+    const bobRow = screen.getByText("bob").closest("tr");
+    await user.click(within(bobRow!).getByRole("button", { name: /remove admin/i }));
+
+    await waitFor(() => expect(capturedBody).toMatchObject({ role: "user" }));
+  });
+
+  it("primary admin row has no role-change button", async () => {
+    renderUserManagement();
+    await waitFor(() => expect(screen.getAllByText("admin").length).toBeGreaterThan(0));
+    const adminNameCell = screen
+      .getAllByText("admin")
+      .find((el) => el.classList.contains("font-medium"));
+    const adminRow = adminNameCell?.closest("tr");
+    expect(adminRow).not.toHaveTextContent(/make admin|remove admin/i);
   });
 
   it("refreshes the user list after creating a user", async () => {

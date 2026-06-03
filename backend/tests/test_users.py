@@ -69,6 +69,99 @@ def test_deleting_user_removes_their_categories(client, auth_headers, user_auth_
     assert all(c["name"] != "User cat" for c in cats)
 
 
+def test_admin_can_create_admin_user(client, auth_headers):
+    resp = client.post(
+        "/api/admin/users",
+        json={"username": "newadmin", "password": "pass123", "role": "admin"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 201
+    assert resp.json()["role"] == "admin"
+
+
+def test_created_admin_logs_in_with_admin_role(client, auth_headers):
+    client.post(
+        "/api/admin/users",
+        json={"username": "adminlogin", "password": "pass123", "role": "admin"},
+        headers=auth_headers,
+    )
+    token = client.post(
+        "/api/auth/login", json={"username": "adminlogin", "password": "pass123"}
+    ).json()["access_token"]
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.json()["role"] == "admin"
+
+
+# ── Changing a user's role ──────────────────────────────────────────────────────
+
+def test_admin_can_promote_user_to_admin(client, auth_headers, user_auth_headers):
+    resp = client.put(
+        f"/api/admin/users/{REGULAR_USER}/role",
+        json={"role": "admin"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "admin"
+
+    listed = client.get("/api/admin/users", headers=auth_headers).json()
+    assert next(u for u in listed if u["username"] == REGULAR_USER)["role"] == "admin"
+
+
+def test_promoted_user_gets_admin_role_on_next_login(client, auth_headers, user_auth_headers):
+    client.put(
+        f"/api/admin/users/{REGULAR_USER}/role",
+        json={"role": "admin"},
+        headers=auth_headers,
+    )
+    token = client.post(
+        "/api/auth/login", json={"username": REGULAR_USER, "password": REGULAR_PASSWORD}
+    ).json()["access_token"]
+    me = client.get("/api/auth/me", headers={"Authorization": f"Bearer {token}"})
+    assert me.json()["role"] == "admin"
+
+
+def test_admin_can_demote_user(client, auth_headers, user_auth_headers):
+    client.put(
+        f"/api/admin/users/{REGULAR_USER}/role",
+        json={"role": "admin"},
+        headers=auth_headers,
+    )
+    resp = client.put(
+        f"/api/admin/users/{REGULAR_USER}/role",
+        json={"role": "user"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200
+    assert resp.json()["role"] == "user"
+
+
+def test_cannot_change_role_of_admin_account(client, auth_headers):
+    resp = client.put(
+        "/api/admin/users/admin/role",
+        json={"role": "user"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 400
+
+
+def test_change_role_of_nonexistent_user_returns_404(client, auth_headers):
+    resp = client.put(
+        "/api/admin/users/ghost/role",
+        json={"role": "admin"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 404
+
+
+def test_regular_user_cannot_change_roles(client, auth_headers, user_auth_headers):
+    resp = client.put(
+        f"/api/admin/users/{REGULAR_USER}/role",
+        json={"role": "admin"},
+        headers=user_auth_headers,
+    )
+    assert resp.status_code == 403
+
+
 def test_cannot_create_duplicate_username(client, auth_headers):
     client.post(
         "/api/admin/users",
