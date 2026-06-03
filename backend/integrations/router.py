@@ -3,7 +3,7 @@ import os
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 
-from auth.router import verify_token, require_admin
+from auth.router import verify_token
 from .models import (
     ZohoStatus,
     ZohoCalendarInfo,
@@ -30,10 +30,10 @@ def zoho_status(username: str = Depends(verify_token)):
 @router.get("/zoho/authorize")
 def zoho_authorize(username: str = Depends(verify_token)):
     """Return the Zoho consent URL for the frontend to redirect to."""
-    if not service.is_zoho_configured():
+    if not service.is_zoho_configured(username):
         raise HTTPException(status_code=503, detail="Zoho client credentials not configured")
     state = service.make_state(username)
-    return {"url": service.build_authorize_url(state)}
+    return {"url": service.build_authorize_url(username, state)}
 
 
 @router.get("/zoho/callback")
@@ -42,7 +42,7 @@ def zoho_callback(code: str = Query(...), state: str = Query(...)):
     signed ``state`` (no Bearer token is present on this navigation)."""
     try:
         username = service.read_state(state)
-        tokens = service.exchange_code(code)
+        tokens = service.exchange_code(username, code)
         service.store_tokens(username, tokens)
     except (ZohoError, ZohoNotConnected):
         return RedirectResponse(url=f"{_APP_BASE_URL}/calendar?zoho=error")
@@ -77,23 +77,25 @@ def zoho_disconnect(username: str = Depends(verify_token)):
     return {"ok": True}
 
 
-# ── Admin: app-wide provider credentials ─────────────────────────────────────
+# ── Per-user provider credentials ────────────────────────────────────────────
+# Each user supplies their own OAuth app credentials so they connect to their
+# own Zoho account rather than a single shared one.
 
-@router.get("/admin/zoho/config", response_model=ZohoConfigStatus)
-def get_zoho_config(_: str = Depends(require_admin)):
-    return ZohoConfigStatus(**store.get_zoho_config_status())
+@router.get("/zoho/config", response_model=ZohoConfigStatus)
+def get_zoho_config(username: str = Depends(verify_token)):
+    return ZohoConfigStatus(**store.get_zoho_config_status(username))
 
 
-@router.put("/admin/zoho/config", response_model=ZohoConfigStatus)
-def put_zoho_config(body: ZohoConfigUpdate, admin: str = Depends(require_admin)):
+@router.put("/zoho/config", response_model=ZohoConfigStatus)
+def put_zoho_config(body: ZohoConfigUpdate, username: str = Depends(verify_token)):
     try:
-        store.set_zoho_config(body.client_id, body.client_secret, admin)
+        store.set_zoho_config(username, body.client_id, body.client_secret)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
-    return ZohoConfigStatus(**store.get_zoho_config_status())
+    return ZohoConfigStatus(**store.get_zoho_config_status(username))
 
 
-@router.delete("/admin/zoho/config")
-def delete_zoho_config(_: str = Depends(require_admin)):
-    store.delete_zoho_config()
+@router.delete("/zoho/config")
+def delete_zoho_config(username: str = Depends(verify_token)):
+    store.delete_zoho_config(username)
     return {"ok": True}
