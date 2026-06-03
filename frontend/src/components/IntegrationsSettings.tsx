@@ -17,7 +17,7 @@ function ZohoCard() {
 
   const load = useCallback(async () => {
     try {
-      const { data } = await api.get<ZohoConfigStatus>("/integrations/admin/zoho/config");
+      const { data } = await api.get<ZohoConfigStatus>("/integrations/zoho/config");
       setConfigured(data.configured);
       setClientId(data.client_id ?? "");
     } catch {
@@ -41,7 +41,7 @@ function ZohoCard() {
     setError("");
     setSaved(false);
     try {
-      await api.put("/integrations/admin/zoho/config", {
+      await api.put("/integrations/zoho/config", {
         client_id: clientId.trim(),
         client_secret: clientSecret,   // blank keeps the stored secret
       });
@@ -56,8 +56,8 @@ function ZohoCard() {
   };
 
   const remove = async () => {
-    if (!confirm("Remove the Zoho credentials? Users won't be able to sync until they're re-entered.")) return;
-    await api.delete("/integrations/admin/zoho/config");
+    if (!confirm("Remove your Zoho credentials? You won't be able to sync until they're re-entered.")) return;
+    await api.delete("/integrations/zoho/config");
     setClientId("");
     setClientSecret("");
     setConfigured(false);
@@ -159,7 +159,8 @@ export default function IntegrationsSettings() {
     <div className="p-6 max-w-2xl">
       <h2 className="text-xl font-semibold mb-2">Integrations</h2>
       <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Configure calendar provider credentials. Each user connects their own account from the Calendar screen.
+        Configure your own calendar provider credentials. These are private to your
+        account — connect your own calendar from the Calendar screen once saved.
       </p>
       <div className="space-y-4">
         <ZohoCard />
