@@ -139,7 +139,59 @@ def test_closures_are_per_user(client, auth_headers, user_auth_headers):
     assert resp.status_code == 404
 
 
+# ── Listing closed days ─────────────────────────────────────────────────────
+
+def test_list_closed_days_returns_saved_dates(client, auth_headers):
+    # Nothing closed yet.
+    empty = client.get("/api/dayclose", headers=auth_headers)
+    assert empty.status_code == 200, empty.text
+    assert empty.json() == []
+
+    for d in ("2026-06-01", "2026-06-03", "2026-06-02"):
+        client.post(
+            "/api/dayclose", json={"date": d, "learning": "note"}, headers=auth_headers
+        )
+
+    resp = client.get("/api/dayclose", headers=auth_headers)
+    assert resp.status_code == 200, resp.text
+    # Sorted ascending regardless of insertion order.
+    assert resp.json() == ["2026-06-01", "2026-06-02", "2026-06-03"]
+
+
+def test_list_closed_days_respects_range(client, auth_headers):
+    for d in ("2026-06-01", "2026-06-05", "2026-06-10"):
+        client.post(
+            "/api/dayclose", json={"date": d, "learning": "note"}, headers=auth_headers
+        )
+
+    resp = client.get(
+        "/api/dayclose",
+        params={"start": "2026-06-02", "end": "2026-06-09"},
+        headers=auth_headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == ["2026-06-05"]
+
+
+def test_list_closed_days_invalid_range_returns_400(client, auth_headers):
+    resp = client.get(
+        "/api/dayclose", params={"start": "nope"}, headers=auth_headers
+    )
+    assert resp.status_code == 400
+
+
+def test_list_closed_days_is_per_user(client, auth_headers, user_auth_headers):
+    client.post(
+        "/api/dayclose", json={"date": DAY, "learning": "Admin note."}, headers=auth_headers
+    )
+    # The regular user has closed nothing.
+    resp = client.get("/api/dayclose", headers=user_auth_headers)
+    assert resp.status_code == 200, resp.text
+    assert resp.json() == []
+
+
 def test_requires_auth(client):
     assert client.post("/api/dayclose/summary", json={"date": DAY}).status_code in (401, 403)
     assert client.get(f"/api/dayclose/{DAY}").status_code in (401, 403)
+    assert client.get("/api/dayclose").status_code in (401, 403)
     assert client.post("/api/dayclose", json={"date": DAY, "learning": "x"}).status_code in (401, 403)

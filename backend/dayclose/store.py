@@ -13,6 +13,8 @@ for the future roll-up feature.
 """
 from datetime import datetime, timezone
 
+from boto3.dynamodb.conditions import Attr
+
 from db import get_integrations_table
 
 _PREFIX = "dayclose"
@@ -38,6 +40,29 @@ def get_day_close(username: str, date: str) -> dict | None:
         "created_at": item.get("created_at", ""),
         "updated_at": item.get("updated_at", ""),
     }
+
+
+def list_day_closes(
+    username: str, start: str | None = None, end: str | None = None
+) -> list[str]:
+    """Return the sorted dates the user has already closed, optionally bounded to
+    the inclusive ``[start, end]`` window. The calendar uses this to flag which
+    days already have a closure so users can spot — and edit — them at a glance."""
+    items = (
+        get_integrations_table()
+        .scan(
+            FilterExpression=Attr("type").eq(_PREFIX) & Attr("username").eq(username)
+        )
+        .get("Items", [])
+    )
+    dates = [
+        i["date"]
+        for i in items
+        if i.get("date")
+        and (start is None or i["date"] >= start)
+        and (end is None or i["date"] <= end)
+    ]
+    return sorted(dates)
 
 
 def save_day_close(username: str, date: str, learning: str, ai_summary: str) -> dict:

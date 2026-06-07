@@ -368,11 +368,26 @@ describe("CalendarView", () => {
 
   // ── Close the Day ──────────────────────────────────────────────────────────
 
-  it("offers Close the Day on today and yesterday only", () => {
+  it("offers Close the Day on every day column", () => {
     renderCalendar();
-    // Today and yesterday each get a "Close the day for ..." button.
+    // Every visible day column (yesterday + today + next 13 = 15) gets a
+    // "Close the day for ..." button so any day can be journaled.
     const closeButtons = screen.getAllByRole("button", { name: /close the day for/i });
-    expect(closeButtons).toHaveLength(2);
+    expect(closeButtons).toHaveLength(15);
+  });
+
+  it("flags days that already have a saved closure", async () => {
+    server.use(
+      http.get("/api/dayclose", () => HttpResponse.json([dateStr(0)]))
+    );
+    renderCalendar();
+
+    // The closed day swaps its "Close the day" affordance for an "Edit" one…
+    expect(
+      await screen.findByRole("button", { name: new RegExp(`edit day closure`, "i") })
+    ).toBeInTheDocument();
+    // …and the today button carries a distinct (green badge) style.
+    expect(screen.getByTestId(`close-day-${dateStr(0)}`).className).toMatch(/bg-green-100/);
   });
 
   it("opens the Close the Day modal when the button is clicked", async () => {

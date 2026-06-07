@@ -106,10 +106,26 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
   const [showZoho, setShowZoho] = useState(false);
   const [zohoReturn, setZohoReturn] = useState<"connected" | "error" | null>(null);
 
-  // "Close the Day" is only offered for the current day and the previous day.
+  // "Close the Day" can be opened for any day in the view — to write a new
+  // entry or edit an existing one. We track which days already have a closure
+  // so the calendar can flag them.
   const [closeDayDate, setCloseDayDate] = useState<string | null>(null);
-  const yesterdayStr = shiftDate(todayStr(), -1);
-  const canCloseDay = (key: string) => key === todayStr() || key === yesterdayStr;
+  const [closedDays, setClosedDays] = useState<Set<string>>(new Set());
+
+  const refreshClosedDays = useCallback(async () => {
+    const start = shiftDate(weekStart, -1);
+    const end = shiftDate(weekStart, 13);
+    try {
+      const res = await api.get<string[]>("/dayclose", { params: { start, end } });
+      setClosedDays(new Set(res.data));
+    } catch {
+      // Non-critical: if this fails the days simply won't show a "closed" flag.
+    }
+  }, [weekStart]);
+
+  useEffect(() => {
+    refreshClosedDays();
+  }, [refreshClosedDays]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -321,7 +337,10 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
         <CloseDayModal
           date={closeDayDate}
           onClose={() => setCloseDayDate(null)}
-          onSaved={onUpdate}
+          onSaved={() => {
+            onUpdate();
+            refreshClosedDays();
+          }}
         />
       )}
 
@@ -382,6 +401,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
           {/* Day columns */}
           {days.map((day) => {
             const isToday = day.key === todayStr();
+            const isClosed = closedDays.has(day.key);
             return (
               <div key={day.key} className="flex-shrink-0 w-44 flex flex-col">
                 <div className="mb-2 px-1 flex items-center justify-between">
@@ -394,16 +414,23 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                     </p>
                   </div>
                   <div className="flex items-center gap-1.5">
-                    {canCloseDay(day.key) && (
-                      <button
-                        onClick={() => setCloseDayDate(day.key)}
-                        className="text-xs text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
-                        title="Close the day"
-                        aria-label={`Close the day for ${day.sub}`}
-                      >
-                        ✓
-                      </button>
-                    )}
+                    <button
+                      onClick={() => setCloseDayDate(day.key)}
+                      data-testid={`close-day-${day.key}`}
+                      className={
+                        isClosed
+                          ? "text-xs rounded-full w-5 h-5 flex items-center justify-center bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300 transition-colors"
+                          : "text-xs text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                      }
+                      title={isClosed ? "Day closed — click to edit" : "Close the day"}
+                      aria-label={
+                        isClosed
+                          ? `Edit day closure for ${day.sub}`
+                          : `Close the day for ${day.sub}`
+                      }
+                    >
+                      ✓
+                    </button>
                     <button
                       onClick={() => enterDayView(day.key)}
                       className="text-xs text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
