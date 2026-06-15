@@ -2,19 +2,6 @@
 
 Work organizer powered by AI. Kanban-style task management with Claude-assisted card creation — describe work in plain text and let the AI break it into actionable items.
 
-## Recent Features
-
-- **Dark Mode** — Light/dark theme toggle, persisted per-user (`PUT /api/auth/me/theme`) so your preference follows you across sessions
-- **What's Goin' On** — AI-generated summary of your current workload plus suggested next cards (`POST /api/ai/whats-goin-on`)
-- **Weekly Plan Assist** — Let Claude propose a week's schedule from the calendar view, then review and apply it
-- **Onboarding Walkthrough** — Guided first-run steps for new users
-- **Login Security** — Captcha and anti-brute-force lockout on the login flow
-- **Bulk Actions** — Multi-select cards on the List view to delete or archive in one go
-- **Archived Cards** — Archive cards and view/restore them from a dedicated Archive view
-- **This Week Filter** — Filter the Kanban board to cards due this week
-- **Reports** — Pie chart breakdown of work
-- **Auto-Code** — Submit feature requests from cards; auto-merge and a "Merged" status close the loop after CodeBuild finishes
-
 ## Stack
 
 | Layer | Technology |
@@ -92,6 +79,19 @@ The pipeline is defined in `buildspec.yml` and requires these environment variab
 - Infrastructure details (ECS cluster, ECR repo, DynamoDB tables)
 
 **Note:** The auto-code system is self-aware and won't modify its own implementation files (`backend/autocode/`, `buildspec.yml`, `cdk/`).
+
+## Other Features
+
+- **Dark Mode** — Light/dark theme toggle, persisted per-user (`PUT /api/auth/me/theme`) so your preference follows you across sessions
+- **What's Goin' On** — AI-generated summary of your current workload plus suggested next cards (`POST /api/ai/whats-goin-on`)
+- **Weekly Plan Assist** — Let Claude propose a week's schedule from the calendar view, then review and apply it
+- **Onboarding Walkthrough** — Guided first-run steps for new users
+- **Login Security** — Captcha and anti-brute-force lockout on the login flow
+- **Bulk Actions** — Multi-select cards on the List view to delete or archive in one go
+- **Archived Cards** — Archive cards and view/restore them from a dedicated Archive view
+- **This Week Filter** — Filter the Kanban board to cards due this week
+- **Reports** — Pie chart breakdown of work
+- **Auto-Code** — Submit feature requests from cards; auto-merge and a "Merged" status close the loop after CodeBuild finishes
 
 ## Testing
 
