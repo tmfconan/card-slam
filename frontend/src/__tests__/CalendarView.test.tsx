@@ -366,6 +366,26 @@ describe("CalendarView", () => {
     expect(screen.queryByText("Suggested Weekly Plan")).not.toBeInTheDocument();
   });
 
+  // ── Close the Day ──────────────────────────────────────────────────────────
+
+  it("offers Close the Day on today and yesterday only", () => {
+    renderCalendar();
+    // Today and yesterday each get a "Close the day for ..." button.
+    const closeButtons = screen.getAllByRole("button", { name: /close the day for/i });
+    expect(closeButtons).toHaveLength(2);
+  });
+
+  it("opens the Close the Day modal when the button is clicked", async () => {
+    const user = userEvent.setup();
+    renderCalendar();
+
+    const closeButtons = screen.getAllByRole("button", { name: /close the day for/i });
+    await user.click(closeButtons[0]);
+
+    expect(await screen.findByTestId("close-day-modal")).toBeInTheDocument();
+    expect(screen.getByText("Close the Day")).toBeInTheDocument();
+  });
+
   it("calls onDayViewActive with new date when navigating days inside day view (bug 4)", async () => {
     const user = userEvent.setup();
     const onDayViewActive = vi.fn();

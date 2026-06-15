@@ -96,6 +96,31 @@ describe("WorkItemConfirm", () => {
     });
   });
 
+  it("title input and description textarea use a transparent background so they stay readable in dark mode", () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <WorkItemConfirm
+        items={mockItems}
+        categoryId="cat-1"
+        categories={mockCategories}
+        onConfirm={onConfirm}
+        onCancel={onCancel}
+      />
+    );
+
+    // Each suggested card must inherit the dark modal background rather than
+    // the browser's default white field background (which made light text
+    // unreadable in dark mode).
+    const titleInput = screen.getByDisplayValue("First work item");
+    expect(titleInput).toHaveClass("bg-transparent");
+    expect(titleInput).toHaveClass("dark:text-gray-100");
+
+    const descTextarea = screen.getByDisplayValue("Description for first item");
+    expect(descTextarea).toHaveClass("bg-transparent");
+    expect(descTextarea).toHaveClass("dark:text-gray-300");
+  });
+
   it("can change item title via input", async () => {
     const user = userEvent.setup();
     const onConfirm = vi.fn();

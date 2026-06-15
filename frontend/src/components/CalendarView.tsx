@@ -11,6 +11,7 @@ import CardItem from "./CardItem";
 import DailyView from "./DailyView";
 import PlanReview from "./PlanReview";
 import ZohoSyncModal from "./ZohoSyncModal";
+import CloseDayModal from "./CloseDayModal";
 
 interface Props {
   cards: Card[];
@@ -104,6 +105,11 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
   // open the modal in the right state, and strip the param from the URL.
   const [showZoho, setShowZoho] = useState(false);
   const [zohoReturn, setZohoReturn] = useState<"connected" | "error" | null>(null);
+
+  // "Close the Day" is only offered for the current day and the previous day.
+  const [closeDayDate, setCloseDayDate] = useState<string | null>(null);
+  const yesterdayStr = shiftDate(todayStr(), -1);
+  const canCloseDay = (key: string) => key === todayStr() || key === yesterdayStr;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -311,6 +317,14 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
         />
       )}
 
+      {closeDayDate && (
+        <CloseDayModal
+          date={closeDayDate}
+          onClose={() => setCloseDayDate(null)}
+          onSaved={onUpdate}
+        />
+      )}
+
       {planItems && (
         <PlanReview
           items={planItems}
@@ -379,13 +393,25 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                       {day.sub}
                     </p>
                   </div>
-                  <button
-                    onClick={() => enterDayView(day.key)}
-                    className="text-xs text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
-                    title="Open day view"
-                  >
-                    ⏱
-                  </button>
+                  <div className="flex items-center gap-1.5">
+                    {canCloseDay(day.key) && (
+                      <button
+                        onClick={() => setCloseDayDate(day.key)}
+                        className="text-xs text-gray-400 hover:text-green-600 dark:hover:text-green-400 transition-colors"
+                        title="Close the day"
+                        aria-label={`Close the day for ${day.sub}`}
+                      >
+                        ✓
+                      </button>
+                    )}
+                    <button
+                      onClick={() => enterDayView(day.key)}
+                      className="text-xs text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors"
+                      title="Open day view"
+                    >
+                      ⏱
+                    </button>
+                  </div>
                 </div>
                 <Droppable droppableId={day.key}>
                   {(provided, snapshot) => (

@@ -114,3 +114,17 @@ export interface WhatsGoinOnSummary {
   summary: string;
   recommendations: CardRecommendation[];
 }
+
+export interface DayCloseSummary {
+  summary: string;
+  completed: string[];   // titles of cards finished that day
+  incomplete: string[];  // titles scheduled but not finished
+}
+
+export interface DayClose {
+  date: string;          // YYYY-MM-DD
+  ai_summary: string;
+  learning: string;
+  created_at: string;
+  updated_at: string;
+}

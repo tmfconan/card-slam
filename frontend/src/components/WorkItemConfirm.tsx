@@ -64,7 +64,7 @@ export default function WorkItemConfirm({
             <div key={i} className="border dark:border-gray-700 rounded-lg p-4">
               <div className="flex items-start gap-2">
                 <input
-                  className="flex-1 font-medium text-sm focus:outline-none border-b border-transparent focus:border-blue-400 dark:text-gray-100 dark:placeholder-gray-500"
+                  className="flex-1 font-medium text-sm focus:outline-none border-b border-transparent focus:border-blue-400 bg-transparent dark:bg-transparent dark:text-gray-100 dark:placeholder-gray-500"
                   value={item.title}
                   onChange={(e) => update(i, "title", e.target.value)}
                 />
@@ -76,7 +76,7 @@ export default function WorkItemConfirm({
                 </button>
               </div>
               <textarea
-                className="mt-2 w-full text-sm text-gray-600 dark:text-gray-300 focus:outline-none border-b border-transparent focus:border-blue-400 resize-none dark:placeholder-gray-500"
+                className="mt-2 w-full text-sm text-gray-600 dark:text-gray-300 focus:outline-none border-b border-transparent focus:border-blue-400 resize-none bg-transparent dark:bg-transparent dark:placeholder-gray-500"
                 value={item.description}
                 onChange={(e) => update(i, "description", e.target.value)}
                 rows={2}

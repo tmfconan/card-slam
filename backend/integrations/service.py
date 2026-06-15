@@ -66,8 +66,8 @@ def read_state(token: str) -> str:
     return payload["sub"]
 
 
-def build_authorize_url(state: str) -> str:
-    client_id, _ = get_zoho_credentials()
+def build_authorize_url(username: str, state: str) -> str:
+    client_id, _ = get_zoho_credentials(username)
     if not client_id:
         raise ZohoError("Zoho credentials not configured")
     params = {
@@ -84,14 +84,15 @@ def build_authorize_url(state: str) -> str:
 
 # ── OAuth: token exchange + storage ──────────────────────────────────────────
 
-def exchange_code(code: str) -> dict:
+def exchange_code(username: str, code: str) -> dict:
     """Trade an authorization code for access + refresh tokens."""
     data = _post_token(
+        username,
         {
             "grant_type": "authorization_code",
             "code": code,
             "redirect_uri": _redirect_uri(),
-        }
+        },
     )
     if "refresh_token" not in data:
         # Without a refresh token we can't sync later. This usually means the
@@ -103,14 +104,14 @@ def exchange_code(code: str) -> dict:
     return data
 
 
-def refresh_access_token(refresh_token: str) -> dict:
+def refresh_access_token(username: str, refresh_token: str) -> dict:
     return _post_token(
-        {"grant_type": "refresh_token", "refresh_token": refresh_token}
+        username, {"grant_type": "refresh_token", "refresh_token": refresh_token}
     )
 
 
-def _post_token(extra_params: dict) -> dict:
-    client_id, client_secret = get_zoho_credentials()
+def _post_token(username: str, extra_params: dict) -> dict:
+    client_id, client_secret = get_zoho_credentials(username)
     if not client_id or not client_secret:
         raise ZohoError("Zoho credentials not configured")
     params = {
@@ -171,7 +172,7 @@ def get_valid_access_token(username: str) -> str:
     expiry = user.get("zoho_token_expiry")
     if access and expiry and datetime.now(timezone.utc) < datetime.fromisoformat(expiry):
         return access
-    tokens = refresh_access_token(refresh)
+    tokens = refresh_access_token(username, refresh)
     _persist_access(username, tokens)
     return tokens["access_token"]
 
@@ -181,9 +182,9 @@ def is_connected(username: str) -> bool:
     return bool(user.get("zoho_refresh_token"))
 
 
-def is_zoho_configured() -> bool:
-    """Whether an admin has configured the app-wide Zoho OAuth credentials."""
-    client_id, client_secret = get_zoho_credentials()
+def is_zoho_configured(username: str) -> bool:
+    """Whether the user has configured their own Zoho OAuth credentials."""
+    client_id, client_secret = get_zoho_credentials(username)
     return bool(client_id and client_secret)
 
 

@@ -148,7 +148,7 @@ export default function Layout() {
             {isAdmin && navLink("/users", "Users", <UsersIcon />)}
             {isAdmin &&
               navLink("/feature-requests", "Feature Requests", <FeatureRequestsIcon />)}
-            {isAdmin && navLink("/integrations", "Integrations", <IntegrationsIcon />)}
+            {navLink("/integrations", "Integrations", <IntegrationsIcon />)}
             {/* Pinned to the bottom of the nav, set apart by a divider. */}
             <div className="mt-auto pt-2 border-t border-gray-700">
               <button
@@ -292,9 +292,8 @@ export default function Layout() {
               {isAdmin && (
                 <Route path="/feature-requests" element={<AutoCodeView />} />
               )}
-              {isAdmin && (
-                <Route path="/integrations" element={<IntegrationsSettings />} />
-              )}
+              <Route path="/integrations" element={<IntegrationsSettings />} />
+
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}
