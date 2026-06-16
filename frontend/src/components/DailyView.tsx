@@ -21,8 +21,74 @@ for (let h = 6; h < 18; h++) {
 }
 
 // Each slot represents 15 minutes. Total height stays 1536px (48 × 32 = 24 × 64).
-const SLOT_H = 32;
+export const SLOT_H = 32;
 const TIME_W = 64;
+
+// Number of 15-min slots a card occupies, given its duration in minutes.
+function spansForDuration(duration: number | undefined): number {
+  return Math.max(1, Math.ceil((duration ?? 30) / 15));
+}
+
+// Where a single card sits in the grid: its vertical extent (startIdx + spans)
+// plus the horizontal column it was assigned so overlapping cards sit side-by-side.
+export interface CardLayout {
+  card: Card;
+  startIdx: number;
+  spans: number;
+  col: number; // 0-based column within its overlap cluster
+  cols: number; // total columns in that cluster
+}
+
+// Calendar-style layout: cards that overlap *in time* (accounting for duration,
+// not just identical start times) are placed in adjacent columns so each card
+// shows its full vertical extent without being covered by its neighbours.
+export function computeLayout(cards: Card[]): CardLayout[] {
+  const items = cards
+    .map((card) => {
+      const startIdx = SLOTS.indexOf(card.todo_time ?? "");
+      const spans = spansForDuration(card.duration);
+      return { card, startIdx, spans, endIdx: startIdx + spans };
+    })
+    .filter((it) => it.startIdx >= 0)
+    // Sort by start, then by end so greedy column assignment is stable.
+    .sort((a, b) => a.startIdx - b.startIdx || a.endIdx - b.endIdx);
+
+  const result: CardLayout[] = [];
+  let cluster: typeof items = [];
+  let clusterEnd = -1;
+
+  const flush = () => {
+    if (cluster.length === 0) return;
+    // Greedily pack each card into the first column it doesn't overlap.
+    const colEnds: number[] = [];
+    const assigned = cluster.map((it) => {
+      let col = colEnds.findIndex((end) => end <= it.startIdx);
+      if (col === -1) {
+        col = colEnds.length;
+        colEnds.push(it.endIdx);
+      } else {
+        colEnds[col] = it.endIdx;
+      }
+      return { it, col };
+    });
+    const cols = colEnds.length;
+    for (const { it, col } of assigned) {
+      result.push({ card: it.card, startIdx: it.startIdx, spans: it.spans, col, cols });
+    }
+    cluster = [];
+    clusterEnd = -1;
+  };
+
+  for (const it of items) {
+    // A card that starts at or after every card so far ends begins a new cluster.
+    if (cluster.length > 0 && it.startIdx >= clusterEnd) flush();
+    cluster.push(it);
+    clusterEnd = Math.max(clusterEnd, it.endIdx);
+  }
+  flush();
+
+  return result;
+}
 
 // Only show labels on the hour and half-hour to keep the grid readable.
 function slotLabel(slot: string): string | null {
@@ -136,11 +202,7 @@ export default function DailyView({
   const scheduled = todayCards.filter((c) => c.todo_time && SLOTS.includes(c.todo_time));
   const unscheduled = todayCards.filter((c) => !c.todo_time || !SLOTS.includes(c.todo_time));
 
-  const slotMap: Record<string, Card[]> = {};
-  for (const card of scheduled) {
-    if (!card.todo_time) continue;
-    (slotMap[card.todo_time] ??= []).push(card);
-  }
+  const layout = computeLayout(scheduled);
 
   // ── Drag initiation (shared by mouse and touch) ──────────────────────────
   const initiateDrag = useCallback((card: Card) => {
@@ -160,7 +222,7 @@ export default function DailyView({
     if (!card.todo_time) return;
     const startIdx = SLOTS.indexOf(card.todo_time);
     if (startIdx < 0) return;
-    const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 15));
+    const spans = spansForDuration(card.duration);
     const endIdx = Math.min(SLOTS.length - 1, startIdx + spans - 1);
     const state: ResizeState = {
       cardId: card.id,
@@ -451,82 +513,69 @@ export default function DailyView({
               <div className="absolute inset-0" style={{ zIndex: 5, cursor: "grabbing" }} />
             )}
 
-            {/* Scheduled cards grouped by slot, side-by-side within each slot */}
-            {Object.entries(slotMap).map(([slot, slotCards]) => {
-              const slotIdx = SLOTS.indexOf(slot);
-              const maxSpans = Math.max(
-                ...slotCards.map((c) => Math.max(1, Math.ceil((c.duration ?? 30) / 15)))
-              );
+            {/* Scheduled cards — each spans its full duration; cards that overlap
+                in time are packed into side-by-side columns. */}
+            {layout.map(({ card, startIdx, spans, col, cols }) => {
+              const isBeingDragged = dragState?.cardId === card.id;
+              const isBeingResized = resizeState?.cardId === card.id;
+              // Horizontal track runs from TIME_W to (right edge − 8px); split it
+              // into `cols` equal columns and place this card in column `col`.
+              const track = `(100% - ${TIME_W + 8}px)`;
               return (
                 <div
-                  key={slot}
-                  className="absolute flex gap-1 overflow-hidden"
+                  key={card.id}
+                  data-testid={`daily-card-${card.id}`}
+                  data-slot={card.todo_time}
+                  data-duration={card.duration ?? 30}
+                  className="absolute min-w-0 flex flex-col select-none overflow-hidden"
                   style={{
-                    top: slotIdx * SLOT_H,
-                    left: TIME_W,
-                    right: 8,
-                    height: maxSpans * SLOT_H - 2,
+                    top: startIdx * SLOT_H,
+                    left: `calc(${TIME_W}px + ${track} * ${col} / ${cols})`,
+                    width: `calc(${track} / ${cols} - 2px)`,
+                    height: spans * SLOT_H - 2,
                     zIndex: 10,
+                    cursor: "grab",
+                    opacity: isBeingDragged || isBeingResized ? 0.45 : 1,
                   }}
+                  onMouseDown={(e) => startMouseDrag(e, card)}
                 >
-                  {slotCards.map((card) => {
-                    const spans = Math.max(1, Math.ceil((card.duration ?? 30) / 15));
-                    const isBeingDragged = dragState?.cardId === card.id;
-                    const isBeingResized = resizeState?.cardId === card.id;
-                    return (
-                      <div
-                        key={card.id}
-                        data-testid={`daily-card-${card.id}`}
-                        data-slot={card.todo_time}
-                        data-duration={card.duration ?? 30}
-                        className="relative flex-1 min-w-0 flex flex-col select-none overflow-hidden"
-                        style={{
-                          height: spans * SLOT_H - 2,
-                          cursor: "grab",
-                          opacity: isBeingDragged || isBeingResized ? 0.45 : 1,
+                  <ResizeHandle card={card} edge="top" onInitiate={initiateResize} />
+                  <div className="flex items-start gap-1 h-full">
+                    <DragHandle
+                      card={card}
+                      testId={`drag-handle-${card.id}`}
+                      onInitiateDrag={initiateDrag}
+                    />
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(card.id)}
+                      onChange={() => toggleSelect(card.id)}
+                      className="mt-1 flex-shrink-0 cursor-pointer"
+                      style={{ pointerEvents: "auto" }}
+                    />
+                    <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+                      <CardItem
+                        card={card}
+                        category={categoryMap[card.category_id]}
+                        isDragging={isBeingDragged}
+                        onUpdate={onUpdate}
+                        categories={categories}
+                        showStatusDot
+                        onRemoveFromSchedule={async () => {
+                          await api.put(`/cards/${card.id}`, { todo_time: null });
+                          onUpdate();
                         }}
-                        onMouseDown={(e) => startMouseDrag(e, card)}
-                      >
-                        <ResizeHandle card={card} edge="top" onInitiate={initiateResize} />
-                        <div className="flex items-start gap-1 h-full">
-                          <DragHandle
-                            card={card}
-                            testId={`drag-handle-${card.id}`}
-                            onInitiateDrag={initiateDrag}
-                          />
-                          <input
-                            type="checkbox"
-                            checked={selectedIds.has(card.id)}
-                            onChange={() => toggleSelect(card.id)}
-                            className="mt-1 flex-shrink-0 cursor-pointer"
-                            style={{ pointerEvents: "auto" }}
-                          />
-                          <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
-                            <CardItem
-                              card={card}
-                              category={categoryMap[card.category_id]}
-                              isDragging={isBeingDragged}
-                              onUpdate={onUpdate}
-                              categories={categories}
-                              showStatusDot
-                              onRemoveFromSchedule={async () => {
-                                await api.put(`/cards/${card.id}`, { todo_time: null });
-                                onUpdate();
-                              }}
-                            />
-                          </div>
-                        </div>
-                        <ResizeHandle card={card} edge="bottom" onInitiate={initiateResize} />
-                      </div>
-                    );
-                  })}
+                      />
+                    </div>
+                  </div>
+                  <ResizeHandle card={card} edge="bottom" onInitiate={initiateResize} />
                 </div>
               );
             })}
 
             {/* Drop placeholder */}
             {dragState && hoverSlot && (() => {
-              const spans = Math.max(1, Math.ceil((dragState.card.duration ?? 30) / 15));
+              const spans = spansForDuration(dragState.card.duration);
               const idx = SLOTS.indexOf(hoverSlot);
               return (
                 <div

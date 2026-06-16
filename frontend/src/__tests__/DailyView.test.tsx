@@ -5,7 +5,23 @@ import { http, HttpResponse } from "msw";
 import { server } from "../test/server";
 import { mockCategories } from "../test/handlers";
 import { Card, Category } from "../types";
-import DailyView from "../components/DailyView";
+import DailyView, { computeLayout, SLOT_H } from "../components/DailyView";
+
+// Minimal card factory for layout-only unit tests.
+function makeCard(over: Partial<Card> & { id: string }): Card {
+  return {
+    title: over.id,
+    description: "",
+    category_id: "cat-1",
+    status: "ready_to_do",
+    priority: 0,
+    duration: 30,
+    todo_date: "2026-05-05",
+    created_at: "2024-01-01T00:00:00Z",
+    updated_at: "2024-01-01T00:00:00Z",
+    ...over,
+  };
+}
 
 const TODAY = "2026-05-05";
 
@@ -735,5 +751,107 @@ describe("DailyView", () => {
     await act(async () => {
       fireEvent.mouseUp(window);
     });
+  });
+
+  // ── Vertical extent matches duration ────────────────────────────────────────
+  // Regression: a card must occupy a height proportional to its duration, not a
+  // fixed single-slot height. Card height = spans × SLOT_H − 2 where
+  // spans = ceil(duration / 15).
+
+  it("a 30-min card is two slots tall", () => {
+    renderDailyView();
+    // d-1: 30 min → 2 slots → 2*32 - 2 = 62px
+    expect(screen.getByTestId("daily-card-d-1")).toHaveStyle({
+      height: `${2 * SLOT_H - 2}px`,
+    });
+  });
+
+  it("a 90-min card is six slots tall", () => {
+    renderDailyView();
+    // d-2: 90 min → 6 slots → 6*32 - 2 = 190px
+    expect(screen.getByTestId("daily-card-d-2")).toHaveStyle({
+      height: `${6 * SLOT_H - 2}px`,
+    });
+  });
+
+  it("a 60-min card occupies four slots, not a single 30-min slot", () => {
+    const hour: Card = {
+      id: "d-hour",
+      title: "Hour-long block",
+      description: "",
+      category_id: "cat-1",
+      status: "in_progress",
+      priority: 0,
+      duration: 60,
+      todo_date: TODAY,
+      todo_time: "13:00",
+      created_at: "2024-01-07T00:00:00Z",
+      updated_at: "2024-01-07T00:00:00Z",
+    };
+    localStorage.setItem("token", "mock-token");
+    render(
+      <DailyView
+        cards={[...dailyCards, hour]}
+        categories={mockCategories}
+        categoryMap={categoryMap}
+        selectedDate={TODAY}
+        onDateChange={vi.fn()}
+        onUpdate={vi.fn()}
+      />
+    );
+    // 60 min → 4 slots → 4*32 - 2 = 126px (a 30-min slot would only be 62px)
+    expect(screen.getByTestId("daily-card-d-hour")).toHaveStyle({
+      height: `${4 * SLOT_H - 2}px`,
+    });
+  });
+});
+
+// ── Overlap layout algorithm ──────────────────────────────────────────────────
+describe("computeLayout", () => {
+  // SLOTS start at 06:00 (idx 0); each hour = 4 slots. 09:00 → 12, 09:30 → 14, 10:00 → 16.
+  it("places a lone card in a single full-width column", () => {
+    const [l] = computeLayout([
+      makeCard({ id: "a", todo_time: "09:00", duration: 60 }),
+    ]);
+    expect(l).toMatchObject({ startIdx: 12, spans: 4, col: 0, cols: 1 });
+  });
+
+  it("puts two cards sharing a start time in adjacent columns", () => {
+    const layout = computeLayout([
+      makeCard({ id: "a", todo_time: "09:00", duration: 30 }),
+      makeCard({ id: "b", todo_time: "09:00", duration: 30 }),
+    ]);
+    expect(layout).toHaveLength(2);
+    expect(layout.every((l) => l.cols === 2)).toBe(true);
+    expect(new Set(layout.map((l) => l.col))).toEqual(new Set([0, 1]));
+  });
+
+  it("treats cards that overlap by duration (different start times) as side-by-side", () => {
+    // a: 09:00–10:00 (60 min), b: 09:30–10:00 (30 min) → they overlap
+    const layout = computeLayout([
+      makeCard({ id: "a", todo_time: "09:00", duration: 60 }),
+      makeCard({ id: "b", todo_time: "09:30", duration: 30 }),
+    ]);
+    expect(layout.every((l) => l.cols === 2)).toBe(true);
+    const byId = Object.fromEntries(layout.map((l) => [l.card.id, l]));
+    expect(byId.a.col).not.toBe(byId.b.col);
+  });
+
+  it("keeps back-to-back cards (no time overlap) in one column each", () => {
+    // a: 09:00–09:30, b: 09:30–10:00 → adjacent, not overlapping
+    const layout = computeLayout([
+      makeCard({ id: "a", todo_time: "09:00", duration: 30 }),
+      makeCard({ id: "b", todo_time: "09:30", duration: 30 }),
+    ]);
+    expect(layout.every((l) => l.cols === 1 && l.col === 0)).toBe(true);
+  });
+
+  it("ignores cards whose start time is not a known slot", () => {
+    const layout = computeLayout([
+      makeCard({ id: "a", todo_time: "05:00", duration: 30 }), // before 06:00
+      makeCard({ id: "b", todo_time: "09:00", duration: 30 }),
+    ]);
+    expect(layout).toHaveLength(1);
+    expect(layout[0].card.id).toBe("b");
   });
 });
