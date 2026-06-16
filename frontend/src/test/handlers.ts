@@ -260,7 +260,10 @@ export const handlers = [
     });
   }),
 
-  // Close the Day: no closure exists by default (404), summary + save succeed.
+  // Close the Day: no days closed by default; no closure exists (404),
+  // summary + save succeed.
+  http.get("/api/dayclose", () => HttpResponse.json([])),
+
   http.get("/api/dayclose/:date", () =>
     HttpResponse.json({ detail: "Day not closed yet" }, { status: 404 })
   ),

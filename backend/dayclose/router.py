@@ -111,6 +111,22 @@ def generate_summary(body: DayCloseSummaryRequest, username: str = Depends(verif
     )
 
 
+@router.get("", response_model=list[str])
+def list_closed_days(
+    start: str | None = None,
+    end: str | None = None,
+    username: str = Depends(verify_token),
+):
+    """Return the dates the user has already closed so the calendar can flag them.
+    Optional ``start``/``end`` (YYYY-MM-DD, inclusive) bound the result to the
+    currently visible window."""
+    if start:
+        _validate_date(start)
+    if end:
+        _validate_date(end)
+    return store.list_day_closes(username, start, end)
+
+
 @router.get("/{date}", response_model=DayClose)
 def get_day_close(date: str, username: str = Depends(verify_token)):
     """Return a previously saved closure so the modal can prefill it."""
