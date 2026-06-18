@@ -399,6 +399,102 @@ def test_batch_archive_empty_ids(client, auth_headers):
     assert resp.json()["updated"] == 0
 
 
+# ── auto-archive tests ──────────────────────────────────────────────────────────
+
+
+def _backdate_created_at(card_id: str, days_ago: int):
+    """Rewrite a card's stored created_at to `days_ago` days in the past."""
+    from datetime import datetime, timedelta, timezone
+    import db
+
+    table = db.get_cards_table()
+    card = table.get_item(Key={"id": card_id}).get("Item")
+    card["created_at"] = (
+        datetime.now(timezone.utc) - timedelta(days=days_ago)
+    ).isoformat()
+    table.put_item(Item=card)
+
+
+def test_auto_archive_archives_old_done_cards(client, auth_headers):
+    created = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "status": "done"}, headers=auth_headers
+    ).json()
+    card_id = created["id"]
+    _backdate_created_at(card_id, days_ago=10)
+
+    resp = client.post("/api/cards/auto-archive", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["archived"] == 1
+
+    active = client.get("/api/cards/", headers=auth_headers).json()
+    assert all(c["id"] != card_id for c in active)
+    archived = client.get("/api/cards/?archived=true", headers=auth_headers).json()
+    assert any(c["id"] == card_id for c in archived)
+
+
+def test_auto_archive_skips_recent_done_cards(client, auth_headers):
+    created = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "status": "done"}, headers=auth_headers
+    ).json()
+    # Created just now (well under a week old) — should be left active.
+    resp = client.post("/api/cards/auto-archive", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["archived"] == 0
+
+    active = client.get("/api/cards/", headers=auth_headers).json()
+    assert any(c["id"] == created["id"] for c in active)
+
+
+def test_auto_archive_skips_old_non_done_cards(client, auth_headers):
+    created = client.post(
+        "/api/cards/",
+        json={**CARD_PAYLOAD, "status": "in_progress"},
+        headers=auth_headers,
+    ).json()
+    _backdate_created_at(created["id"], days_ago=30)
+
+    resp = client.post("/api/cards/auto-archive", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["archived"] == 0
+
+
+def test_auto_archive_skips_already_archived_cards(client, auth_headers):
+    created = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "status": "done"}, headers=auth_headers
+    ).json()
+    card_id = created["id"]
+    _backdate_created_at(card_id, days_ago=10)
+    client.post("/api/cards/batch-archive", json={"ids": [card_id]}, headers=auth_headers)
+
+    # Already archived — auto-archive should find nothing left to do.
+    resp = client.post("/api/cards/auto-archive", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["archived"] == 0
+
+
+def test_auto_archive_does_not_touch_other_users_cards(
+    client, auth_headers, user_auth_headers
+):
+    # A regular user owns an old, done card.
+    created = client.post(
+        "/api/cards/", json={**CARD_PAYLOAD, "status": "done"}, headers=user_auth_headers
+    ).json()
+    _backdate_created_at(created["id"], days_ago=10)
+
+    # Admin runs auto-archive: the other user's card is out of scope.
+    resp = client.post("/api/cards/auto-archive", headers=auth_headers)
+    assert resp.status_code == 200
+    assert resp.json()["archived"] == 0
+
+    active = client.get("/api/cards/", headers=user_auth_headers).json()
+    assert any(c["id"] == created["id"] for c in active)
+
+
+def test_auto_archive_requires_auth(client):
+    resp = client.post("/api/cards/auto-archive")
+    assert resp.status_code in (401, 403)
+
+
 def test_batch_archive_skips_other_users_cards(client, auth_headers, user_auth_headers):
     other = client.post(
         "/api/cards/", json={**CARD_PAYLOAD, "title": "User card"}, headers=user_auth_headers

@@ -202,6 +202,8 @@ export const handlers = [
     return HttpResponse.json({ deleted: body.ids.length });
   }),
 
+  http.post("/api/cards/auto-archive", () => HttpResponse.json({ archived: 1 })),
+
   http.get("/api/onboarding/steps", () =>
     HttpResponse.json({
       steps: [

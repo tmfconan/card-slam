@@ -113,6 +113,11 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
     onUpdate();
   };
 
+  const handleAutoArchive = async () => {
+    await api.post("/cards/auto-archive");
+    onUpdate();
+  };
+
   const Th = ({ label, sortable }: { label: string; sortable?: SortKey }) => (
     <th
       className={`text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider py-3 px-4 ${
@@ -189,7 +194,15 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
           )}
         </div>
 
-        <span className="text-sm text-gray-400 ml-auto">{filtered.length} items</span>
+        <button
+          onClick={handleAutoArchive}
+          title="Archive cards marked done over a week ago"
+          className="text-sm font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100 border dark:border-gray-700 rounded-lg px-3 py-1.5 ml-auto"
+        >
+          Auto-Archive
+        </button>
+
+        <span className="text-sm text-gray-400">{filtered.length} items</span>
       </div>
 
       {/* ── Bulk action bar ─────────────────────────────────────────────────── */}

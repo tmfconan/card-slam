@@ -272,7 +272,7 @@ describe("ListView", () => {
     const onUpdate = vi.fn();
     renderList(onUpdate);
     await user.click(screen.getAllByLabelText("Select Build login page")[0]);
-    await user.click(screen.getByRole("button", { name: /archive/i }));
+    await user.click(screen.getByRole("button", { name: /^archive$/i }));
     expect(onUpdate).toHaveBeenCalled();
     // Selection is cleared after the action completes
     expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
@@ -290,6 +290,21 @@ describe("ListView", () => {
     expect(onUpdate).toHaveBeenCalled();
     expect(screen.queryByTestId("bulk-action-bar")).not.toBeInTheDocument();
     confirmSpy.mockRestore();
+  });
+
+  // ── Auto-archive ──────────────────────────────────────────────────────────────
+
+  it("renders an Auto-Archive button even with nothing selected", () => {
+    renderList();
+    expect(screen.getByRole("button", { name: /auto-archive/i })).toBeInTheDocument();
+  });
+
+  it("Auto-Archive calls the endpoint and refreshes", async () => {
+    const user = userEvent.setup();
+    const onUpdate = vi.fn();
+    renderList(onUpdate);
+    await user.click(screen.getByRole("button", { name: /auto-archive/i }));
+    expect(onUpdate).toHaveBeenCalled();
   });
 
   it("cancelling the bulk Delete confirm keeps the selection and does not refresh", async () => {

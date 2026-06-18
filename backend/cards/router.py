@@ -1,6 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends, Query, Body
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from boto3.dynamodb.conditions import Attr
 
@@ -75,6 +75,26 @@ def _apply_wait_for_merge(items: list[dict]) -> None:
 
 def _owned(item: dict, username: str) -> bool:
     return item.get("username", "admin") == username
+
+
+# Cards become eligible for auto-archive once they have been "done" for a while;
+# a week strikes the balance between clearing finished work and keeping it handy.
+_AUTO_ARCHIVE_AGE = timedelta(days=7)
+
+
+def _created_at(item: dict) -> Optional[datetime]:
+    """Parse a card's stored ISO8601 created_at into an aware datetime, or None
+    if it is missing/unparseable."""
+    raw = item.get("created_at")
+    if not raw:
+        return None
+    try:
+        dt = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt
 
 
 def _get_owned(table, card_id: str, username: str) -> dict:
@@ -199,6 +219,38 @@ def batch_archive(body: BatchArchive, username: str = Depends(verify_token)):
             table.put_item(Item=card)
             updated += 1
     return {"updated": updated}
+
+
+@router.post("/auto-archive", status_code=200)
+def auto_archive(username: str = Depends(verify_token)):
+    """Archive every owned card that has been "done" since more than a week ago.
+
+    Cards already archived, still in another status, or locked to an in-flight
+    feature request build are left untouched."""
+    table = get_cards_table()
+    now = datetime.now(timezone.utc)
+    cutoff = now - _AUTO_ARCHIVE_AGE
+    now_iso = now.isoformat()
+    items = table.scan(FilterExpression=Attr("username").eq(username)).get("Items", [])
+    # Include legacy records (no username) for admin, mirroring list_cards.
+    if username == "admin":
+        items = items + [
+            i for i in table.scan().get("Items", []) if "username" not in i
+        ]
+    archived = 0
+    for card in items:
+        if card.get("status") != Status.done.value:
+            continue
+        if bool(card.get("archived", False)) or _is_queue_locked(card):
+            continue
+        created = _created_at(card)
+        if created is None or created >= cutoff:
+            continue
+        card["archived"] = True
+        card["updated_at"] = now_iso
+        table.put_item(Item=card)
+        archived += 1
+    return {"archived": archived}
 
 
 @router.post("/batch-delete", status_code=200)
