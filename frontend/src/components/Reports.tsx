@@ -14,7 +14,7 @@ import {
 import api from "../api/client";
 
 interface LifetimeStats {
-  total_intended: number;
+  total_committed: number;
   total_done: number;
   completion_rate: number;
 }
@@ -22,7 +22,7 @@ interface LifetimeStats {
 interface WeeklyCohort {
   week: string;
   week_label: string;
-  intended: number;
+  committed: number;
   done: number;
   not_done: number;
   rate: number;
@@ -198,7 +198,7 @@ export default function Reports() {
 
       {/* Lifetime summary */}
       <div className="grid grid-cols-3 gap-4">
-        <StatCard label="Total Intended" value={String(lifetime.total_intended)} />
+        <StatCard label="Total Committed" value={String(lifetime.total_committed)} />
         <StatCard label="Total Done" value={String(lifetime.total_done)} />
         <StatCard label="Completion Rate" value={`${pct}%`} />
       </div>
@@ -206,9 +206,9 @@ export default function Reports() {
       {/* Cohort chart */}
       <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-5 space-y-3">
         <div>
-          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Intended vs. Done by Creation Week</h3>
+          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300">Committed vs. Done by Creation Week</h3>
           <p className="text-xs text-gray-400">
-            Of cards created each week that left Brainstorm, how many are Done?
+            Of cards created each week that were committed, how many are Done?
           </p>
         </div>
         <ResponsiveContainer width="100%" height={220}>

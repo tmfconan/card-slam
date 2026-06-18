@@ -30,7 +30,7 @@ def test_velocity_empty(client, auth_headers):
     resp = client.get("/api/reports/velocity", headers=auth_headers)
     assert resp.status_code == 200
     data = resp.json()
-    assert data["lifetime"]["total_intended"] == 0
+    assert data["lifetime"]["total_committed"] == 0
     assert data["lifetime"]["total_done"] == 0
     assert data["lifetime"]["completion_rate"] == 0.0
     assert "weekly_throughput" not in data
@@ -48,17 +48,34 @@ def test_velocity_counts_done_cards(client, auth_headers):
 
 
 def test_velocity_lifetime_completion_rate(client, auth_headers):
-    # 2 intended (not done), 1 done
+    # 2 committed (not done), 1 done
     client.post("/api/cards/", json={**CARD_BASE, "status": "in_progress"}, headers=auth_headers)
     client.post("/api/cards/", json={**CARD_BASE, "status": "ready_to_do"}, headers=auth_headers)
     _create_done_card(client, auth_headers)
 
     resp = client.get("/api/reports/velocity", headers=auth_headers)
     data = resp.json()
-    # 3 intended, 1 done → 0.333
-    assert data["lifetime"]["total_intended"] == 3
+    # 3 committed, 1 done → 0.333
+    assert data["lifetime"]["total_committed"] == 3
     assert data["lifetime"]["total_done"] == 1
     assert abs(data["lifetime"]["completion_rate"] - round(1 / 3, 3)) < 0.001
+
+
+def test_velocity_excludes_brainstorm_and_intent_to_do(client, auth_headers):
+    """Committed work counts only ready_to_do / in_progress / needs_finishing / done.
+    brainstorm and intent_to_do must not be counted as committed."""
+    client.post("/api/cards/", json={**CARD_BASE, "status": "brainstorm"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_BASE, "status": "intent_to_do"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_BASE, "status": "ready_to_do"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_BASE, "status": "in_progress"}, headers=auth_headers)
+    client.post("/api/cards/", json={**CARD_BASE, "status": "needs_finishing"}, headers=auth_headers)
+    _create_done_card(client, auth_headers)
+
+    resp = client.get("/api/reports/velocity", headers=auth_headers)
+    data = resp.json()
+    # ready_to_do + in_progress + needs_finishing + done = 4 committed (brainstorm & intent_to_do excluded)
+    assert data["lifetime"]["total_committed"] == 4
+    assert data["lifetime"]["total_done"] == 1
 
 
 def test_velocity_weekly_series_has_correct_length(client, auth_headers):
@@ -74,7 +91,7 @@ def test_velocity_weekly_series_keys_present(client, auth_headers):
         assert "week" in entry
         assert "week_label" in entry
         assert "done" in entry
-        assert "intended" in entry
+        assert "committed" in entry
         assert "not_done" in entry
         assert "rate" in entry
 

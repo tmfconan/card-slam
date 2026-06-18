@@ -10,7 +10,10 @@ from db import get_cards_table, get_categories_table
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
-INTENDED = {"intent_to_do", "ready_to_do", "in_progress", "needs_finishing", "done"}
+# Committed work: cards that have been committed to and are outstanding or done.
+# Outstanding work is ready_to_do / in_progress / needs_finishing; "done" is the
+# only completed state. brainstorm and intent_to_do are excluded.
+COMMITTED = {"ready_to_do", "in_progress", "needs_finishing", "done"}
 WEEKS_BACK = 16
 
 
@@ -37,9 +40,9 @@ def get_velocity(
         items = items + legacy
 
     # Lifetime stats
-    total_intended = sum(1 for i in items if i.get("status") in INTENDED)
+    total_committed = sum(1 for i in items if i.get("status") in COMMITTED)
     total_done = sum(1 for i in items if i.get("status") == "done")
-    completion_rate = total_done / total_intended if total_intended > 0 else 0.0
+    completion_rate = total_done / total_committed if total_committed > 0 else 0.0
 
     # Build ordered list of the last WEEKS_BACK ISO weeks
     if ref_date:
@@ -56,8 +59,8 @@ def get_velocity(
         weeks.append((cal[0], cal[1]))
     weeks_set = set(weeks)
 
-    # Weekly cohort: cards keyed by created_at week, intended vs done (current status)
-    cohort_intended: dict[tuple[int, int], int] = defaultdict(int)
+    # Weekly cohort: cards keyed by created_at week, committed vs done (current status)
+    cohort_committed: dict[tuple[int, int], int] = defaultdict(int)
     cohort_done: dict[tuple[int, int], int] = defaultdict(int)
     for item in items:
         created = item.get("created_at", "")
@@ -66,8 +69,8 @@ def get_velocity(
         yw = _week_key(created)
         if yw not in weeks_set:
             continue
-        if item.get("status") in INTENDED:
-            cohort_intended[yw] += 1
+        if item.get("status") in COMMITTED:
+            cohort_committed[yw] += 1
         if item.get("status") == "done":
             cohort_done[yw] += 1
 
@@ -76,20 +79,20 @@ def get_velocity(
         yw = (year, week)
         label = _week_label(year, week)
         key = f"{year}-W{week:02d}"
-        ci = cohort_intended.get(yw, 0)
+        cc = cohort_committed.get(yw, 0)
         cd = cohort_done.get(yw, 0)
         weekly_cohort.append({
             "week": key,
             "week_label": label,
-            "intended": ci,
+            "committed": cc,
             "done": cd,
-            "not_done": ci - cd,
-            "rate": round(cd / ci, 3) if ci > 0 else 0.0,
+            "not_done": cc - cd,
+            "rate": round(cd / cc, 3) if cc > 0 else 0.0,
         })
 
     return {
         "lifetime": {
-            "total_intended": total_intended,
+            "total_committed": total_committed,
             "total_done": total_done,
             "completion_rate": round(completion_rate, 3),
         },

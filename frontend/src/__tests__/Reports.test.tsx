@@ -6,10 +6,10 @@ import { server } from "../test/server";
 import Reports from "../components/Reports";
 
 const MOCK_VELOCITY = {
-  lifetime: { total_intended: 10, total_done: 7, completion_rate: 0.7 },
+  lifetime: { total_committed: 10, total_done: 7, completion_rate: 0.7 },
   weekly_cohort: [
-    { week: "2026-W18", week_label: "5/4", intended: 5, done: 3, not_done: 2, rate: 0.6 },
-    { week: "2026-W19", week_label: "5/11", intended: 4, done: 4, not_done: 0, rate: 1.0 },
+    { week: "2026-W18", week_label: "5/4", committed: 5, done: 3, not_done: 2, rate: 0.6 },
+    { week: "2026-W19", week_label: "5/11", committed: 4, done: 4, not_done: 0, rate: 1.0 },
   ],
 };
 
@@ -53,6 +53,14 @@ describe("Reports", () => {
     await waitFor(() => expect(screen.getByText("10")).toBeInTheDocument());
     expect(screen.getByText("7")).toBeInTheDocument();
     expect(screen.getByText("70%")).toBeInTheDocument();
+  });
+
+  it("uses 'Committed' verbiage instead of 'Intended'", async () => {
+    renderReports();
+    await waitFor(() => expect(screen.getByText("Total Committed")).toBeInTheDocument());
+    expect(screen.getByText("Committed vs. Done by Creation Week")).toBeInTheDocument();
+    expect(screen.queryByText("Total Intended")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Intended vs\. Done/)).not.toBeInTheDocument();
   });
 
   it("does not render the 'Cards Completed Per Week' chart", async () => {
