@@ -70,10 +70,10 @@ STEPS = [
     {
         "id": 8,
         "title": "Check your velocity",
-        "summary": "Reports tell you how much of your intended work is getting done.",
+        "summary": "Reports tell you how much of your committed work is getting done.",
         "location": "Reports page (sidebar → Reports)",
-        "action": "Click 'Reports'. Read the three stat cards (Total Intended, Total Done, Completion Rate) and the weekly cohort chart. Use the Prev/Next buttons to scrub through prior weeks.",
-        "expect": "You'll see your completion rate as a percentage and a stacked bar chart of intended vs. done cards by week. New accounts start at 0% — that's normal.",
+        "action": "Click 'Reports'. Read the three stat cards (Total Committed, Total Done, Completion Rate) and the weekly cohort chart. Use the Prev/Next buttons to scrub through prior weeks.",
+        "expect": "You'll see your completion rate as a percentage and a stacked bar chart of committed vs. done cards by week. New accounts start at 0% — that's normal.",
     },
     {
         "id": 9,
