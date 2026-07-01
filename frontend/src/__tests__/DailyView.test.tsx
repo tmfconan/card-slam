@@ -804,6 +804,16 @@ describe("DailyView", () => {
       height: `${4 * SLOT_H - 2}px`,
     });
   });
+
+  it("the visible card box fills the full container height, not just its content", () => {
+    // Regression: a long card's container is sized to its duration, but the
+    // visible CardItem box only grew to fit its text — so a 90-min card looked
+    // like it occupied ~45 min. The article must stretch (h-full) to fill it.
+    renderDailyView();
+    const container = screen.getByTestId("daily-card-d-2");
+    const article = within(container).getByRole("article");
+    expect(article).toHaveClass("h-full");
+  });
 });
 
 // ── Overlap layout algorithm ──────────────────────────────────────────────────
