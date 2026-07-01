@@ -39,6 +39,9 @@ interface Props {
   onRemoveFromSchedule?: () => void;
   // If provided, shows an inline "Restore" button (used by the Archive view)
   onUnarchive?: () => void;
+  // Stretch the card to fill its container's height (day view — so a card's box
+  // reflects its full duration rather than just its content height)
+  fillHeight?: boolean;
 }
 
 export default function CardItem({
@@ -52,6 +55,7 @@ export default function CardItem({
   categories,
   onRemoveFromSchedule,
   onUnarchive,
+  fillHeight,
 }: Props) {
   const [showDetail, setShowDetail] = useState(false);
   const pointerOrigin = useRef<{ x: number; y: number } | null>(null);
@@ -104,10 +108,10 @@ export default function CardItem({
         onPointerMove={handlePointerMove}
         onClick={handleClick}
         className={`relative group bg-white dark:bg-gray-900 rounded-lg shadow-sm border-l-4 p-3 select-none ${
-          isDragging ? "shadow-lg rotate-1 opacity-90" : ""
-        } ${isDone ? "opacity-50" : ""} ${
-          categories ? "cursor-pointer hover:shadow-md transition-shadow" : ""
-        }`}
+          fillHeight ? "h-full" : ""
+        } ${isDragging ? "shadow-lg rotate-1 opacity-90" : ""} ${
+          isDone ? "opacity-50" : ""
+        } ${categories ? "cursor-pointer hover:shadow-md transition-shadow" : ""}`}
         style={{ borderLeftColor: borderColor }}
       >
         {/* Status dot — top-right corner, only on active cards in calendar context */}

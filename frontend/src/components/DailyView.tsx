@@ -553,7 +553,7 @@ export default function DailyView({
                       className="mt-1 flex-shrink-0 cursor-pointer"
                       style={{ pointerEvents: "auto" }}
                     />
-                    <div className="flex-1 min-w-0 min-h-0 overflow-hidden">
+                    <div className="flex-1 min-w-0 min-h-0 h-full overflow-hidden">
                       <CardItem
                         card={card}
                         category={categoryMap[card.category_id]}
@@ -561,6 +561,7 @@ export default function DailyView({
                         onUpdate={onUpdate}
                         categories={categories}
                         showStatusDot
+                        fillHeight
                         onRemoveFromSchedule={async () => {
                           await api.put(`/cards/${card.id}`, { todo_time: null });
                           onUpdate();
