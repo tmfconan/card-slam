@@ -105,14 +105,15 @@ describe("DailyView", () => {
 
   // ── Slot rendering ──────────────────────────────────────────────────────────
 
-  it("renders the first slot at 6:00 AM", () => {
+  it("renders the first slot at 12:00 AM (midnight)", () => {
     renderDailyView();
-    expect(screen.getByText("6:00 AM")).toBeInTheDocument();
+    expect(screen.getByText("12:00 AM")).toBeInTheDocument();
+    expect(screen.getByTestId("slot-00:00")).toBeInTheDocument();
   });
 
-  it("renders the last slot at 5:45 PM", () => {
+  it("renders the last slot at 11:45 PM", () => {
     renderDailyView();
-    expect(screen.getByTestId("slot-17:45")).toBeInTheDocument();
+    expect(screen.getByTestId("slot-23:45")).toBeInTheDocument();
   });
 
   it("renders 15-minute slot markers between half-hour marks", () => {
@@ -122,25 +123,38 @@ describe("DailyView", () => {
     expect(screen.getByTestId("slot-09:45")).toBeInTheDocument();
   });
 
-  it("renders exactly 48 time slot rows (15-min intervals, 6:00 AM to 5:45 PM)", () => {
+  it("renders exactly 96 time slot rows (15-min intervals across the full 24 hours)", () => {
     renderDailyView();
-    const slots = [
-      "06:00","06:15","06:30","06:45",
-      "07:00","07:15","07:30","07:45",
-      "08:00","08:15","08:30","08:45",
-      "09:00","09:15","09:30","09:45",
-      "10:00","10:15","10:30","10:45",
-      "11:00","11:15","11:30","11:45",
-      "12:00","12:15","12:30","12:45",
-      "13:00","13:15","13:30","13:45",
-      "14:00","14:15","14:30","14:45",
-      "15:00","15:15","15:30","15:45",
-      "16:00","16:15","16:30","16:45",
-      "17:00","17:15","17:30","17:45",
-    ];
+    const slots: string[] = [];
+    for (let h = 0; h < 24; h++) {
+      for (const m of ["00", "15", "30", "45"]) {
+        slots.push(`${String(h).padStart(2, "0")}:${m}`);
+      }
+    }
+    expect(slots).toHaveLength(96);
     for (const s of slots) {
       expect(screen.getByTestId(`slot-${s}`)).toBeInTheDocument();
     }
+  });
+
+  // ── Work day vs. off-hours ──────────────────────────────────────────────────
+
+  it("marks 8 AM–6 PM slots as work hours and the rest as off-hours", () => {
+    renderDailyView();
+    // Work day boundaries: 08:00 is the first work slot, 17:45 the last.
+    expect(screen.getByTestId("slot-08:00")).toHaveAttribute("data-work-hour", "true");
+    expect(screen.getByTestId("slot-17:45")).toHaveAttribute("data-work-hour", "true");
+    // Just outside the work day on either side.
+    expect(screen.getByTestId("slot-07:45")).toHaveAttribute("data-work-hour", "false");
+    expect(screen.getByTestId("slot-18:00")).toHaveAttribute("data-work-hour", "false");
+    expect(screen.getByTestId("slot-00:00")).toHaveAttribute("data-work-hour", "false");
+    expect(screen.getByTestId("slot-23:45")).toHaveAttribute("data-work-hour", "false");
+  });
+
+  it("shades off-hours slots but leaves work-hour slots unshaded", () => {
+    renderDailyView();
+    expect(screen.getByTestId("slot-03:00")).toHaveClass("bg-gray-100/70");
+    expect(screen.getByTestId("slot-09:00")).not.toHaveClass("bg-gray-100/70");
   });
 
   // ── Card placement (data-slot attribute) ────────────────────────────────────
@@ -495,17 +509,19 @@ describe("DailyView", () => {
   // ── Resize handles ──────────────────────────────────────────────────────────
 
   // The grid in jsdom has zero size; override so slot math lands on real rows.
-  // SLOT_H = 32, SLOTS.length = 48 → grid spans 0..1536 vertically.
+  // SLOT_H = 32, SLOTS.length = 96 → grid spans 0..3072 vertically.
   function mockGridRect() {
     const grid = screen.getByTestId("daily-grid");
+    // Neutralize the mount-time auto-scroll (to 8 AM) so slot math starts at 0.
+    grid.scrollTop = 0;
     (grid as unknown as { getBoundingClientRect: () => DOMRect }).getBoundingClientRect =
       () => ({
         top: 0,
-        bottom: 1536,
+        bottom: 3072,
         left: 64,
         right: 800,
         width: 736,
-        height: 1536,
+        height: 3072,
         x: 64,
         y: 0,
         toJSON: () => ({}),
@@ -560,14 +576,14 @@ describe("DailyView", () => {
     renderDailyView();
     mockGridRect();
 
-    // d-1 is at slot 12 (09:00), duration 30 → bottom edge at slot 13
+    // d-1 is at slot 36 (09:00), duration 30 → bottom edge at slot 37
     const handle = screen.getByTestId("resize-handle-bottom-d-1");
     await act(async () => {
       fireEvent.mouseDown(handle, { button: 0 });
     });
-    // Drag bottom edge down to slot 15 → spans 12..15 → 4 slots × 15 = 60 min
+    // Drag bottom edge down to slot 39 → spans 36..39 → 4 slots × 15 = 60 min
     await act(async () => {
-      fireEvent.mouseMove(window, { clientY: yOfSlot(15) });
+      fireEvent.mouseMove(window, { clientY: yOfSlot(39) });
     });
     await act(async () => {
       fireEvent.mouseUp(window);
@@ -592,14 +608,14 @@ describe("DailyView", () => {
     renderDailyView();
     mockGridRect();
 
-    // d-2 is at slot 16 (10:00), duration 90 → bottom edge at slot 21
+    // d-2 is at slot 40 (10:00), duration 90 → bottom edge at slot 45
     const handle = screen.getByTestId("resize-handle-top-d-2");
     await act(async () => {
       fireEvent.mouseDown(handle, { button: 0 });
     });
-    // Drag top up to slot 14 (09:30) → spans 14..21 → 8 slots × 15 = 120 min
+    // Drag top up to slot 38 (09:30) → spans 38..45 → 8 slots × 15 = 120 min
     await act(async () => {
-      fireEvent.mouseMove(window, { clientY: yOfSlot(14) });
+      fireEvent.mouseMove(window, { clientY: yOfSlot(38) });
     });
     await act(async () => {
       fireEvent.mouseUp(window);
@@ -626,13 +642,13 @@ describe("DailyView", () => {
     renderDailyView();
     mockGridRect();
 
-    // d-2 is at slot 16, duration 90 → bottom slot 21. Try to drag well above slot 16.
+    // d-2 is at slot 40, duration 90 → bottom slot 45. Try to drag well above slot 40.
     const handle = screen.getByTestId("resize-handle-bottom-d-2");
     await act(async () => {
       fireEvent.mouseDown(handle, { button: 0 });
     });
     await act(async () => {
-      fireEvent.mouseMove(window, { clientY: yOfSlot(10) }); // above start
+      fireEvent.mouseMove(window, { clientY: yOfSlot(34) }); // above start
     });
     await act(async () => {
       fireEvent.mouseUp(window);
@@ -657,20 +673,20 @@ describe("DailyView", () => {
     renderDailyView();
     mockGridRect();
 
-    // d-2 is at slot 16, bottom slot 21. Drag top below the bottom (slot 30).
+    // d-2 is at slot 40, bottom slot 45. Drag top below the bottom (slot 54).
     const handle = screen.getByTestId("resize-handle-top-d-2");
     await act(async () => {
       fireEvent.mouseDown(handle, { button: 0 });
     });
     await act(async () => {
-      fireEvent.mouseMove(window, { clientY: yOfSlot(30) });
+      fireEvent.mouseMove(window, { clientY: yOfSlot(54) });
     });
     await act(async () => {
       fireEvent.mouseUp(window);
     });
 
-    // Top is clamped to the original end slot → duration 15, new start = slot 21
-    // SLOTS[21] = "11:15"
+    // Top is clamped to the original end slot → duration 15, new start = slot 45
+    // SLOTS[45] = "11:15"
     await waitFor(() => {
       expect(capturedBody).toMatchObject({
         duration: 15,
@@ -717,14 +733,14 @@ describe("DailyView", () => {
     renderDailyView();
     mockGridRect();
 
-    // d-1 starts at slot 12, bottom slot 13. Drag to clientY inside slot 14 (any pixel)
-    // → snaps to slot 14 → spans 12..14 → 3 slots × 15 = 45 min.
+    // d-1 starts at slot 36, bottom slot 37. Drag to clientY inside slot 38 (any pixel)
+    // → snaps to slot 38 → spans 36..38 → 3 slots × 15 = 45 min.
     const handle = screen.getByTestId("resize-handle-bottom-d-1");
     await act(async () => {
       fireEvent.mouseDown(handle, { button: 0 });
     });
     await act(async () => {
-      fireEvent.mouseMove(window, { clientY: 14 * 32 + 1 }); // just inside slot 14
+      fireEvent.mouseMove(window, { clientY: 38 * 32 + 1 }); // just inside slot 38
     });
     await act(async () => {
       fireEvent.mouseUp(window);
@@ -818,12 +834,12 @@ describe("DailyView", () => {
 
 // ── Overlap layout algorithm ──────────────────────────────────────────────────
 describe("computeLayout", () => {
-  // SLOTS start at 06:00 (idx 0); each hour = 4 slots. 09:00 → 12, 09:30 → 14, 10:00 → 16.
+  // SLOTS start at 00:00 (idx 0); each hour = 4 slots. 09:00 → 36, 09:30 → 38, 10:00 → 40.
   it("places a lone card in a single full-width column", () => {
     const [l] = computeLayout([
       makeCard({ id: "a", todo_time: "09:00", duration: 60 }),
     ]);
-    expect(l).toMatchObject({ startIdx: 12, spans: 4, col: 0, cols: 1 });
+    expect(l).toMatchObject({ startIdx: 36, spans: 4, col: 0, cols: 1 });
   });
 
   it("puts two cards sharing a start time in adjacent columns", () => {
@@ -858,7 +874,7 @@ describe("computeLayout", () => {
 
   it("ignores cards whose start time is not a known slot", () => {
     const layout = computeLayout([
-      makeCard({ id: "a", todo_time: "05:00", duration: 30 }), // before 06:00
+      makeCard({ id: "a", todo_time: "09:07", duration: 30 }), // off the 15-min grid
       makeCard({ id: "b", todo_time: "09:00", duration: 30 }),
     ]);
     expect(layout).toHaveLength(1);

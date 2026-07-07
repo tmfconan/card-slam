@@ -12,15 +12,24 @@ interface Props {
   onUpdate: () => void;
 }
 
-// 6:00 AM → 5:45 PM, 15-min increments = 48 slots
+// 12:00 AM → 11:45 PM, 15-min increments = 96 slots (the full 24 hours).
 const SLOTS: string[] = [];
-for (let h = 6; h < 18; h++) {
+for (let h = 0; h < 24; h++) {
   for (const m of ["00", "15", "30", "45"]) {
     SLOTS.push(`${String(h).padStart(2, "0")}:${m}`);
   }
 }
 
-// Each slot represents 15 minutes. Total height stays 1536px (48 × 32 = 24 × 64).
+// The "work day" — 8:00 AM to 6:00 PM — is rendered normally; hours outside it
+// are shaded so the full 24-hour grid still reads at a glance.
+export const WORK_START_HOUR = 8;
+export const WORK_END_HOUR = 18;
+export function isWorkHour(slot: string): boolean {
+  const h = parseInt(slot.split(":")[0], 10);
+  return h >= WORK_START_HOUR && h < WORK_END_HOUR;
+}
+
+// Each slot represents 15 minutes. The grid spans 96 × 32 = 3072px and scrolls.
 export const SLOT_H = 32;
 const TIME_W = 64;
 
@@ -196,6 +205,16 @@ export default function DailyView({
   const [sheetOpen, setSheetOpen] = useState(false);
   const hoverSlotRef = useRef<string | null>(null);
   const gridRef = useRef<HTMLDivElement>(null);
+
+  // The grid now covers all 24 hours, so land the initial scroll on the start of
+  // the work day (8 AM) rather than midnight.
+  useEffect(() => {
+    if (gridRef.current) {
+      gridRef.current.scrollTop = SLOTS.indexOf(
+        `${String(WORK_START_HOUR).padStart(2, "0")}:00`
+      ) * SLOT_H;
+    }
+  }, []);
 
   // ── Derived data ────────────────────────────────────────────────────────────
   const todayCards = cards.filter((c) => c.todo_date === selectedDate);
@@ -490,14 +509,22 @@ export default function DailyView({
           onMouseLeave={() => { hoverSlotRef.current = null; setHoverSlot(null); }}>
           <div className="relative" style={{ height: SLOTS.length * SLOT_H }}>
 
-            {/* Slot rows — background grid */}
-            {SLOTS.map((slot, i) => (
+            {/* Slot rows — background grid. Hours outside the work day (8 AM–6 PM)
+                are shaded so the work day stands out within the full 24 hours. */}
+            {SLOTS.map((slot, i) => {
+              const work = isWorkHour(slot);
+              const bg =
+                hoverSlot === slot && dragState
+                  ? "bg-blue-50 dark:bg-blue-950/40"
+                  : work
+                  ? ""
+                  : "bg-gray-100/70 dark:bg-gray-800/40";
+              return (
               <div
                 key={slot}
                 data-testid={`slot-${slot}`}
-                className={`absolute flex border-b border-gray-100 dark:border-gray-700 pointer-events-none ${
-                  hoverSlot === slot && dragState ? "bg-blue-50 dark:bg-blue-950/40" : ""
-                }`}
+                data-work-hour={work}
+                className={`absolute flex border-b border-gray-100 dark:border-gray-700 pointer-events-none ${bg}`}
                 style={{ top: i * SLOT_H, left: 0, right: 0, height: SLOT_H }}
               >
                 <div className="flex-shrink-0 flex items-start pt-1 px-2" style={{ width: TIME_W }}>
@@ -506,7 +533,8 @@ export default function DailyView({
                   )}
                 </div>
               </div>
-            ))}
+              );
+            })}
 
             {/* Transparent overlay so mousemove fires over gaps between cards */}
             {dragState && (
