@@ -26,12 +26,14 @@ class CardSlamStack(Stack):
 
         vpc = ec2.Vpc(self, "Vpc", max_azs=2, nat_gateways=1)
 
+        # RETAIN: the serverless stack (CardSlamServerlessStack) imports this repo
+        # by name and its Lambda runs the image stored here. Destroying this stack
+        # must NOT delete the repo/images out from under the live Lambda.
         repo = ecr.Repository(
             self,
             "AppRepo",
             repository_name="card-slam",
-            removal_policy=RemovalPolicy.DESTROY,
-            empty_on_delete=True,
+            removal_policy=RemovalPolicy.RETAIN,
         )
 
         categories_table = dynamodb.Table(
