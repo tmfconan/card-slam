@@ -59,12 +59,12 @@ echo "Logging in to ECR…"
 aws ecr get-login-password --region "$REGION" \
   | docker login --username AWS --password-stdin "$REPO_URI"
 
-echo "Building API image (Dockerfile.lambda)…"
-docker build --platform linux/amd64 -f Dockerfile.lambda -t card-slam-api:latest .
-
-echo "Pushing image to ECR (${IMAGE_TAG})…"
-docker tag card-slam-api:latest "${REPO_URI}:${IMAGE_TAG}"
-docker push "${REPO_URI}:${IMAGE_TAG}"
+echo "Building + pushing API image (Dockerfile.lambda)…"
+# --provenance=false --sbom=false: Lambda rejects the OCI image index /
+# attestation manifest that buildx emits by default; it needs a plain
+# schema2 manifest. Build and push in one step to preserve that manifest.
+docker buildx build --platform linux/amd64 --provenance=false --sbom=false \
+  -f Dockerfile.lambda -t "${REPO_URI}:${IMAGE_TAG}" --push .
 
 echo "Updating Lambda function code…"
 aws lambda update-function-code \

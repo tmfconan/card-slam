@@ -312,9 +312,11 @@ class CardSlamServerlessStack(Stack):
                                     "git add -A && "
                                     '(git diff --staged --quiet || git commit -m "auto-code: ${FEATURE_TITLE}") && '
                                     'git push -u origin "auto-code/${CARD_ID}" || true; '
-                                    "docker build --platform linux/amd64 -f Dockerfile.lambda -t card-slam-api . && "
-                                    'docker tag card-slam-api "${ECR_REPO}:lambda-latest" && '
-                                    'docker push "${ECR_REPO}:lambda-latest" && '
+                                    # --provenance/--sbom off: Lambda needs a plain
+                                    # schema2 manifest, not buildx's OCI index.
+                                    "docker buildx build --platform linux/amd64 "
+                                    "--provenance=false --sbom=false "
+                                    '-f Dockerfile.lambda -t "${ECR_REPO}:lambda-latest" --push . && '
                                     "aws lambda update-function-code --function-name card-slam-api "
                                     '--image-uri "${ECR_REPO}:lambda-latest" --region "$REGION" && '
                                     "(cd frontend && npm run build) && "
