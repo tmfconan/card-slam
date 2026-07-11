@@ -14,6 +14,11 @@
 # lacks permission on a resource the new code uses).
 set -euo pipefail
 
+# Disable the AWS CLI v2 pager, which otherwise pipes command output through
+# `less` and leaves the terminal "stuck" in the pager after the script finishes
+# (press q to exit). Empty value = no pager.
+export AWS_PAGER=""
+
 REGION="us-east-2"
 
 echo "=== Card Slam Deploy (application code only) ==="
@@ -44,8 +49,8 @@ echo "Building Docker image…"
 docker build --platform linux/amd64 -t card-slam:latest .
 
 echo "Tagging and pushing to ECR…"
-docker tag card-slam:latest "$REPO_URI:latest"
-docker push "$REPO_URI:latest"
+docker tag card-slam:latest "${REPO_URI}:latest"
+docker push "${REPO_URI}:latest"
 
 echo "Triggering ECS rolling deployment…"
 SERVICE=$(aws ecs list-services \
