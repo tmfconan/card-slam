@@ -73,10 +73,13 @@ class CardSlamServerlessStack(Stack):
                 "FEATURE_RUNS_TABLE": TABLE_NAMES["FeatureRunsTable"],
                 "INTEGRATIONS_TABLE": TABLE_NAMES["IntegrationsTable"],
                 "SECRET_NAME": "card-slam/config",
-                # Set to the CloudFront URL after the first deploy, then redeploy.
-                # Must match the Zoho Authorized Redirect URI:
+                # Hardcoded (not distribution.distribution_domain_name) to avoid a
+                # circular dependency: the Distribution's origin is this Lambda, so
+                # the Lambda cannot depend on the Distribution. The generated domain
+                # is stable for the life of the distribution. Must match the Zoho
+                # Authorized Redirect URI:
                 #   <APP_BASE_URL>/api/integrations/zoho/callback
-                "APP_BASE_URL": "https://REPLACE_WITH_CLOUDFRONT_DOMAIN",
+                "APP_BASE_URL": "https://d3fdblmghw0deo.cloudfront.net",
             },
         )
         for table in tables.values():
