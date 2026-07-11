@@ -1,0 +1,18 @@
+# API-only Lambda container image (serverless deployment).
+#
+# Unlike the Fargate Dockerfile, this image does NOT bundle the React build —
+# the SPA is served from S3/CloudFront. FastAPI's static-file mount and SPA
+# fallback in main.py are guarded by `os.path.isdir(_static)`, so they simply
+# don't register when `static/` is absent.
+#
+# Build:  docker build --platform linux/amd64 -f Dockerfile.lambda -t card-slam-api .
+FROM public.ecr.aws/lambda/python:3.12
+
+# LAMBDA_TASK_ROOT is the working dir the runtime imports handlers from.
+COPY backend/requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY backend/ ${LAMBDA_TASK_ROOT}/
+
+# module.function that Mangum exposes in lambda_handler.py
+CMD ["lambda_handler.handler"]
