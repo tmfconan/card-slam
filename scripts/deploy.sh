@@ -77,7 +77,7 @@ aws lambda update-function-code \
 echo "Building frontend…"
 (cd frontend && npm ci && npm run build)
 
-echo "Syncing SPA to s3://$SPA_BUCKET…"
+echo "Syncing SPA to s3://${SPA_BUCKET}…"
 aws s3 sync frontend/dist "s3://$SPA_BUCKET" --delete
 
 echo "Invalidating CloudFront cache…"
