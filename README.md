@@ -11,9 +11,9 @@ Work organizer powered by AI. Kanban-style task management with Claude-assisted 
 | Storage | DynamoDB |
 | AI | Claude Sonnet 4.6 via Anthropic API |
 | Auth | Single-user, bcrypt hash in Secrets Manager, JWT, captcha + brute-force lockout |
-| Infra | AWS CDK — single Fargate container, ALB, ECR |
+| Infra | AWS CDK — Lambda (container image) behind a Function URL, CloudFront + S3, DynamoDB, ECR |
 
-The container serves both the API (`/api/*`) and the React static build from the same origin.
+In production, CloudFront serves the React build from a private S3 bucket and routes `/api/*` to the FastAPI Lambda — so the SPA and API share one origin. Locally, Uvicorn serves both from `http://localhost:8000`.
 
 ## Local Development
 
@@ -70,13 +70,15 @@ Card Slam includes an automated feature implementation pipeline powered by Claud
 1. **Request** — Mark a card with a feature description and submit it as a feature request
 2. **Build** — AWS CodeBuild spins up, creates a branch, and invokes Claude Code CLI to implement the feature
 3. **Test** — All tests run automatically (backend + frontend)
-4. **Deploy** — On success, the feature is built into a Docker image and deployed to ECS
+4. **Deploy** — On success, the API Lambda container image is rebuilt and the function is updated, and the SPA is republished to S3 + CloudFront
 5. **Merge** — Review the auto-code branch and merge from the card detail view, or enable auto-merge to merge automatically once the build passes; the card shows a **Merged** status when complete
 
-The pipeline is defined in `buildspec.yml` and requires these environment variables (configured in CDK):
+The pipeline is defined in the CDK stack's inline buildspec (`cdk/card_slam/serverless_stack.py`) and requires these environment variables (configured in CDK):
 - `ANTHROPIC_API_KEY` — For Claude Code
 - `GITHUB_TOKEN` — For pushing branches
-- Infrastructure details (ECS cluster, ECR repo, DynamoDB tables)
+- Infrastructure details (ECR repo, S3 bucket, CloudFront distribution, DynamoDB tables)
+
+The pipeline is provisioned only when the stack is deployed with `-c enable_autocode=true`.
 
 **Note:** The auto-code system is self-aware and won't modify its own implementation files (`backend/autocode/`, `buildspec.yml`, `cdk/`).
 
@@ -124,25 +126,34 @@ cd frontend && node_modules/.bin/vitest --coverage
    ```
    The script prompts for your admin password and Anthropic API key.
 
-### Subsequent deploys
+### Infrastructure changes
+
+Apply any change under `cdk/` before shipping application code:
+
+```bash
+cd cdk && cdk deploy CardSlamServerlessStack --require-approval never
+# add -c enable_autocode=true to (re)provision the auto-code pipeline
+```
+
+### Subsequent deploys (application code)
 
 ```bash
 bash scripts/deploy.sh
 ```
 
-Builds a `linux/amd64` Docker image, pushes to ECR, and triggers a rolling ECS deployment. The new version is live in ~2 minutes.
+Rebuilds the API Lambda container image (`Dockerfile.lambda`) and updates the function, then rebuilds the SPA and syncs it to S3 + invalidates CloudFront. The bucket and distribution id are read from the `CardSlamServerlessStack` outputs. Live in ~1–2 minutes.
 
 ### Infrastructure
 
-Defined in `cdk/`. Key resources:
+Defined in `cdk/` (`CardSlamServerlessStack`). Key resources:
 
-- **ECS Fargate** — single container serving API + static frontend
-- **ALB** — port 80, DNS output as `AppURL`
-- **DynamoDB** — pay-per-request, two tables
-- **Secrets Manager** — `card-slam/config` holds `jwt_secret`, `password_hash`, `anthropic_api_key`
-- **ECR** — image registry, URI output as `ECRRepository` (uses ECR Public Gallery for base images to avoid Docker Hub rate limits)
-- **CodeBuild** — automated feature implementation via auto-code integration
-- **CloudWatch Logs** — 1-week retention
+- **Lambda** — FastAPI served via Mangum as a container image, invoked through a Function URL
+- **CloudFront + S3** — private S3 bucket (OAC) holds the React build; CloudFront serves it and routes `/api/*` to the Lambda Function URL. App URL is output as `AppURL`
+- **DynamoDB** — pay-per-request, five tables (categories, cards, users, feature-runs, integrations); `RETAIN` removal policy
+- **Secrets Manager** — `card-slam/config` holds `jwt_secret`, `password_hash`, `anthropic_api_key`, `github_pat`
+- **ECR** — Lambda container image registry (the repo has a policy allowing the Lambda service to pull)
+- **CodeBuild + EventBridge + queue-processor Lambda** — the auto-code pipeline (only when deployed with `-c enable_autocode=true`)
+- **CloudWatch Logs**
 
 ## Make Commands
 
@@ -158,8 +169,9 @@ Defined in `cdk/`. Key resources:
 card-slam/
 ├── frontend/          # React app
 ├── backend/           # FastAPI — auth, cards, categories, ai modules
-├── cdk/               # AWS CDK stack (Python)
+├── cdk/               # AWS CDK stack (Python) — CardSlamServerlessStack
 ├── scripts/           # dev.sh, bootstrap.sh, deploy.sh
-├── Dockerfile         # Multi-stage: Node builds React, Python runtime copies dist/
+├── Dockerfile         # Multi-stage local/container image (Uvicorn; Node builds React)
+├── Dockerfile.lambda  # API-only Lambda container image (Mangum); SPA served from S3
 └── docker-compose.yml # Local DynamoDB only
 ```
