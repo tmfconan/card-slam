@@ -56,6 +56,7 @@ def _normalize(item: dict) -> dict:
     item.setdefault("feature_request_status", None)
     item["auto_merge"] = bool(item.get("auto_merge", False))
     item.setdefault("zoho_event_uid", None)
+    item.setdefault("category_id", None)  # imported cards may have no category
     return item
 
 
@@ -130,7 +131,7 @@ def list_cards(
     if status:
         items = [i for i in items if i["status"] == status]
     if category_id:
-        items = [i for i in items if i["category_id"] == category_id]
+        items = [i for i in items if i.get("category_id") == category_id]
     return sorted(items, key=lambda x: (x["priority"], x["created_at"]))
 
 

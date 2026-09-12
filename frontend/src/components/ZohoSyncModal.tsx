@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { Category } from "../types";
 import api from "../api/client";
 
 interface ZohoCalendarInfo {
@@ -14,7 +13,6 @@ interface SyncResult {
 }
 
 interface Props {
-  categories: Category[];
   onUpdate: () => void;   // refresh cards after a sync
   onClose: () => void;
   // When the modal opens right after the OAuth redirect: "connected" | "error" | null
@@ -27,12 +25,11 @@ const RANGE_OPTIONS = [
   { days: 31, label: "Next 31 days" },
 ];
 
-export default function ZohoSyncModal({ categories, onUpdate, onClose, oauthReturn }: Props) {
+export default function ZohoSyncModal({ onUpdate, onClose, oauthReturn }: Props) {
   const [loading, setLoading] = useState(true);
   const [connected, setConnected] = useState(false);
   const [calendars, setCalendars] = useState<ZohoCalendarInfo[]>([]);
   const [calendarUid, setCalendarUid] = useState("");
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
   const [days, setDays] = useState(31);
   const [syncing, setSyncing] = useState(false);
   const [result, setResult] = useState<SyncResult | null>(null);
@@ -95,14 +92,13 @@ export default function ZohoSyncModal({ categories, onUpdate, onClose, oauthRetu
   };
 
   const sync = async () => {
-    if (!calendarUid || !categoryId) return;
+    if (!calendarUid) return;
     setSyncing(true);
     setError("");
     setResult(null);
     try {
       const res = await api.post("/integrations/zoho/sync", {
         calendar_uid: calendarUid,
-        category_id: categoryId,
         days,
       });
       setResult(res.data);
@@ -158,22 +154,10 @@ export default function ZohoSyncModal({ categories, onUpdate, onClose, oauthRetu
                 </select>
               </div>
 
-              <div>
-                <label htmlFor="zoho-category" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
-                  Add cards to category
-                </label>
-                <select
-                  id="zoho-category"
-                  value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="w-full text-sm border rounded-lg px-2 py-1.5 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none"
-                >
-                  {categories.length === 0 && <option value="">No categories</option>}
-                  {categories.map((c) => (
-                    <option key={c.id} value={c.id}>{c.name}</option>
-                  ))}
-                </select>
-              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                Imported cards use the default category from your Zoho integration
+                settings.
+              </p>
 
               <div>
                 <label htmlFor="zoho-range" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
@@ -222,7 +206,7 @@ export default function ZohoSyncModal({ categories, onUpdate, onClose, oauthRetu
           {connected && (
             <button
               onClick={sync}
-              disabled={syncing || !calendarUid || !categoryId}
+              disabled={syncing || !calendarUid}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
             >
               {syncing ? "Syncing…" : "Sync now"}

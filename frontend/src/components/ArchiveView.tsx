@@ -64,7 +64,7 @@ export default function ArchiveView({ categories, categoryMap, onUpdate }: Props
             <CardItem
               key={card.id}
               card={card}
-              category={categoryMap[card.category_id]}
+              category={categoryMap[card.category_id ?? ""]}
               categories={categories}
               onUpdate={refresh}
               onUnarchive={() => handleUnarchive(card)}

@@ -17,7 +17,7 @@ from jose import jwt, JWTError
 from config import get_jwt_secret
 from db import get_cards_table, get_users_table
 from .models import ZohoCalendarInfo, ZohoSyncResult
-from .store import get_zoho_credentials
+from .store import get_zoho_credentials, get_zoho_default_category
 
 # Data-center-specific endpoints. Defaults target the US (.com) data center; set
 # the env vars to the regional hosts (e.g. accounts.zoho.eu) for EU/IN/AU accounts.
@@ -328,9 +328,12 @@ def _apply_parsed(card: dict, parsed: dict, now: str) -> None:
 
 
 def sync_calendar(
-    username: str, calendar_uid: str, category_id: str, days: int = _MAX_RANGE_DAYS
+    username: str, calendar_uid: str, days: int = _MAX_RANGE_DAYS
 ) -> ZohoSyncResult:
     token = get_valid_access_token(username)
+    # The default category (if configured) is applied to newly imported cards;
+    # when unset, imported cards are created without a category.
+    default_category_id = get_zoho_default_category(username)
 
     start = datetime.now(timezone.utc).date()
     end = start + timedelta(days=max(1, min(days, _MAX_RANGE_DAYS)))
@@ -371,7 +374,6 @@ def sync_calendar(
             "username": username,
             "title": parsed["title"],
             "description": parsed["description"],
-            "category_id": category_id,
             "status": "ready_to_do",
             "priority": 0,
             "high_priority": False,
@@ -382,6 +384,8 @@ def sync_calendar(
             "created_at": now,
             "updated_at": now,
         }
+        if default_category_id:
+            item["category_id"] = default_category_id
         if parsed["todo_time"] is not None:
             item["todo_time"] = parsed["todo_time"]
         cards_table.put_item(Item=item)

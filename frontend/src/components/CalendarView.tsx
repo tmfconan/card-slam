@@ -326,7 +326,6 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
 
       {showZoho && (
         <ZohoSyncModal
-          categories={categories}
           onUpdate={onUpdate}
           onClose={() => setShowZoho(false)}
           oauthReturn={zohoReturn}
@@ -381,7 +380,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                         <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}>
                           <CardItem
                             card={card}
-                            category={categoryMap[card.category_id]}
+                            category={categoryMap[card.category_id ?? ""]}
                             isDragging={snap.isDragging}
                             onUpdate={onUpdate}
                             categories={categories}
@@ -455,7 +454,7 @@ export default function CalendarView({ cards, categories, categoryMap, onUpdate,
                             <div ref={prov.innerRef} {...prov.draggableProps} {...prov.dragHandleProps}>
                               <CardItem
                                 card={card}
-                                category={categoryMap[card.category_id]}
+                                category={categoryMap[card.category_id ?? ""]}
                                 isDragging={snap.isDragging}
                                 onUpdate={onUpdate}
                                 categories={categories}

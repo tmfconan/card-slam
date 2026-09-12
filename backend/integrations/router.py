@@ -62,9 +62,7 @@ def zoho_calendars(username: str = Depends(verify_token)):
 @router.post("/zoho/sync", response_model=ZohoSyncResult)
 def zoho_sync(body: ZohoSyncRequest, username: str = Depends(verify_token)):
     try:
-        return service.sync_calendar(
-            username, body.calendar_uid, body.category_id, body.days
-        )
+        return service.sync_calendar(username, body.calendar_uid, body.days)
     except ZohoNotConnected:
         raise HTTPException(status_code=409, detail="Zoho not connected")
     except ZohoError as exc:
@@ -89,7 +87,9 @@ def get_zoho_config(username: str = Depends(verify_token)):
 @router.put("/zoho/config", response_model=ZohoConfigStatus)
 def put_zoho_config(body: ZohoConfigUpdate, username: str = Depends(verify_token)):
     try:
-        store.set_zoho_config(username, body.client_id, body.client_secret)
+        store.set_zoho_config(
+            username, body.client_id, body.client_secret, body.default_category_id
+        )
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc))
     return ZohoConfigStatus(**store.get_zoho_config_status(username))

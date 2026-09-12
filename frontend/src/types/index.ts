@@ -64,7 +64,7 @@ export interface Card {
   id: string;
   title: string;
   description: string;
-  category_id: string;
+  category_id?: string;   // unset for imported cards with no default category
   status: Status;
   priority: number;
   high_priority?: boolean;
