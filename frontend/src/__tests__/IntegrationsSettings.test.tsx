@@ -36,14 +36,20 @@ describe("IntegrationsSettings", () => {
   });
 
   it("saves the user's own client_id and secret via PUT", async () => {
-    let saved: { client_id?: string; client_secret?: string } | null = null;
+    let saved:
+      | { client_id?: string; client_secret?: string; default_category_id?: string | null }
+      | null = null;
     server.use(
       http.get(CONFIG_URL, () =>
-        HttpResponse.json({ configured: false, client_id: null })
+        HttpResponse.json({ configured: false, client_id: null, default_category_id: null })
       ),
       http.put(CONFIG_URL, async ({ request }) => {
         saved = (await request.json()) as typeof saved;
-        return HttpResponse.json({ configured: true, client_id: saved!.client_id });
+        return HttpResponse.json({
+          configured: true,
+          client_id: saved!.client_id,
+          default_category_id: saved!.default_category_id ?? null,
+        });
       })
     );
 
@@ -58,8 +64,60 @@ describe("IntegrationsSettings", () => {
       expect(saved).toEqual({
         client_id: "user-client",
         client_secret: "user-secret",
+        default_category_id: null,
       });
     });
+  });
+
+  it("saves the chosen default category with the config", async () => {
+    let saved: { default_category_id?: string | null } | null = null;
+    server.use(
+      http.get(CONFIG_URL, () =>
+        HttpResponse.json({ configured: false, client_id: null, default_category_id: null })
+      ),
+      http.put(CONFIG_URL, async ({ request }) => {
+        saved = (await request.json()) as typeof saved;
+        return HttpResponse.json({
+          configured: true,
+          client_id: "user-client",
+          default_category_id: saved!.default_category_id ?? null,
+        });
+      })
+    );
+
+    const user = userEvent.setup();
+    render(<IntegrationsSettings />);
+
+    await user.type(await screen.findByLabelText("Client ID"), "user-client");
+    await user.type(screen.getByLabelText("Client Secret"), "user-secret");
+    // The picker is populated from the mocked /categories/ handler (Frontend/Backend).
+    await user.selectOptions(
+      await screen.findByLabelText("Default card category"),
+      "cat-2"
+    );
+    await user.click(screen.getByRole("button", { name: /save/i }));
+
+    await waitFor(() => {
+      expect(saved?.default_category_id).toBe("cat-2");
+    });
+  });
+
+  it("pre-selects the previously saved default category", async () => {
+    server.use(
+      http.get(CONFIG_URL, () =>
+        HttpResponse.json({
+          configured: true,
+          client_id: "my-client-id",
+          default_category_id: "cat-2",
+        })
+      )
+    );
+    render(<IntegrationsSettings />);
+
+    const select = (await screen.findByLabelText(
+      "Default card category"
+    )) as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe("cat-2"));
   });
 
   it("requires the secret for a brand-new configuration", async () => {

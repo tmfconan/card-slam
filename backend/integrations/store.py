@@ -7,24 +7,35 @@ appears in the authorize URL the browser sees) and is kept in plaintext for
 display; the ``client_secret`` is encrypted via ``crypto``.
 """
 from datetime import datetime, timezone
+from typing import Optional
 
 from db import get_users_table
 from . import crypto
 
 
 def get_zoho_config_status(username: str) -> dict:
-    """For the user's integration UI: whether they've configured Zoho and their
-    (non-secret) client_id."""
+    """For the user's integration UI: whether they've configured Zoho, their
+    (non-secret) client_id, and the default category for imported cards."""
     item = get_users_table().get_item(Key={"username": username}).get("Item") or {}
     if not item.get("zoho_client_secret_encrypted"):
-        return {"configured": False, "client_id": None}
-    return {"configured": True, "client_id": item.get("zoho_client_id")}
+        return {"configured": False, "client_id": None, "default_category_id": None}
+    return {
+        "configured": True,
+        "client_id": item.get("zoho_client_id"),
+        "default_category_id": item.get("zoho_default_category_id"),
+    }
 
 
-def set_zoho_config(username: str, client_id: str, client_secret: str) -> None:
+def set_zoho_config(
+    username: str,
+    client_id: str,
+    client_secret: str,
+    default_category_id: Optional[str] = None,
+) -> None:
     """Store the user's Zoho credentials. A blank ``client_secret`` keeps the
     existing encrypted secret (so the user can edit the client_id without
-    re-typing it)."""
+    re-typing it). A falsy ``default_category_id`` clears the stored default so
+    imported cards get no category."""
     table = get_users_table()
 
     if client_secret:
@@ -35,18 +46,35 @@ def set_zoho_config(username: str, client_id: str, client_secret: str) -> None:
         if not encrypted:
             raise ValueError("client_secret is required")
 
+    set_parts = [
+        "zoho_client_id = :c",
+        "zoho_client_secret_encrypted = :s",
+        "zoho_config_updated_at = :u",
+    ]
+    values = {
+        ":c": client_id,
+        ":s": encrypted,
+        ":u": datetime.now(timezone.utc).isoformat(),
+    }
+    if default_category_id:
+        set_parts.append("zoho_default_category_id = :d")
+        values[":d"] = default_category_id
+        expression = "SET " + ", ".join(set_parts)
+    else:
+        expression = "SET " + ", ".join(set_parts) + " REMOVE zoho_default_category_id"
+
     table.update_item(
         Key={"username": username},
-        UpdateExpression=(
-            "SET zoho_client_id = :c, zoho_client_secret_encrypted = :s, "
-            "zoho_config_updated_at = :u"
-        ),
-        ExpressionAttributeValues={
-            ":c": client_id,
-            ":s": encrypted,
-            ":u": datetime.now(timezone.utc).isoformat(),
-        },
+        UpdateExpression=expression,
+        ExpressionAttributeValues=values,
     )
+
+
+def get_zoho_default_category(username: str) -> Optional[str]:
+    """Return the user's configured default card category for imported events,
+    or ``None`` if they haven't set one."""
+    item = get_users_table().get_item(Key={"username": username}).get("Item") or {}
+    return item.get("zoho_default_category_id")
 
 
 def get_zoho_credentials(username: str) -> tuple:
@@ -62,6 +90,7 @@ def delete_zoho_config(username: str) -> None:
     get_users_table().update_item(
         Key={"username": username},
         UpdateExpression=(
-            "REMOVE zoho_client_id, zoho_client_secret_encrypted, zoho_config_updated_at"
+            "REMOVE zoho_client_id, zoho_client_secret_encrypted, "
+            "zoho_config_updated_at, zoho_default_category_id"
         ),
     )

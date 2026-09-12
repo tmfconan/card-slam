@@ -16,7 +16,7 @@ export default function CardDetail({ card, categories, onSave, onClose }: Props)
   const isAdmin = currentUser?.role === "admin";
   const [title, setTitle] = useState(card.title);
   const [description, setDescription] = useState(card.description);
-  const [categoryId, setCategoryId] = useState(card.category_id);
+  const [categoryId, setCategoryId] = useState(card.category_id ?? "");
   const [status, setStatus] = useState<Status>(card.status);
   const [highPriority, setHighPriority] = useState(card.high_priority ?? false);
   const [duration, setDuration] = useState(card.duration ?? 30);

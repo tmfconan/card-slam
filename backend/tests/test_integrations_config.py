@@ -52,7 +52,34 @@ def test_status_never_exposes_secret(dynamo_tables):
     assert store.get_zoho_config_status("admin") == {
         "configured": True,
         "client_id": "client-123",
+        "default_category_id": None,
     }
+
+
+def test_default_category_is_stored_and_returned(dynamo_tables):
+    from integrations import store
+
+    store.set_zoho_config("admin", "client-123", "secret-xyz", "cat-1")
+
+    assert store.get_zoho_config_status("admin")["default_category_id"] == "cat-1"
+    assert store.get_zoho_default_category("admin") == "cat-1"
+
+
+def test_blank_default_category_clears_existing(dynamo_tables):
+    from integrations import store
+
+    store.set_zoho_config("admin", "client-123", "secret-xyz", "cat-1")
+    # Re-saving without a default category clears it (keeping the secret).
+    store.set_zoho_config("admin", "client-123", "")
+
+    assert store.get_zoho_default_category("admin") is None
+    assert store.get_zoho_config_status("admin")["default_category_id"] is None
+
+
+def test_unconfigured_user_has_no_default_category(dynamo_tables):
+    from integrations import store
+
+    assert store.get_zoho_default_category("alice") is None
 
 
 def test_blank_secret_on_update_keeps_existing(dynamo_tables):
@@ -110,10 +137,31 @@ def test_regular_user_configures_and_status_hides_secret(client, user_auth_heade
         headers=user_auth_headers,
     )
     assert put.status_code == 200
-    assert put.json() == {"configured": True, "client_id": "cid"}
+    assert put.json() == {
+        "configured": True,
+        "client_id": "cid",
+        "default_category_id": None,
+    }
 
     get = client.get(_CONFIG_URL, headers=user_auth_headers)
-    assert get.json() == {"configured": True, "client_id": "cid"}
+    assert get.json() == {
+        "configured": True,
+        "client_id": "cid",
+        "default_category_id": None,
+    }
+
+
+def test_config_round_trips_default_category(client, user_auth_headers):
+    put = client.put(
+        _CONFIG_URL,
+        json={"client_id": "cid", "client_secret": "sec", "default_category_id": "cat-9"},
+        headers=user_auth_headers,
+    )
+    assert put.status_code == 200
+    assert put.json()["default_category_id"] == "cat-9"
+
+    get = client.get(_CONFIG_URL, headers=user_auth_headers)
+    assert get.json()["default_category_id"] == "cat-9"
 
 
 def test_each_user_sees_only_their_own_config(client, auth_headers, user_auth_headers):

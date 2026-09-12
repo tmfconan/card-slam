@@ -437,7 +437,7 @@ export default function DailyView({
         <div className="flex-1 min-w-0 overflow-hidden">
           <CardItem
             card={card}
-            category={categoryMap[card.category_id]}
+            category={categoryMap[card.category_id ?? ""]}
             isDragging={isBeingDragged}
             onUpdate={onUpdate}
             categories={categories}
@@ -584,7 +584,7 @@ export default function DailyView({
                     <div className="flex-1 min-w-0 min-h-0 h-full overflow-hidden">
                       <CardItem
                         card={card}
-                        category={categoryMap[card.category_id]}
+                        category={categoryMap[card.category_id ?? ""]}
                         isDragging={isBeingDragged}
                         onUpdate={onUpdate}
                         categories={categories}

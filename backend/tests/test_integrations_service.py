@@ -120,8 +120,9 @@ def test_sync_creates_card(dynamo, monkeypatch):
 
     monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
     monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: "cat-1")
 
-    result = service.sync_calendar("admin", "cal-uid", "cat-1")
+    result = service.sync_calendar("admin", "cal-uid")
 
     assert (result.created, result.updated, result.skipped) == (1, 0, 0)
     items = dynamo.Table("card-slam-cards").scan()["Items"]
@@ -136,14 +137,29 @@ def test_sync_creates_card(dynamo, monkeypatch):
     assert int(card["duration"]) == 60
 
 
+def test_sync_without_default_category_leaves_card_uncategorized(dynamo, monkeypatch):
+    from integrations import service
+
+    monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
+    monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: None)
+
+    result = service.sync_calendar("admin", "cal-uid")
+
+    assert (result.created, result.updated, result.skipped) == (1, 0, 0)
+    card = dynamo.Table("card-slam-cards").scan()["Items"][0]
+    assert "category_id" not in card
+
+
 def test_resync_unchanged_event_is_skipped(dynamo, monkeypatch):
     from integrations import service
 
     monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
     monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: "cat-1")
 
-    service.sync_calendar("admin", "cal-uid", "cat-1")
-    result = service.sync_calendar("admin", "cal-uid", "cat-1")
+    service.sync_calendar("admin", "cal-uid")
+    result = service.sync_calendar("admin", "cal-uid")
 
     assert (result.created, result.updated, result.skipped) == (0, 0, 1)
     assert len(dynamo.Table("card-slam-cards").scan()["Items"]) == 1
@@ -154,11 +170,12 @@ def test_resync_changed_event_updates_card(dynamo, monkeypatch):
 
     monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
     monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
-    service.sync_calendar("admin", "cal-uid", "cat-1")
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: "cat-1")
+    service.sync_calendar("admin", "cal-uid")
 
     changed = [{**_events()[0], "title": "Meeting (moved)", "end": "20240115T120000"}]
     monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: changed)
-    result = service.sync_calendar("admin", "cal-uid", "cat-1")
+    result = service.sync_calendar("admin", "cal-uid")
 
     assert (result.created, result.updated, result.skipped) == (0, 1, 0)
     items = dynamo.Table("card-slam-cards").scan()["Items"]

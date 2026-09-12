@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from "react";
+import { Category } from "../types";
 import api from "../api/client";
 
 interface ZohoConfigStatus {
   configured: boolean;
   client_id: string | null;
+  default_category_id: string | null;
 }
 
 function ZohoCard() {
@@ -11,6 +13,8 @@ function ZohoCard() {
   const [configured, setConfigured] = useState(false);
   const [clientId, setClientId] = useState("");
   const [clientSecret, setClientSecret] = useState("");
+  const [defaultCategoryId, setDefaultCategoryId] = useState("");
+  const [categories, setCategories] = useState<Category[]>([]);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState("");
@@ -20,6 +24,7 @@ function ZohoCard() {
       const { data } = await api.get<ZohoConfigStatus>("/integrations/zoho/config");
       setConfigured(data.configured);
       setClientId(data.client_id ?? "");
+      setDefaultCategoryId(data.default_category_id ?? "");
     } catch {
       setError("Couldn't load Zoho configuration.");
     } finally {
@@ -28,6 +33,13 @@ function ZohoCard() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    api
+      .get<Category[]>("/categories/")
+      .then(({ data }) => setCategories(data))
+      .catch(() => {/* category picker just stays empty */});
+  }, []);
 
   const save = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +56,7 @@ function ZohoCard() {
       await api.put("/integrations/zoho/config", {
         client_id: clientId.trim(),
         client_secret: clientSecret,   // blank keeps the stored secret
+        default_category_id: defaultCategoryId || null,   // null clears the default
       });
       setClientSecret("");
       setSaved(true);
@@ -60,6 +73,7 @@ function ZohoCard() {
     await api.delete("/integrations/zoho/config");
     setClientId("");
     setClientSecret("");
+    setDefaultCategoryId("");
     setConfigured(false);
     setSaved(false);
   };
@@ -111,6 +125,25 @@ function ZohoCard() {
             />
             <p className="text-xs text-gray-400 mt-1">
               Stored encrypted. Leave blank to keep the existing secret.
+            </p>
+          </div>
+          <div>
+            <label htmlFor="zoho-default-category" className="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">
+              Default card category
+            </label>
+            <select
+              id="zoho-default-category"
+              value={defaultCategoryId}
+              onChange={(e) => setDefaultCategoryId(e.target.value)}
+              className="w-full border dark:border-gray-700 dark:bg-gray-900 dark:text-gray-100 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">No category</option>
+              {categories.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <p className="text-xs text-gray-400 mt-1">
+              Applied to each imported card. Leave as “No category” to import cards without one.
             </p>
           </div>
 

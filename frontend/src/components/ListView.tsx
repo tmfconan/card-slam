@@ -238,7 +238,7 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
       {/* ── Mobile card list (no horizontal scroll) ─────────────────────────── */}
       <div data-testid="list-mobile" className="sm:hidden space-y-2">
         {filtered.map((card) => {
-          const category = categoryMap[card.category_id];
+          const category = categoryMap[card.category_id ?? ""];
           return (
             <div
               key={card.id}
@@ -317,7 +317,7 @@ export default function ListView({ cards, categories, categoryMap, onUpdate }: P
           </thead>
           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
             {filtered.map((card) => {
-              const category = categoryMap[card.category_id];
+              const category = categoryMap[card.category_id ?? ""];
               return (
                 <tr
                   key={card.id}

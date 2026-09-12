@@ -74,7 +74,7 @@ class Card(BaseModel):
     id: str
     title: str
     description: str
-    category_id: str
+    category_id: Optional[str] = None   # unset for e.g. imported cards with no default category
     status: Status
     priority: int
     high_priority: bool = False
