@@ -361,8 +361,17 @@ def sync_calendar(
 
         card = existing.get(uid)
         if card is not None:
-            if _changed(card, parsed):
-                _apply_parsed(card, parsed, now)
+            changed = _changed(card, parsed)
+            # Backfill the default category onto a previously-imported card that
+            # doesn't have one yet (e.g. it was imported before a default was
+            # configured). A category the user already set is left untouched.
+            backfill_category = bool(default_category_id) and not card.get("category_id")
+            if changed or backfill_category:
+                if changed:
+                    _apply_parsed(card, parsed, now)
+                if backfill_category:
+                    card["category_id"] = default_category_id
+                    card["updated_at"] = now
                 cards_table.put_item(Item=card)
                 updated += 1
             else:
