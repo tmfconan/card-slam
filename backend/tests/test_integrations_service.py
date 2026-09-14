@@ -182,3 +182,116 @@ def test_resync_changed_event_updates_card(dynamo, monkeypatch):
     assert len(items) == 1
     assert items[0]["title"] == "Meeting (moved)"
     assert int(items[0]["duration"]) == 120
+
+
+def test_resync_backfills_default_category_onto_uncategorized_card(dynamo, monkeypatch):
+    """A card imported before a default category was configured gets the default
+    applied on the next sync (even when the event itself is unchanged)."""
+    from integrations import service
+
+    monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
+    monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
+
+    # First import: no default category configured -> card has none.
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: None)
+    service.sync_calendar("admin", "cal-uid")
+    card = dynamo.Table("card-slam-cards").scan()["Items"][0]
+    assert "category_id" not in card
+
+    # User configures a default, then re-syncs the same (unchanged) event.
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: "cat-1")
+    result = service.sync_calendar("admin", "cal-uid")
+
+    assert (result.created, result.updated, result.skipped) == (0, 1, 0)
+    card = dynamo.Table("card-slam-cards").scan()["Items"][0]
+    assert card["category_id"] == "cat-1"
+
+
+def test_resync_does_not_override_existing_category(dynamo, monkeypatch):
+    """Re-syncing never clobbers a category already on an imported card."""
+    from integrations import service
+
+    monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
+    monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
+
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: "cat-1")
+    service.sync_calendar("admin", "cal-uid")
+
+    # The default changes, but the unchanged card keeps its original category.
+    monkeypatch.setattr(service, "get_zoho_default_category", lambda u: "cat-2")
+    result = service.sync_calendar("admin", "cal-uid")
+
+    assert (result.created, result.updated, result.skipped) == (0, 0, 1)
+    card = dynamo.Table("card-slam-cards").scan()["Items"][0]
+    assert card["category_id"] == "cat-1"
+
+
+# ── full-stack: config default category flows through to imported cards ───────
+# These exercise the real store -> sync path (the unit tests above stub out the
+# default-category lookup), mocking only Zoho's external HTTP calls.
+
+def test_sync_via_api_assigns_configured_default_category(client, user_auth_headers, monkeypatch):
+    from integrations import service
+    from db import get_cards_table
+
+    put = client.put(
+        "/api/integrations/zoho/config",
+        json={"client_id": "cid", "client_secret": "sec", "default_category_id": "cat-2"},
+        headers=user_auth_headers,
+    )
+    assert put.status_code == 200, put.text
+
+    monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
+    monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
+
+    resp = client.post(
+        "/api/integrations/zoho/sync",
+        json={"calendar_uid": "cal-uid", "days": 31},
+        headers=user_auth_headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["created"] == 1
+
+    imported = [c for c in get_cards_table().scan()["Items"] if c.get("zoho_event_uid") == "evt-1"]
+    assert len(imported) == 1
+    assert imported[0].get("category_id") == "cat-2"
+
+
+def test_sync_via_api_backfills_default_onto_previously_imported_card(client, user_auth_headers, monkeypatch):
+    from integrations import service
+    from db import get_cards_table
+
+    monkeypatch.setattr(service, "get_valid_access_token", lambda u: "tok")
+    monkeypatch.setattr(service, "_fetch_events", lambda *a, **k: _events())
+
+    # Configure without a default, import once -> card is uncategorized.
+    client.put(
+        "/api/integrations/zoho/config",
+        json={"client_id": "cid", "client_secret": "sec"},
+        headers=user_auth_headers,
+    )
+    client.post(
+        "/api/integrations/zoho/sync",
+        json={"calendar_uid": "cal-uid", "days": 31},
+        headers=user_auth_headers,
+    )
+    imported = [c for c in get_cards_table().scan()["Items"] if c.get("zoho_event_uid") == "evt-1"]
+    assert imported and imported[0].get("category_id") is None
+
+    # Now set a default and re-sync -> the existing card is backfilled.
+    client.put(
+        "/api/integrations/zoho/config",
+        json={"client_id": "cid", "client_secret": "", "default_category_id": "cat-1"},
+        headers=user_auth_headers,
+    )
+    resp = client.post(
+        "/api/integrations/zoho/sync",
+        json={"calendar_uid": "cal-uid", "days": 31},
+        headers=user_auth_headers,
+    )
+    assert resp.status_code == 200, resp.text
+    assert resp.json()["updated"] == 1
+
+    imported = [c for c in get_cards_table().scan()["Items"] if c.get("zoho_event_uid") == "evt-1"]
+    assert len(imported) == 1
+    assert imported[0].get("category_id") == "cat-1"
